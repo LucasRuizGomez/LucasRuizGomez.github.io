@@ -398,6 +398,23 @@ body {
   margin:9px auto 0;
 }
 
+/* ── RESPONSIVE ── */
+@media (max-width: 720px) {
+  body { padding: 12px 8px 10px; justify-content: flex-start; }
+  .vst-window { display: none; }
+  .conn-area  { display: none; }
+  .scene { justify-content: center; }
+  .phone { width: 200px; }
+  .phone-chrome { width: 200px; }
+  .scene-labels .slbl:first-child,
+  .scene-labels .slbl-mid { display: none; }
+  .caption { font-size: 10px; margin-bottom: 8px; }
+}
+@media (max-width: 480px) {
+  .phone { width: 170px; }
+  .phone-chrome { width: 170px; }
+}
+
 /* ── BOTTOM LABELS ── */
 .scene-labels {
   display:flex; justify-content:space-between; align-items:center;
