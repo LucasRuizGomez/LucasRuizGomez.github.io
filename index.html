@@ -3,295 +3,443 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lukeda Suite</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Trebuchet+MS&display=swap" rel="stylesheet">
+  <title>Lukeda Suite — Audio Plugin Collection</title>
   <style>
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
   body {
-    font-family: 'Inter', system-ui, sans-serif;
-    font-size: 14px;
+    font-family: Verdana, Tahoma, Arial, sans-serif;
+    font-size: 11px;
+
+    /* ── Teal wave wallpaper (CSS recreation) ──
+       Layers: sparkle dots · light rays · ribbon waves · base gradient */
+    background-color: #005060;
+    background-image:
+      /* Sparkle cluster top-center */
+      radial-gradient(circle at 58%  7%, rgba(200,255,248,0.95) 0%, transparent 0.6%),
+      radial-gradient(circle at 62%  5%, rgba(200,255,248,0.80) 0%, transparent 0.5%),
+      radial-gradient(circle at 55%  9%, rgba(200,255,248,0.70) 0%, transparent 0.4%),
+      radial-gradient(circle at 65%  4%, rgba(200,255,248,0.65) 0%, transparent 0.45%),
+      radial-gradient(circle at 53%  6%, rgba(200,255,248,0.55) 0%, transparent 0.35%),
+      radial-gradient(circle at 67%  8%, rgba(200,255,248,0.50) 0%, transparent 0.35%),
+      radial-gradient(circle at 60% 11%, rgba(200,255,248,0.40) 0%, transparent 0.3%),
+      radial-gradient(circle at 70%  6%, rgba(200,255,248,0.35) 0%, transparent 0.3%),
+      /* Bright inner light ray (narrow beam) */
+      radial-gradient(ellipse 18%  70% at 57%  0%, rgba(160,255,240,0.55) 0%, transparent 55%),
+      /* Outer soft glow halo */
+      radial-gradient(ellipse 70%  65% at 55%  0%, rgba(0,220,195,0.32) 0%, transparent 58%),
+      radial-gradient(ellipse 45%  50% at 52%  0%, rgba(0,255,210,0.20) 0%, transparent 48%),
+      /* Ribbon wave 1 — sweeps upper-left to center-right */
+      radial-gradient(ellipse 160% 18% at 18% 42%, rgba(0,210,185,0.18) 0%, transparent 55%),
+      /* Ribbon wave 2 — lower, wider arc */
+      radial-gradient(ellipse 180% 14% at 35% 62%, rgba(0,190,170,0.13) 0%, transparent 52%),
+      /* Deep shadow corners */
+      radial-gradient(ellipse  80% 55% at 100% 100%, rgba(0,30,50,0.55) 0%, transparent 58%),
+      radial-gradient(ellipse  60% 45% at   0% 100%, rgba(0,40,55,0.35) 0%, transparent 50%),
+      /* Base teal gradient */
+      linear-gradient(155deg, #008a8e 0%, #006878 20%, #005068 42%, #003c58 64%, #002848 84%, #001c3a 100%);
+    background-attachment: fixed;
+
     min-height: 100vh;
-    background:
-      radial-gradient(ellipse 80% 60% at 20% 10%, rgba(96,165,250,0.12) 0%, transparent 60%),
-      radial-gradient(ellipse 60% 50% at 80% 80%, rgba(139,92,246,0.08) 0%, transparent 55%),
-      linear-gradient(160deg, #0d1117 0%, #090d14 50%, #060810 100%);
-    padding: 48px 20px 64px;
+    padding: 22px 16px 48px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    color: #e2e8f0;
+    color: #9ad8d0;
   }
 
-  /* ─── LAYOUT ─── */
-  .page { width: 100%; max-width: 780px; display: flex; flex-direction: column; gap: 0; }
+  /* ─ WRAPPER ─ */
+  .page { width: 100%; max-width: 760px; }
 
-  /* ─── HEADER ─── */
-  .header {
-    padding: 0 0 56px;
-    position: relative;
+  /* ─ SYSTEM BAR ─ */
+  .sysbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(180deg, rgba(0,25,35,0.92) 0%, rgba(0,18,28,0.95) 100%);
+    border: 1px solid rgba(0,180,165,0.22);
+    border-bottom: 1px solid rgba(0,150,140,0.15);
+    padding: 5px 12px;
+    font-size: 9px;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 0.06em;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
   }
-  .header-eyebrow {
-    font-size: 11px;
-    font-weight: 500;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: rgba(148,163,184,0.6);
-    margin-bottom: 18px;
-  }
-  .brand {
-    font-family: 'Trebuchet MS', sans-serif;
-    font-size: clamp(42px, 8vw, 68px);
+  .sysbar-left {
+    color: #1a9a90;
     font-weight: bold;
-    line-height: 1;
-    letter-spacing: -0.02em;
-    color: #f8fafc;
-    margin-bottom: 16px;
-  }
-  .brand span {
-    color: transparent;
-    -webkit-text-stroke: 1px rgba(255,255,255,0.25);
-  }
-  .tagline {
-    font-size: 15px;
-    font-weight: 300;
-    color: rgba(148,163,184,0.8);
-    line-height: 1.6;
-    max-width: 460px;
-  }
-  .header-line {
-    width: 100%;
-    height: 1px;
-    background: linear-gradient(90deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.04) 60%, transparent 100%);
-    margin-top: 48px;
-  }
-
-  /* ─── SECTION LABEL ─── */
-  .section-label {
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.16em;
     text-transform: uppercase;
-    color: rgba(148,163,184,0.45);
-    margin-bottom: 20px;
-    margin-top: 48px;
+  }
+  .sysbar-right {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    color: #0d6a60;
+    text-transform: uppercase;
+  }
+  .online-badge {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: #22bb99;
+  }
+  .led {
+    display: inline-block;
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 38% 32%, #88ffee, #00cc99);
+    box-shadow: 0 0 6px rgba(0,220,180,0.9);
+    animation: ledPulse 2.2s ease-in-out infinite;
+  }
+  @keyframes ledPulse {
+    0%, 100% { box-shadow: 0 0 6px rgba(0,220,180,0.9); opacity: 1; }
+    50%       { box-shadow: 0 0 2px rgba(0,220,180,0.3); opacity: 0.5; }
   }
 
-  /* ─── GLASS CARD BASE ─── */
-  .glass {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 16px;
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-  }
-  .glass-hover {
-    transition: background 0.2s, border-color 0.2s, transform 0.2s, box-shadow 0.2s;
-    cursor: pointer;
-    text-decoration: none;
-    display: block;
-  }
-  .glass-hover:hover {
-    background: rgba(255,255,255,0.07);
-    border-color: rgba(255,255,255,0.14);
-    transform: translateY(-2px);
-    box-shadow: 0 12px 40px rgba(0,0,0,0.4);
-  }
-
-  /* ─── ABOUT BLURB ─── */
-  .about-block {
-    padding: 28px 32px;
-    margin-bottom: 0;
-  }
-  .about-text {
-    font-size: 14px;
-    font-weight: 300;
-    color: rgba(203,213,225,0.75);
-    line-height: 1.75;
-    margin-bottom: 16px;
-  }
-  .about-callout {
-    font-size: 13px;
-    font-style: italic;
-    color: rgba(148,163,184,0.6);
-    padding-left: 16px;
-    border-left: 2px solid rgba(96,165,250,0.35);
-  }
-
-  /* ─── PLUGIN GRID ─── */
-  .plugin-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 12px;
-  }
-
-  .plugin-card {
-    padding: 24px 24px 20px;
+  /* ─ HEADER ─ */
+  .header-panel {
+    background: linear-gradient(180deg, rgba(0,25,38,0.90) 0%, rgba(0,18,30,0.93) 100%);
+    border: 1px solid rgba(0,180,165,0.22);
+    border-top: none;
+    border-bottom: 2px solid rgba(0,160,148,0.18);
+    padding: 30px 28px 26px;
     position: relative;
     overflow: hidden;
+    margin-top: -1px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  .header-panel::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(0,220,195,0.5), transparent);
+  }
+  .header-panel::after {
+    content: '';
+    position: absolute;
+    top: -60px; right: -40px;
+    width: 280px; height: 180px;
+    background: radial-gradient(ellipse, rgba(0,200,180,0.06) 0%, transparent 65%);
+    pointer-events: none;
+  }
+
+  .brand {
+    font-family: 'Trebuchet MS', Impact, Arial, sans-serif;
+    font-size: clamp(28px, 6vw, 44px);
+    font-weight: bold;
+    color: #c0f0ea;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    line-height: 1;
+    margin-bottom: 5px;
+    text-shadow: 0 0 24px rgba(0,220,195,0.4), 0 2px 6px rgba(0,0,0,0.5);
+    position: relative; z-index: 1;
+  }
+  .brand-ver {
+    font-family: 'Courier New', monospace;
+    font-size: 9px;
+    color: #0a7868;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    position: relative; z-index: 1;
+  }
+  .brand-tagline {
+    font-size: 11px;
+    color: #3a9888;
+    line-height: 1.75;
+    max-width: 460px;
+    position: relative; z-index: 1;
+  }
+
+  /* ─ NAVBAR ─ */
+  .navbar {
+    display: flex;
+    align-items: stretch;
+    background: linear-gradient(180deg, rgba(0,20,30,0.93) 0%, rgba(0,14,22,0.96) 100%);
+    border: 1px solid rgba(0,180,165,0.22);
+    border-top: none;
+    margin-top: -1px;
+    overflow: hidden;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+  .nav-prefix {
+    padding: 0 12px;
+    font-family: 'Courier New', monospace;
+    font-size: 9px;
+    font-weight: bold;
+    color: #0a6858;
+    border-right: 1px solid rgba(0,150,140,0.15);
+    display: flex;
+    align-items: center;
+    background: rgba(0,15,25,0.5);
+    white-space: nowrap;
+  }
+  .nav-items { display: flex; }
+  .nav-lnk {
+    display: flex;
+    align-items: center;
+    padding: 9px 15px;
+    font-size: 9px;
+    font-family: Verdana, Tahoma, sans-serif;
+    font-weight: bold;
+    color: #1a7a6a;
+    text-decoration: none;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    border-right: 1px solid rgba(0,150,140,0.12);
+    position: relative;
+    transition: background 0.1s, color 0.1s;
+  }
+  .nav-lnk:hover {
+    background: rgba(0,180,160,0.1);
+    color: #44ddc8;
+  }
+  .nav-lnk.active {
+    color: #33ccbb;
+    background: rgba(0,180,160,0.08);
+  }
+  .nav-lnk.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #00bbaa 40%, transparent);
+  }
+
+  /* ─ SECTION PANEL ─ */
+  .panel {
+    border: 1px solid rgba(0,180,165,0.20);
+    border-top: none;
+    background: rgba(0,18,28,0.88);
+    margin-top: -1px;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+  .panel-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    background: rgba(0,30,42,0.6);
+    border-bottom: 1px solid rgba(0,150,140,0.14);
+    font-size: 8px;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    color: #1a8878;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+  }
+  .panel-head::before { content: '++ '; color: #0a5a50; }
+  .panel-body { padding: 18px 20px; }
+
+  /* ─ ABOUT ─ */
+  .about-text {
+    font-size: 11px;
+    color: #3a9888;
+    line-height: 1.8;
+    margin-bottom: 10px;
+    max-width: 600px;
+  }
+  .about-quote {
+    font-family: 'Courier New', monospace;
+    font-size: 10px;
+    color: #1a7868;
+    padding: 8px 14px;
+    border-left: 2px solid #009988;
+    background: rgba(0,160,140,0.07);
+    line-height: 1.6;
+    letter-spacing: 0.02em;
+  }
+
+  /* ─ PLUGIN GRID ─ */
+  .plugin-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(215px, 1fr));
+    gap: 8px;
+  }
+  .plugin-card {
+    background: rgba(0,20,32,0.82);
+    border: 1px solid rgba(0,180,165,0.18);
+    padding: 14px 16px 13px;
+    display: block;
     color: inherit;
+    text-decoration: none;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.12s, background 0.12s;
   }
   .plugin-card::before {
     content: '';
     position: absolute;
     top: 0; left: 0; right: 0; height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+    background: linear-gradient(90deg, transparent, rgba(0,220,195,0.35), transparent);
   }
+  .plugin-card:hover {
+    border-color: rgba(0,200,180,0.35);
+    background: rgba(0,28,42,0.88);
+  }
+  .plugin-card.soon { opacity: 0.3; pointer-events: none; }
 
-  .plugin-card.soon {
-    opacity: 0.4;
-    pointer-events: none;
-  }
-
-  .plugin-icon-wrap {
-    width: 44px; height: 44px;
-    border-radius: 12px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 22px;
-    margin-bottom: 14px;
-    border: 1px solid rgba(255,255,255,0.1);
-  }
-  .icon-blue { background: linear-gradient(135deg, rgba(59,130,246,0.3), rgba(37,99,235,0.15)); }
-  .icon-gray { background: rgba(255,255,255,0.05); }
-
-  .plugin-name {
-    font-size: 16px;
-    font-weight: 600;
-    color: #f1f5f9;
-    margin-bottom: 6px;
-    letter-spacing: -0.01em;
-  }
-  .plugin-desc {
-    font-size: 12px;
-    font-weight: 300;
-    color: rgba(148,163,184,0.7);
-    line-height: 1.6;
-  }
-  .plugin-badge {
-    display: inline-block;
-    margin-top: 14px;
-    padding: 3px 10px;
-    border-radius: 20px;
-    font-size: 10px;
-    font-weight: 500;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-  }
-  .badge-live {
-    background: rgba(34,197,94,0.12);
-    border: 1px solid rgba(34,197,94,0.25);
-    color: #4ade80;
-  }
-  .badge-soon {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.08);
-    color: rgba(148,163,184,0.5);
-  }
-  .plugin-arrow {
-    position: absolute;
-    right: 20px; top: 24px;
-    font-size: 18px;
-    color: rgba(148,163,184,0.25);
-    transition: color 0.15s, right 0.15s;
-  }
-  .glass-hover:hover .plugin-arrow {
-    color: rgba(148,163,184,0.55);
-    right: 16px;
-  }
-
-  /* ─── PRICING BLOCK ─── */
-  .pricing-block {
-    padding: 32px;
+  .pc-row {
     display: flex;
     align-items: center;
-    gap: 32px;
+    justify-content: space-between;
+    margin-bottom: 7px;
+  }
+  .pc-name {
+    font-family: 'Trebuchet MS', Arial, sans-serif;
+    font-size: 13px;
+    font-weight: bold;
+    color: #88d8cc;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    text-shadow: 0 0 10px rgba(0,200,180,0.2);
+  }
+  .pc-tag {
+    font-family: 'Courier New', monospace;
+    font-size: 8px;
+    padding: 2px 7px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    border-radius: 1px;
+  }
+  .tag-live {
+    background: rgba(0,120,90,0.25);
+    border: 1px solid #0a5a3a;
+    color: #33ccaa;
+  }
+  .tag-soon {
+    background: rgba(0,40,50,0.4);
+    border: 1px solid rgba(0,150,140,0.2);
+    color: #1a7868;
+  }
+  .pc-desc {
+    font-size: 10px;
+    color: #2a7868;
+    line-height: 1.75;
+    margin-bottom: 8px;
+  }
+  .pc-link {
+    font-family: 'Courier New', monospace;
+    font-size: 9px;
+    color: #0a5848;
+    letter-spacing: 0.04em;
+  }
+
+  /* ─ RULE ─ */
+  .h-rule {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(0,180,160,0.22), transparent);
+    margin: 14px 0;
+  }
+
+  /* ─ SUBSCRIBE ─ */
+  .sub-row {
+    display: flex;
+    align-items: center;
+    gap: 28px;
     flex-wrap: wrap;
   }
-  .pricing-block::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0; height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
-  }
-  .pricing-block { position: relative; }
-
-  .price-amount {
-    font-family: 'Trebuchet MS', sans-serif;
-    font-size: 48px;
+  .price-big {
+    font-family: 'Trebuchet MS', Impact, Arial, sans-serif;
+    font-size: 30px;
     font-weight: bold;
-    color: #f8fafc;
+    color: #44ccbb;
     line-height: 1;
-    letter-spacing: -0.02em;
+    text-shadow: 0 0 14px rgba(0,200,175,0.3);
   }
-  .price-period {
-    font-size: 14px;
-    font-weight: 300;
-    color: rgba(148,163,184,0.55);
-    margin-left: 4px;
+  .price-per {
+    font-size: 11px;
+    color: #1a7868;
+    font-family: Verdana, sans-serif;
+    margin-left: 3px;
   }
-  .price-sub {
-    font-size: 12px;
-    font-weight: 300;
-    color: rgba(148,163,184,0.5);
-    margin-top: 6px;
+  .price-note {
+    font-family: 'Courier New', monospace;
+    font-size: 9px;
+    color: #0a5848;
+    margin-top: 5px;
+    letter-spacing: 0.04em;
+  }
+  .btn-main {
+    display: inline-block;
+    padding: 9px 22px;
+    background: linear-gradient(180deg, #009988 0%, #006655 100%);
+    border: 1px solid #005544;
+    color: #c0f0ea;
+    font-family: Verdana, Tahoma, sans-serif;
+    font-size: 10px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    text-decoration: none;
+    position: relative; overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,150,130,0.4), inset 0 1px 0 rgba(255,255,255,0.12), inset 0 -1px 0 rgba(0,30,25,0.2);
+    transition: all 0.12s;
+  }
+  .btn-main::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 50%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.12) 0%, transparent 100%);
+  }
+  .btn-main:hover {
+    background: linear-gradient(180deg, #00aa99 0%, #007766 100%);
+    color: #ddfaf5;
   }
 
-  .btn-subscribe {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 13px 28px;
-    border-radius: 10px;
-    background: rgba(255,255,255,0.08);
-    border: 1px solid rgba(255,255,255,0.14);
-    color: #f1f5f9;
-    font-size: 14px;
-    font-weight: 500;
-    text-decoration: none;
-    letter-spacing: 0.01em;
-    transition: background 0.18s, border-color 0.18s, transform 0.18s;
-    backdrop-filter: blur(10px);
+  /* ─ TICKER ─ */
+  .ticker-bar {
+    border: 1px solid rgba(0,180,165,0.18);
+    border-top: none;
+    margin-top: -1px;
+    background: rgba(0,12,20,0.92);
+    padding: 5px 0;
+    overflow: hidden;
     white-space: nowrap;
   }
-  .btn-subscribe:hover {
-    background: rgba(255,255,255,0.13);
-    border-color: rgba(255,255,255,0.22);
-    transform: translateY(-1px);
+  .ticker-inner {
+    display: inline-block;
+    font-family: 'Courier New', monospace;
+    font-size: 9px;
+    color: #0a5848;
+    letter-spacing: 0.04em;
+    animation: tickerScroll 35s linear infinite;
   }
-  .btn-subscribe .btn-dot {
-    width: 6px; height: 6px; border-radius: 50%;
-    background: #4ade80;
-    box-shadow: 0 0 6px rgba(74,222,128,0.6);
-    flex-shrink: 0;
+  @keyframes tickerScroll {
+    0%   { transform: translateX(100vw); }
+    100% { transform: translateX(-100%); }
   }
 
-  /* ─── FOOTER ─── */
-  .footer {
-    margin-top: 56px;
+  /* ─ FOOTER ─ */
+  .footbar {
+    border: 1px solid rgba(0,180,165,0.18);
+    border-top: 1px solid rgba(0,150,140,0.12);
+    margin-top: -1px;
+    background: rgba(0,12,20,0.93);
+    padding: 7px 14px;
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    flex-wrap: wrap;
-    gap: 8px;
-    padding-top: 24px;
-    border-top: 1px solid rgba(255,255,255,0.06);
+    justify-content: space-between;
+    font-family: 'Courier New', monospace;
+    font-size: 9px;
+    color: #0a5848;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
   }
-  .footer-text {
-    font-size: 11px;
-    font-weight: 300;
-    color: rgba(100,116,139,0.7);
-    letter-spacing: 0.02em;
-  }
+  .foot-left { display: flex; align-items: center; gap: 8px; }
 
-  /* ─── RESPONSIVE ─── */
+  /* ─ RESPONSIVE ─ */
   @media (max-width: 560px) {
-    body { padding: 32px 16px 48px; }
-    .about-block, .pricing-block { padding: 22px 20px; }
-    .plugin-card { padding: 20px 18px 16px; }
-    .pricing-block { flex-direction: column; align-items: flex-start; gap: 20px; }
-    .footer { flex-direction: column; align-items: flex-start; }
+    body { padding: 10px 10px 32px; background-attachment: scroll; }
+    .header-panel { padding: 20px 16px; }
+    .brand { font-size: 26px; }
+    .sub-row { flex-direction: column; align-items: flex-start; gap: 14px; }
+    .nav-lnk { padding: 9px 10px; font-size: 8px; }
   }
 
   </style>
@@ -300,65 +448,102 @@
 
 <div class="page">
 
+  <!-- System bar -->
+  <div class="sysbar">
+    <span class="sysbar-left">++ Lukeda Suite // Personal Audio Plugin Collection</span>
+    <div class="sysbar-right">
+      <span>v1.0</span>
+      <span class="online-badge"><span class="led"></span> Online</span>
+    </div>
+  </div>
+
   <!-- Header -->
-  <div class="header">
-    <div class="header-eyebrow">Lukeda Suite</div>
-    <div class="brand">Lukeda <span>Suite</span></div>
-    <div class="tagline">A personal suite of audio plugins — built by one producer, for producers.</div>
-    <div class="header-line"></div>
+  <div class="header-panel">
+    <div class="brand">Lukeda Suite</div>
+    <div class="brand-ver">// audio plugin collection · build 2025 · lukeda.me</div>
+    <div class="brand-tagline">Tools built while producing. Each one solves a real problem from real sessions — nothing hypothetical, nothing bloated. Subscribe once and get everything.</div>
+  </div>
+
+  <!-- Nav -->
+  <div class="navbar">
+    <span class="nav-prefix">++ nav ::</span>
+    <div class="nav-items">
+      <a href="#about"     class="nav-lnk active">About</a>
+      <a href="#plugins"   class="nav-lnk">Plugins</a>
+      <a href="#subscribe" class="nav-lnk">Subscribe</a>
+      <a href="audiosend/download.html" class="nav-lnk">Download</a>
+    </div>
   </div>
 
   <!-- About -->
-  <div class="section-label" style="margin-top: 0;">About</div>
-  <div class="glass about-block">
-    <p class="about-text">
-      Lukeda Suite is a collection of tools I make while producing. Each one solves a real problem I ran into in sessions — nothing bloated, nothing hypothetical. Subscribe once and get everything: current plugins and every new one I release.
-    </p>
-    <p class="about-callout">
-      One subscription. One price. Every tool I make, automatically.
-    </p>
+  <div id="about" class="panel">
+    <div class="panel-head">About</div>
+    <div class="panel-body">
+      <p class="about-text">
+        Lukeda Suite is a growing collection of tools I build between sessions. Each one started as something I genuinely needed and couldn't find — or found but felt overbuilt. The subscription is simple: one price, access to everything current and future.
+      </p>
+      <p class="about-quote">// One subscription. One price. Every tool I make, automatically.</p>
+    </div>
   </div>
 
   <!-- Plugins -->
-  <div class="section-label">Plugins</div>
-  <div class="plugin-grid">
+  <div id="plugins" class="panel">
+    <div class="panel-head">Plugins // Available &amp; Upcoming</div>
+    <div class="panel-body">
+      <div class="plugin-grid">
 
-    <a href="audiosend/index.html" class="glass glass-hover plugin-card">
-      <div class="plugin-icon-wrap icon-blue">🎵</div>
-      <div class="plugin-name">AudioSend</div>
-      <div class="plugin-desc">Send your DAW mix to your phone instantly, over local network. No cables, no bouncing, no waiting.</div>
-      <span class="plugin-badge badge-live">Available now</span>
-      <span class="plugin-arrow">›</span>
-    </a>
+        <a href="audiosend/index.html" class="plugin-card">
+          <div class="pc-row">
+            <span class="pc-name">AudioSend</span>
+            <span class="pc-tag tag-live">[ Live ]</span>
+          </div>
+          <div class="pc-desc">Send your DAW mix to your phone instantly over local network. No cables, no bounce files, no waiting.</div>
+          <div class="pc-link">&gt;&gt; audiosend/index.html</div>
+        </a>
 
-    <div class="glass plugin-card soon">
-      <div class="plugin-icon-wrap icon-gray">?</div>
-      <div class="plugin-name">Next plugin</div>
-      <div class="plugin-desc">Something new. Subscribers get it automatically when it ships.</div>
-      <span class="plugin-badge badge-soon">Coming soon</span>
+        <div class="plugin-card soon">
+          <div class="pc-row">
+            <span class="pc-name">Next Plugin</span>
+            <span class="pc-tag tag-soon">[ TBA ]</span>
+          </div>
+          <div class="pc-desc">Something new. Subscribers receive it automatically the moment it ships.</div>
+          <div class="pc-link">&gt;&gt; Coming soon</div>
+        </div>
+
+      </div>
     </div>
-
   </div>
 
   <!-- Subscribe -->
-  <div class="section-label">Subscribe</div>
-  <div class="glass pricing-block">
-    <div>
-      <div>
-        <span class="price-amount">$4.99</span><span class="price-period">/ month</span>
+  <div id="subscribe" class="panel">
+    <div class="panel-head">Subscribe // Creator Pass</div>
+    <div class="panel-body">
+      <div class="sub-row">
+        <div>
+          <div>
+            <span class="price-big">$4.99</span><span class="price-per">/ month</span>
+          </div>
+          <div class="price-note">// All plugins included &nbsp;·&nbsp; Cancel anytime &nbsp;·&nbsp; No upgrade fees</div>
+        </div>
+        <a href="audiosend/index.html#pricing" class="btn-main">++ Get Access</a>
       </div>
-      <div class="price-sub">All plugins included &nbsp;·&nbsp; cancel anytime</div>
     </div>
-    <a href="audiosend/index.html#pricing" class="btn-subscribe">
-      <span class="btn-dot"></span>
-      Subscribe
-    </a>
+  </div>
+
+  <!-- Ticker -->
+  <div class="ticker-bar">
+    <span class="ticker-inner">
+      ···· LUKEDA SUITE v1.0 ···· AudioSend — Send your mix to your phone over local WiFi ···· VST3 + AU ···· Windows &amp; macOS ···· Subscribe once, receive every future plugin automatically ···· $4.99 / month ···· Cancel anytime ···· Made by one person, for producers ···· lukeda.me ····
+    </span>
   </div>
 
   <!-- Footer -->
-  <div class="footer">
-    <span class="footer-text">Made by one person, for producers.</span>
-    <span class="footer-text">Lukeda Suite &nbsp;·&nbsp; © 2025</span>
+  <div class="footbar">
+    <div class="foot-left">
+      <span class="led"></span>
+      <span>Lukeda Suite // Made by one person, for producers</span>
+    </div>
+    <span>© 2025 &nbsp;·&nbsp; v1.0 &nbsp;·&nbsp; All rights reserved</span>
   </div>
 
 </div>

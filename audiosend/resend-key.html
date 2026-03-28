@@ -3,35 +3,38 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SongSender — Resend License Key</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Trebuchet+MS&display=swap" rel="stylesheet">
+  <title>AudioSend — Resend License Key</title>
   <link rel="stylesheet" href="style.css">
   <style>
     .rk-wrap  { max-width: 440px; margin: 0 auto; }
-    .rk-intro { font-size:12px; color:#2a4868; line-height:1.7;
-                font-family:Tahoma,sans-serif; margin-bottom:18px; }
+    .rk-intro { font-size:11px; color:#4a7a9a; line-height:1.8;
+                font-family:Verdana,sans-serif; margin-bottom:14px; }
 
     .rk-form  { display:flex; flex-direction:column; gap:10px; }
 
-    .rk-label { font-size:11px; font-weight:bold; color:#1a3d70;
-                font-family:Tahoma,sans-serif; margin-bottom:3px; display:block; }
+    .rk-label { font-size:9px; font-weight:bold; color:#2a5a88;
+                font-family:'Courier New',monospace; margin-bottom:3px;
+                display:block; text-transform:uppercase; letter-spacing:0.1em; }
+    .rk-label::before { content:'// '; color:#1a3a5a; }
 
-    .rk-input { width:100%; padding:8px 10px; border-radius:4px;
-                border:1px solid #a0c0e8;
-                background:linear-gradient(180deg,#fff 0%,#eef5ff 100%);
-                font-size:12px; font-family:Tahoma,sans-serif; color:#1a3a5c;
-                box-shadow:inset 0 1px 3px rgba(0,60,140,0.1);
-                outline:none; transition:border-color 0.15s; }
-    .rk-input:focus { border-color:#2288dd;
-                      box-shadow:inset 0 1px 3px rgba(0,60,140,0.1),
-                                 0 0 0 2px rgba(34,136,221,0.2); }
+    .rk-input { width:100%; padding:7px 10px;
+                border:1px solid #1a3655;
+                background:linear-gradient(180deg,#09162a 0%,#060f1a 100%);
+                font-size:11px; font-family:Verdana,sans-serif; color:#6aace0;
+                outline:none; transition:border-color 0.15s;
+                box-shadow:inset 0 1px 3px rgba(0,0,0,0.3); }
+    .rk-input:focus { border-color:#0055aa;
+                      box-shadow:inset 0 1px 3px rgba(0,0,0,0.3),
+                                 0 0 0 1px rgba(0,100,220,0.15); }
+    .rk-input::placeholder { color:#1e3e60; }
 
-    .rk-msg   { font-size:12px; font-family:Tahoma,sans-serif;
-                padding:10px 12px; border-radius:0 4px 4px 0;
-                border-left:3px solid; display:none; margin-top:6px; }
-    .rk-msg.success { background:#eeffee; border-color:#44aa44; color:#1a5a1a; display:block; }
-    .rk-msg.error   { background:#ffeeee; border-color:#cc2222; color:#5a1a1a; display:block; }
+    .rk-msg   { font-size:10px; font-family:'Courier New',monospace;
+                padding:8px 12px; border-left:2px solid;
+                display:none; margin-top:4px;
+                letter-spacing:0.02em; line-height:1.65; }
+    .rk-msg.success { background:rgba(20,80,20,0.12); border-color:#1a5a1a; color:#44aa44; display:block; }
+    .rk-msg.error   { background:rgba(80,20,20,0.12); border-color:#5a1a1a; color:#aa4444; display:block; }
+    .rk-msg::before { content:'// '; }
   </style>
 </head>
 <body>
@@ -44,15 +47,15 @@
       <div class="tb-btn tb-min"></div>
       <div class="tb-btn tb-max"></div>
     </div>
-    <div class="tb-icon">🎵</div>
-    <div class="tb-title">SongSender — Resend license key</div>
+    <div class="tb-icon">♪</div>
+    <div class="tb-title">AudioSend // Resend License Key // Lukeda Suite</div>
   </div>
 
   <div class="site-header">
     <div class="header-logo-area">
-      <a href="../../index.html" class="header-back">← Lukeda Suite</a>
+      <a href="../index.html" class="header-back">&lt;&lt; Lukeda Suite</a>
       <div class="header-logo-name">Audio<span>Send</span></div>
-      <div class="header-logo-sub">Plugin subscription · VST3 · AU · Windows · macOS</div>
+      <div class="header-logo-sub">Plugin subscription &middot; VST3 &middot; AU &middot; Windows &middot; macOS</div>
     </div>
     <div class="header-nav">
       <a href="index.html"         class="nav-tab">Home</a>
@@ -64,15 +67,15 @@
   <div class="main-area">
     <div class="sidebar">
       <div class="sidebar-section-title">Navigation</div>
-      <a href="index.html"         class="sidebar-item"><span class="s-dot s-dot-blue"></span>  Home</a>
-      <a href="download.html"      class="sidebar-item"><span class="s-dot s-dot-green"></span> Download</a>
-      <a href="index.html#pricing" class="sidebar-item"><span class="s-dot s-dot-amber"></span> Subscribe</a>
-      <a href="resend-key.html"    class="sidebar-item active"><span class="s-dot s-dot-teal"></span> Resend my key</a>
+      <a href="index.html"         class="sidebar-item"><span class="s-dot s-dot-blue"></span>Home</a>
+      <a href="download.html"      class="sidebar-item"><span class="s-dot s-dot-green"></span>Download</a>
+      <a href="index.html#pricing" class="sidebar-item"><span class="s-dot s-dot-amber"></span>Subscribe</a>
+      <a href="resend-key.html"    class="sidebar-item active"><span class="s-dot s-dot-teal"></span>Resend My Key</a>
     </div>
 
     <div class="content">
       <div class="content-section">
-        <div class="cs-heading">Resend your license key</div>
+        <div class="cs-heading">Resend License Key</div>
 
         <div class="rk-wrap">
 
@@ -82,12 +85,14 @@
 
           <div class="rk-form">
             <div>
-              <label class="rk-label" for="rk-email">Email address</label>
-              <input class="rk-input" type="email" id="rk-email" placeholder="you@example.com" autocomplete="email">
+              <label class="rk-label" for="rk-email">Email Address</label>
+              <input class="rk-input" type="email" id="rk-email"
+                     placeholder="you@example.com" autocomplete="email">
             </div>
             <div>
-              <button class="btn-gel btn-gel-blue" id="rk-btn" style="font-size:12px;padding:9px 20px">
-                Send my key
+              <button class="btn-gel btn-gel-blue" id="rk-btn"
+                      style="font-size:10px;padding:8px 18px">
+                &gt;&gt; Send My Key
               </button>
             </div>
             <div class="rk-msg" id="rk-msg"></div>
@@ -99,16 +104,17 @@
       <div class="status-bar">
         <div class="sb-indicator">
           <span class="sb-led"></span>
-          Secure · we never share your email
+          Secure &middot; we never share your email
         </div>
-        <span>AudioSend &nbsp;·&nbsp; © 2025</span>
+        <span>AudioSend v1.2 &middot; &copy; 2025</span>
       </div>
     </div>
   </div>
 </div>
 
 <div class="outer-status">
-  <span class="os-label">Made by one person, for producers.</span>
+  <span class="os-label">++ Made by one person, for producers</span>
+  <span class="os-label">v1.2 &middot; build 2025</span>
 </div>
 
 <script>
@@ -127,7 +133,7 @@
     }
 
     btn.disabled = true;
-    btn.textContent = '⏳ Sending...';
+    btn.textContent = '>> Sending...';
 
     try {
       const res  = await fetch('/api/resend-key', {
@@ -137,9 +143,8 @@
       });
       const data = await res.json();
 
-      // Always show success — we don't reveal whether the email exists
       msg.className   = 'rk-msg success';
-      msg.textContent = 'If that email is in our system, your license key is on its way. Check your spam folder if it doesn\'t arrive within a few minutes.';
+      msg.textContent = 'If that email is in our system, your license key is on its way. Check spam if it doesn\'t arrive within a few minutes.';
 
     } catch (err) {
       msg.className   = 'rk-msg error';
@@ -147,7 +152,7 @@
     }
 
     btn.disabled    = false;
-    btn.textContent = 'Send my key';
+    btn.textContent = '>> Send My Key';
   });
 </script>
 

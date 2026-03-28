@@ -3,12 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AudioSend — Send your mix to your phone instantly</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Trebuchet+MS&display=swap" rel="stylesheet">
+  <title>AudioSend v1.2 — Send Your Mix to Your Phone Instantly</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
+<!-- PS3 XMB animated background -->
+<canvas id="ps3-bg"></canvas>
 
 <div class="chrome-window">
 
@@ -19,40 +20,40 @@
       <div class="tb-btn tb-min"></div>
       <div class="tb-btn tb-max"></div>
     </div>
-    <div class="tb-icon">🎵</div>
-    <div class="tb-title">AudioSend — Plugin Subscription</div>
+    <div class="tb-icon">♪</div>
+    <div class="tb-title">AudioSend v1.2 // Plugin Interface // Lukeda Suite</div>
   </div>
 
-  <!-- Site header banner -->
+  <!-- Site header -->
   <div class="site-header">
     <div class="header-logo-area">
-      <!-- Back link to Lukeda Suite homepage -->
-      <a href="../index.html" class="header-back">← Lukeda Suite</a>
+      <a href="../index.html" class="header-back">&lt;&lt; Lukeda Suite</a>
       <div class="header-logo-name">Audio<span>Send</span></div>
-      <div class="header-logo-sub">VST3 · AU · Windows · macOS</div>
+      <div class="header-logo-sub">VST3 &middot; AU &middot; Windows &middot; macOS &middot; v1.2</div>
     </div>
     <div class="header-nav">
-      <a href="#home"     class="nav-tab active"  data-section="home">Home</a>
-      <a href="#how"      class="nav-tab"          data-section="how">How it works</a>
-      <a href="#pricing"  class="nav-tab"          data-section="pricing">Pricing</a>
-      <a href="#reviews"  class="nav-tab"          data-section="reviews">Reviews</a>
+      <a href="#home"      class="nav-tab active"  data-section="home">Home</a>
+      <a href="#how"       class="nav-tab"          data-section="how">How It Works</a>
+      <a href="#pricing"   class="nav-tab"          data-section="pricing">Pricing</a>
+      <a href="#reviews"   class="nav-tab"          data-section="reviews">Reviews</a>
       <a href="download.html" class="nav-tab">Download</a>
     </div>
   </div>
 
-  <!-- Content — no sidebar, full width -->
+  <!-- Content -->
   <div class="main-area">
   <div class="content">
 
     <!-- ── HERO ── -->
     <div class="content-section" id="home">
-      <div class="cs-heading">Welcome to AudioSend</div>
+      <div class="cs-heading">Home // AudioSend Plugin</div>
 
       <div class="platform-row">
         <span class="plat-badge">VST3</span>
         <span class="plat-badge">AU</span>
         <span class="plat-badge">Windows</span>
         <span class="plat-badge">macOS</span>
+        <span class="plat-badge">v1.2</span>
       </div>
 
       <div class="hero-headline">
@@ -60,53 +61,52 @@
       </div>
 
       <div class="hero-body">
-        AudioSend lives in your DAW. Hit send — your current session export is on your phone in seconds. No bouncing to a file. No hunting through folders. No cable.
+        AudioSend lives in your DAW. Hit send — your current session export is on your phone in seconds. No bouncing to a file. No hunting through folders. No cable. No cloud upload.
       </div>
 
       <div class="hero-personal">
-        I built this because I kept losing ideas between sessions. When you subscribe, you're not buying a tool — you're getting a direct line to everything I make from here on out.
+        // I built this because I kept losing ideas between sessions. When you subscribe, you're not buying a tool — you're getting a direct line to everything I make from here on out.
       </div>
 
       <div class="btn-row">
-        <a href="#pricing"   class="btn-gel btn-gel-blue" id="hero-cta">✦ Get AudioSend</a>
-        <a href="#how"       class="btn-gel btn-gel-ghost">How it works</a>
-        <a href="download.html" class="btn-gel btn-gel-ghost">Download</a>
+        <a href="#pricing"      class="btn-gel btn-gel-blue" id="hero-cta">++ Get AudioSend</a>
+        <a href="#how"          class="btn-gel btn-gel-ghost">&gt;&gt; How It Works</a>
+        <a href="download.html" class="btn-gel btn-gel-ghost">&gt;&gt; Download</a>
       </div>
 
-      <!-- Illustration -->
       <div class="illus-frame">
-        <iframe src="hero-illustration.html" scrolling="no" title="AudioSend — plugin and phone demo"></iframe>
+        <iframe src="hero-illustration.html" scrolling="no" title="AudioSend plugin and phone demo"></iframe>
       </div>
     </div>
 
     <!-- ── HOW IT WORKS ── -->
     <div class="content-section" id="how">
-      <div class="cs-heading">What you get</div>
+      <div class="cs-heading">What You Get // Feature Overview</div>
 
       <div class="feature-row">
-        <div class="feature-icon-box fib-blue">🎚️</div>
+        <div class="feature-icon-box fib-blue">♪</div>
         <div class="feature-text-col">
           <div class="feature-title">AudioSend VST3 / AU</div>
-          <div class="feature-body">Installs in your DAW like any other plugin. On Windows it runs as VST3, on macOS as VST3 or AU. No separate app, no cloud account, no configuration.</div>
+          <div class="feature-body">Installs in your DAW like any other plugin. On Windows it runs as VST3; on macOS as VST3 or AU. No separate app, no cloud account, no configuration required.</div>
         </div>
       </div>
 
       <div class="h-rule"></div>
 
       <div class="feature-row">
-        <div class="feature-icon-box fib-teal">📡</div>
+        <div class="feature-icon-box fib-teal">≈≈</div>
         <div class="feature-text-col">
-          <div class="feature-title">How it works</div>
-          <div class="feature-body">The plugin opens a local server when your DAW loads it. It generates a QR code — scan it once from your phone's camera. From then on, every export appears on your phone automatically. Stream it, download it, done.</div>
+          <div class="feature-title">Local Network Transfer</div>
+          <div class="feature-body">The plugin opens a local server when your DAW loads it. Scan the QR code once from your phone. From then on, every export appears on your phone automatically. Stream it, download it, done.</div>
         </div>
       </div>
 
       <div class="h-rule"></div>
 
       <div class="feature-row">
-        <div class="feature-icon-box fib-green">📊</div>
+        <div class="feature-icon-box fib-green">##</div>
         <div class="feature-text-col">
-          <div class="feature-title">Audio analysis, built in</div>
+          <div class="feature-title">Built-in Audio Analysis</div>
           <div class="feature-body">LUFS, true peak, dynamic range, stereo width, phase correlation, L/R RMS, DC offset, spectral balance — on the same page where you're listening. Real data, no extra tools.</div>
         </div>
       </div>
@@ -114,9 +114,9 @@
       <div class="h-rule"></div>
 
       <div class="feature-row">
-        <div class="feature-icon-box fib-amber">🔭</div>
+        <div class="feature-icon-box fib-amber">&gt;&gt;</div>
         <div class="feature-text-col">
-          <div class="feature-title">Every future plugin — included</div>
+          <div class="feature-title">Every Future Plugin — Included</div>
           <div class="feature-body">The subscription is open. When I finish the next plugin, you get it automatically. Same price, no action required. Not a bundle — access to my work as it grows.</div>
         </div>
       </div>
@@ -124,7 +124,7 @@
 
     <!-- ── PRICING ── -->
     <div class="content-section" id="pricing">
-      <div class="cs-heading">Pricing</div>
+      <div class="cs-heading">Pricing // Creator Pass</div>
 
       <div class="pricing-block">
         <div class="pricing-left">
@@ -133,18 +133,18 @@
             <span class="pricing-amount">$4.99</span>
             <span class="pricing-period">/ month</span>
           </div>
-          <div class="pricing-quote">"You get my work — present and future. That's the deal." &nbsp;· cancel anytime</div>
-          <button class="btn-gel btn-gel-blue pricing-main-btn" id="checkout-btn">✦ Get started</button>
+          <div class="pricing-quote">// "You get my work — present and future. That's the deal." &middot; cancel anytime</div>
+          <button class="btn-gel btn-gel-blue pricing-main-btn" id="checkout-btn">++ Get Started</button>
           <div class="pricing-note" id="checkout-msg"></div>
         </div>
         <div class="pricing-divider"></div>
         <div class="pricing-right">
           <div class="pricing-includes">
-            <div class="pi-item">✓ &nbsp;AudioSend VST3 + AU</div>
-            <div class="pi-item">✓ &nbsp;Built-in audio analysis</div>
-            <div class="pi-item">✓ &nbsp;Unlimited exports</div>
-            <div class="pi-item">✓ &nbsp;Every future plugin, automatically</div>
-            <div class="pi-item">✓ &nbsp;Windows + macOS</div>
+            <div class="pi-item">AudioSend VST3 + AU</div>
+            <div class="pi-item">Built-in audio analysis</div>
+            <div class="pi-item">Unlimited exports</div>
+            <div class="pi-item">Every future plugin, automatically</div>
+            <div class="pi-item">Windows + macOS support</div>
           </div>
         </div>
       </div>
@@ -152,26 +152,26 @@
 
     <!-- ── REVIEWS ── -->
     <div class="content-section" id="reviews">
-      <div class="cs-heading">What producers are saying</div>
+      <div class="cs-heading">Reviews // What Producers Are Saying</div>
 
       <div class="review-grid">
         <div class="review-card">
-          <div class="rv-stars">★★★★★</div>
+          <div class="rv-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
           <p class="rv-text">"I used to AirDrop every rough to myself. Now I hit one button and it's on my phone mid-session. It changed how I work."</p>
           <div class="rv-author">Kael T.</div>
-          <div class="rv-role">Hip-hop producer, Berlin</div>
+          <div class="rv-role">// Hip-hop producer, Berlin</div>
         </div>
         <div class="review-card">
-          <div class="rv-stars">★★★★★</div>
+          <div class="rv-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
           <p class="rv-text">"The LUFS readout alone is worth it. I was always switching tools to check levels — now it's right there in the session."</p>
           <div class="rv-author">Mirela V.</div>
-          <div class="rv-role">Mixing engineer, Zagreb</div>
+          <div class="rv-role">// Mixing engineer, Zagreb</div>
         </div>
         <div class="review-card">
-          <div class="rv-stars">★★★★★</div>
+          <div class="rv-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
           <p class="rv-text">"You can feel one person made this. Zero bloat. The QR idea is smart. Looking forward to what comes next."</p>
           <div class="rv-author">Dario F.</div>
-          <div class="rv-role">Producer & sound designer</div>
+          <div class="rv-role">// Producer &amp; sound designer</div>
         </div>
       </div>
     </div>
@@ -182,7 +182,7 @@
         <span class="sb-led"></span>
         Secure checkout via Stripe
       </div>
-      <span>AudioSend &nbsp;·&nbsp; VST3 · AU · Windows · macOS &nbsp;·&nbsp; © 2025</span>
+      <span>AudioSend v1.2 &middot; VST3 &middot; AU &middot; Win &middot; macOS &middot; &copy; 2025</span>
     </div>
 
   </div><!-- /content -->
@@ -190,10 +190,173 @@
 </div><!-- /chrome-window -->
 
 <div class="outer-status">
-  <span class="os-label">Part of the Lukeda Suite · made by one person, for producers.</span>
+  <span class="os-label">++ Part of the Lukeda Suite &middot; made by one person, for producers</span>
+  <span class="os-label">v1.2 &middot; build 2025</span>
 </div>
 
 <script src="https://js.stripe.com/v3/"></script>
 <script src="main.js"></script>
+
+<!-- ═══════════════════════════════════════════════════════
+     PS3 XMB Animated Background
+     Flowing ribbon waves — inspired by PlayStation 3 XMB
+     Canvas fills viewport, chrome-window sits on top (glass)
+════════════════════════════════════════════════════════ -->
+<script>
+(function () {
+  'use strict';
+
+  const canvas = document.getElementById('ps3-bg');
+  const ctx    = canvas.getContext('2d');
+  let W = 0, H = 0;
+
+  /* ── Resize handler ─────────────────────────────────────── */
+  function resize() {
+    W = canvas.width  = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  /* ── Wave definitions ───────────────────────────────────────
+     Each entry: base Y (0–1 of screen height), hue (blue/purple
+     range), primary oscillation speed & amplitude, phase offset.
+  ─────────────────────────────────────────────────────────── */
+  var WAVES = [
+    { y: 0.08, hue: 218, spd: 0.52, amp: 0.055, ph: 0.00 },
+    { y: 0.18, hue: 200, spd: 0.38, amp: 0.072, ph: 1.57 },
+    { y: 0.29, hue: 228, spd: 0.61, amp: 0.048, ph: 3.14 },
+    { y: 0.40, hue: 193, spd: 0.34, amp: 0.082, ph: 0.78 },
+    { y: 0.51, hue: 244, spd: 0.48, amp: 0.060, ph: 2.36 },
+    { y: 0.61, hue: 207, spd: 0.43, amp: 0.066, ph: 4.71 },
+    { y: 0.71, hue: 222, spd: 0.57, amp: 0.051, ph: 1.00 },
+    { y: 0.81, hue: 213, spd: 0.36, amp: 0.058, ph: 3.80 },
+    { y: 0.91, hue: 235, spd: 0.65, amp: 0.044, ph: 5.50 },
+  ];
+
+  /* ── Per-wave Bezier control-point animation data ────────── */
+  var CPH = WAVES.map(function () {
+    return {
+      a:  Math.random() * Math.PI * 2,
+      b:  Math.random() * Math.PI * 2,
+      c:  Math.random() * Math.PI * 2,
+      d:  Math.random() * Math.PI * 2,
+      e:  Math.random() * Math.PI * 2,
+      sa: 0.50 + Math.random() * 0.55,
+      sb: 0.40 + Math.random() * 0.60,
+      sc: 0.60 + Math.random() * 0.45,
+      sd: 0.45 + Math.random() * 0.55,
+      se: 0.35 + Math.random() * 0.50,
+    };
+  });
+
+  /* ── Draw one ribbon wave ───────────────────────────────────
+     Multiple render passes per wave build up the characteristic
+     PS3 glow: wide soft halo → medium corona → bright thin core.
+  ─────────────────────────────────────────────────────────── */
+  function drawWave(wave, cph, T) {
+    /* Base Y: two overlaid sine oscillations for organic drift */
+    var fy = wave.y
+      + Math.sin(T * wave.spd * 0.00055 + wave.ph)          * wave.amp
+      + Math.sin(T * wave.spd * 0.00031 + wave.ph + 1.13)   * wave.amp * 0.32;
+    var y = fy * H;
+
+    /* Five X-positioned control points, each with independent Y motion */
+    var c1x = W * 0.14,
+        c1y = y + Math.sin(T * cph.sa * 0.00046 + cph.a) * H * 0.058;
+    var c2x = W * 0.30,
+        c2y = y + Math.sin(T * cph.sb * 0.00037 + cph.b) * H * 0.068;
+    var c3x = W * 0.50,
+        c3y = y + Math.sin(T * cph.sc * 0.00051 + cph.c) * H * 0.062;
+    var c4x = W * 0.70,
+        c4y = y + Math.sin(T * cph.sd * 0.00041 + cph.d) * H * 0.055;
+    var c5x = W * 0.87,
+        c5y = y + Math.sin(T * cph.se * 0.00048 + cph.e) * H * 0.050;
+    var endY = y + Math.sin(T * wave.spd * 0.00027 + wave.ph + 2.5) * H * 0.028;
+
+    /* Reusable path builder */
+    function tracePath() {
+      ctx.beginPath();
+      ctx.moveTo(-10, y);
+      ctx.bezierCurveTo(c1x, c1y, c2x, c2y, c3x, c3y);
+      ctx.bezierCurveTo(c4x, c4y, c5x, c5y, W + 10, endY);
+    }
+
+    /* Pass 1 — wide outer glow (very transparent, thick) */
+    tracePath();
+    ctx.strokeStyle = 'hsla(' + wave.hue + ',78%,62%,0.035)';
+    ctx.lineWidth   = 28;
+    ctx.stroke();
+
+    /* Pass 2 — softer mid glow */
+    tracePath();
+    ctx.strokeStyle = 'hsla(' + wave.hue + ',82%,65%,0.08)';
+    ctx.lineWidth   = 12;
+    ctx.stroke();
+
+    /* Pass 3 — inner glow ring */
+    tracePath();
+    ctx.strokeStyle = 'hsla(' + wave.hue + ',86%,68%,0.18)';
+    ctx.lineWidth   = 4.5;
+    ctx.stroke();
+
+    /* Pass 4 — bright sub-core */
+    tracePath();
+    ctx.strokeStyle = 'hsla(' + wave.hue + ',88%,72%,0.38)';
+    ctx.lineWidth   = 1.8;
+    ctx.stroke();
+
+    /* Pass 5 — sharp luminous core line (with canvas shadow for bloom) */
+    ctx.shadowBlur  = 20;
+    ctx.shadowColor = 'hsla(' + wave.hue + ',92%,82%,0.55)';
+    tracePath();
+    ctx.strokeStyle = 'hsla(' + wave.hue + ',92%,82%,0.72)';
+    ctx.lineWidth   = 0.7;
+    ctx.stroke();
+    ctx.shadowBlur  = 0;
+  }
+
+  /* ── Edge vignette (darkens borders for depth) ───────────── */
+  function drawVignette() {
+    var g = ctx.createRadialGradient(
+      W * 0.5, H * 0.5, H * 0.18,
+      W * 0.5, H * 0.5, Math.max(W, H) * 0.88
+    );
+    g.addColorStop(0, 'rgba(0,0,0,0)');
+    g.addColorStop(1, 'rgba(0,0,0,0.58)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  /* ── Subtle horizontal scanlines (adds 2000s CRT texture) ── */
+  function drawScanlines() {
+    ctx.fillStyle = 'rgba(0,0,0,0.028)';
+    for (var y = 0; y < H; y += 4) {
+      ctx.fillRect(0, y, W, 1);
+    }
+  }
+
+  /* ── Main animation loop ─────────────────────────────────── */
+  var T = 0;
+
+  function frame() {
+    /* Solid dark fill — not transparent trail, clean each frame */
+    ctx.fillStyle = '#030712';
+    ctx.fillRect(0, 0, W, H);
+
+    /* Draw all ribbon waves */
+    WAVES.forEach(function (w, i) { drawWave(w, CPH[i], T); });
+
+    /* Post effects */
+    drawVignette();
+    drawScanlines();
+
+    T += 16; /* ~60 fps time increment */
+    requestAnimationFrame(frame);
+  }
+
+  frame();
+})();
+</script>
 </body>
 </html>
