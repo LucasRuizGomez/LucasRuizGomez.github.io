@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SongSender — Resend License Key</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Trebuchet+MS&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .rk-wrap  { max-width: 440px; margin: 0 auto; }
+    .rk-intro { font-size:12px; color:#2a4868; line-height:1.7;
+                font-family:Tahoma,sans-serif; margin-bottom:18px; }
+
+    .rk-form  { display:flex; flex-direction:column; gap:10px; }
+
+    .rk-label { font-size:11px; font-weight:bold; color:#1a3d70;
+                font-family:Tahoma,sans-serif; margin-bottom:3px; display:block; }
+
+    .rk-input { width:100%; padding:8px 10px; border-radius:4px;
+                border:1px solid #a0c0e8;
+                background:linear-gradient(180deg,#fff 0%,#eef5ff 100%);
+                font-size:12px; font-family:Tahoma,sans-serif; color:#1a3a5c;
+                box-shadow:inset 0 1px 3px rgba(0,60,140,0.1);
+                outline:none; transition:border-color 0.15s; }
+    .rk-input:focus { border-color:#2288dd;
+                      box-shadow:inset 0 1px 3px rgba(0,60,140,0.1),
+                                 0 0 0 2px rgba(34,136,221,0.2); }
+
+    .rk-msg   { font-size:12px; font-family:Tahoma,sans-serif;
+                padding:10px 12px; border-radius:0 4px 4px 0;
+                border-left:3px solid; display:none; margin-top:6px; }
+    .rk-msg.success { background:#eeffee; border-color:#44aa44; color:#1a5a1a; display:block; }
+    .rk-msg.error   { background:#ffeeee; border-color:#cc2222; color:#5a1a1a; display:block; }
+  </style>
+</head>
+<body>
+
+<div class="chrome-window">
+
+  <div class="title-bar">
+    <div class="tb-controls">
+      <div class="tb-btn tb-close"></div>
+      <div class="tb-btn tb-min"></div>
+      <div class="tb-btn tb-max"></div>
+    </div>
+    <div class="tb-icon">🎵</div>
+    <div class="tb-title">SongSender — Resend license key</div>
+  </div>
+
+  <div class="site-header">
+    <div class="header-logo-area">
+      <div class="header-logo-name">SongSender</div>
+      <div class="header-logo-sub">Plugin subscription · VST3 · AU · Windows · macOS</div>
+    </div>
+    <div class="header-nav">
+      <a href="/"         class="nav-tab">Home</a>
+      <a href="/download" class="nav-tab">Download</a>
+      <a href="/#pricing" class="nav-tab">Pricing</a>
+    </div>
+  </div>
+
+  <div class="main-area">
+    <div class="sidebar">
+      <div class="sidebar-section-title">Navigation</div>
+      <a href="/"         class="sidebar-item"><span class="s-dot s-dot-blue"></span>  Home</a>
+      <a href="/download" class="sidebar-item"><span class="s-dot s-dot-green"></span> Download</a>
+      <a href="/#pricing" class="sidebar-item"><span class="s-dot s-dot-amber"></span> Subscribe</a>
+      <a href="/resend-key.html" class="sidebar-item active"><span class="s-dot s-dot-teal"></span> Resend my key</a>
+    </div>
+
+    <div class="content">
+      <div class="content-section">
+        <div class="cs-heading">Resend your license key</div>
+
+        <div class="rk-wrap">
+
+          <p class="rk-intro">
+            Enter the email address you used when you subscribed. If it's in our system, we'll resend your license key right away.
+          </p>
+
+          <div class="rk-form">
+            <div>
+              <label class="rk-label" for="rk-email">Email address</label>
+              <input class="rk-input" type="email" id="rk-email" placeholder="you@example.com" autocomplete="email">
+            </div>
+            <div>
+              <button class="btn-gel btn-gel-blue" id="rk-btn" style="font-size:12px;padding:9px 20px">
+                Send my key
+              </button>
+            </div>
+            <div class="rk-msg" id="rk-msg"></div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="status-bar">
+        <div class="sb-indicator">
+          <span class="sb-led"></span>
+          Secure · we never share your email
+        </div>
+        <span>SongSender &nbsp;·&nbsp; © 2025</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="outer-status">
+  <span class="os-label">Made by one person, for producers.</span>
+</div>
+
+<script>
+  document.getElementById('rk-btn').addEventListener('click', async () => {
+    const email = document.getElementById('rk-email').value.trim();
+    const btn   = document.getElementById('rk-btn');
+    const msg   = document.getElementById('rk-msg');
+
+    msg.className = 'rk-msg';
+    msg.textContent = '';
+
+    if (!email || !email.includes('@')) {
+      msg.className = 'rk-msg error';
+      msg.textContent = 'Please enter a valid email address.';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = '⏳ Sending...';
+
+    try {
+      const res  = await fetch('/api/resend-key', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ email }),
+      });
+      const data = await res.json();
+
+      // Always show success — we don't reveal whether the email exists
+      msg.className   = 'rk-msg success';
+      msg.textContent = 'If that email is in our system, your license key is on its way. Check your spam folder if it doesn\'t arrive within a few minutes.';
+
+    } catch (err) {
+      msg.className   = 'rk-msg error';
+      msg.textContent = 'Something went wrong. Please try again.';
+    }
+
+    btn.disabled    = false;
+    btn.textContent = 'Send my key';
+  });
+</script>
+
+</body>
+</html>

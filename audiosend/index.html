@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AudioSend — Send your mix to your phone instantly</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Trebuchet+MS&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="chrome-window">
+
+  <!-- Title bar -->
+  <div class="title-bar">
+    <div class="tb-controls">
+      <div class="tb-btn tb-close"></div>
+      <div class="tb-btn tb-min"></div>
+      <div class="tb-btn tb-max"></div>
+    </div>
+    <div class="tb-icon">🎵</div>
+    <div class="tb-title">AudioSend — Plugin Subscription</div>
+  </div>
+
+  <!-- Site header banner -->
+  <div class="site-header">
+    <div class="header-logo-area">
+      <!-- Back link to Lukeda Suite homepage -->
+      <a href="../lukeda/index.html" class="header-back">← Lukeda Suite</a>
+      <div class="header-logo-name">Audio<span>Send</span></div>
+      <div class="header-logo-sub">VST3 · AU · Windows · macOS</div>
+    </div>
+    <div class="header-nav">
+      <a href="#home"     class="nav-tab active"  data-section="home">Home</a>
+      <a href="#how"      class="nav-tab"          data-section="how">How it works</a>
+      <a href="#pricing"  class="nav-tab"          data-section="pricing">Pricing</a>
+      <a href="#reviews"  class="nav-tab"          data-section="reviews">Reviews</a>
+      <a href="download.html" class="nav-tab">Download</a>
+    </div>
+  </div>
+
+  <!-- Content — no sidebar, full width -->
+  <div class="main-area">
+  <div class="content">
+
+    <!-- ── HERO ── -->
+    <div class="content-section" id="home">
+      <div class="cs-heading">Welcome to AudioSend</div>
+
+      <div class="platform-row">
+        <span class="plat-badge">VST3</span>
+        <span class="plat-badge">AU</span>
+        <span class="plat-badge">Windows</span>
+        <span class="plat-badge">macOS</span>
+      </div>
+
+      <div class="hero-headline">
+        Your mix on your phone<br>before the <em>session ends.</em>
+      </div>
+
+      <div class="hero-body">
+        AudioSend lives in your DAW. Hit send — your current session export is on your phone in seconds. No bouncing to a file. No hunting through folders. No cable.
+      </div>
+
+      <div class="hero-personal">
+        I built this because I kept losing ideas between sessions. When you subscribe, you're not buying a tool — you're getting a direct line to everything I make from here on out.
+      </div>
+
+      <div class="btn-row">
+        <a href="#pricing"   class="btn-gel btn-gel-blue" id="hero-cta">✦ Get AudioSend</a>
+        <a href="#how"       class="btn-gel btn-gel-ghost">How it works</a>
+        <a href="download.html" class="btn-gel btn-gel-ghost">Download</a>
+      </div>
+
+      <!-- Illustration -->
+      <div class="illus-frame">
+        <iframe src="hero-illustration.html" scrolling="no" title="AudioSend — plugin and phone demo"></iframe>
+      </div>
+    </div>
+
+    <!-- ── HOW IT WORKS ── -->
+    <div class="content-section" id="how">
+      <div class="cs-heading">What you get</div>
+
+      <div class="feature-row">
+        <div class="feature-icon-box fib-blue">🎚️</div>
+        <div class="feature-text-col">
+          <div class="feature-title">AudioSend VST3 / AU</div>
+          <div class="feature-body">Installs in your DAW like any other plugin. On Windows it runs as VST3, on macOS as VST3 or AU. No separate app, no cloud account, no configuration.</div>
+        </div>
+      </div>
+
+      <div class="h-rule"></div>
+
+      <div class="feature-row">
+        <div class="feature-icon-box fib-teal">📡</div>
+        <div class="feature-text-col">
+          <div class="feature-title">How it works</div>
+          <div class="feature-body">The plugin opens a local server when your DAW loads it. It generates a QR code — scan it once from your phone's camera. From then on, every export appears on your phone automatically. Stream it, download it, done.</div>
+        </div>
+      </div>
+
+      <div class="h-rule"></div>
+
+      <div class="feature-row">
+        <div class="feature-icon-box fib-green">📊</div>
+        <div class="feature-text-col">
+          <div class="feature-title">Audio analysis, built in</div>
+          <div class="feature-body">LUFS, true peak, dynamic range, stereo width, phase correlation, L/R RMS, DC offset, spectral balance — on the same page where you're listening. Real data, no extra tools.</div>
+        </div>
+      </div>
+
+      <div class="h-rule"></div>
+
+      <div class="feature-row">
+        <div class="feature-icon-box fib-amber">🔭</div>
+        <div class="feature-text-col">
+          <div class="feature-title">Every future plugin — included</div>
+          <div class="feature-body">The subscription is open. When I finish the next plugin, you get it automatically. Same price, no action required. Not a bundle — access to my work as it grows.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PRICING ── -->
+    <div class="content-section" id="pricing">
+      <div class="cs-heading">Pricing</div>
+
+      <div class="pricing-block">
+        <div class="pricing-left">
+          <div class="pricing-plan-name">Creator Pass</div>
+          <div class="pricing-amount-row">
+            <span class="pricing-amount">$4.99</span>
+            <span class="pricing-period">/ month</span>
+          </div>
+          <div class="pricing-quote">"You get my work — present and future. That's the deal." &nbsp;· cancel anytime</div>
+          <button class="btn-gel btn-gel-blue pricing-main-btn" id="checkout-btn">✦ Get started</button>
+          <div class="pricing-note" id="checkout-msg"></div>
+        </div>
+        <div class="pricing-divider"></div>
+        <div class="pricing-right">
+          <div class="pricing-includes">
+            <div class="pi-item">✓ &nbsp;AudioSend VST3 + AU</div>
+            <div class="pi-item">✓ &nbsp;Built-in audio analysis</div>
+            <div class="pi-item">✓ &nbsp;Unlimited exports</div>
+            <div class="pi-item">✓ &nbsp;Every future plugin, automatically</div>
+            <div class="pi-item">✓ &nbsp;Windows + macOS</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── REVIEWS ── -->
+    <div class="content-section" id="reviews">
+      <div class="cs-heading">What producers are saying</div>
+
+      <div class="review-grid">
+        <div class="review-card">
+          <div class="rv-stars">★★★★★</div>
+          <p class="rv-text">"I used to AirDrop every rough to myself. Now I hit one button and it's on my phone mid-session. It changed how I work."</p>
+          <div class="rv-author">Kael T.</div>
+          <div class="rv-role">Hip-hop producer, Berlin</div>
+        </div>
+        <div class="review-card">
+          <div class="rv-stars">★★★★★</div>
+          <p class="rv-text">"The LUFS readout alone is worth it. I was always switching tools to check levels — now it's right there in the session."</p>
+          <div class="rv-author">Mirela V.</div>
+          <div class="rv-role">Mixing engineer, Zagreb</div>
+        </div>
+        <div class="review-card">
+          <div class="rv-stars">★★★★★</div>
+          <p class="rv-text">"You can feel one person made this. Zero bloat. The QR idea is smart. Looking forward to what comes next."</p>
+          <div class="rv-author">Dario F.</div>
+          <div class="rv-role">Producer & sound designer</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status bar -->
+    <div class="status-bar">
+      <div class="sb-indicator">
+        <span class="sb-led"></span>
+        Secure checkout via Stripe
+      </div>
+      <span>AudioSend &nbsp;·&nbsp; VST3 · AU · Windows · macOS &nbsp;·&nbsp; © 2025</span>
+    </div>
+
+  </div><!-- /content -->
+  </div><!-- /main-area -->
+</div><!-- /chrome-window -->
+
+<div class="outer-status">
+  <span class="os-label">Part of the Lukeda Suite · made by one person, for producers.</span>
+</div>
+
+<script src="https://js.stripe.com/v3/"></script>
+<script src="main.js"></script>
+</body>
+</html>

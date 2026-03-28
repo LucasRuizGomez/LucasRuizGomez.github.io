@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SongSender — You're in</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Trebuchet+MS&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .success-box {
+      max-width: 520px;
+      margin: 0 auto;
+    }
+    .success-icon {
+      font-size: 40px;
+      text-align: center;
+      margin-bottom: 14px;
+    }
+    .success-headline {
+      font-size: 22px;
+      font-weight: bold;
+      font-family: 'Trebuchet MS', sans-serif;
+      color: #0a3878;
+      text-align: center;
+      margin-bottom: 10px;
+      text-shadow: 0 1px 0 rgba(255,255,255,0.8);
+    }
+    .success-body {
+      font-size: 12px;
+      color: #2a4868;
+      line-height: 1.7;
+      font-family: Tahoma, sans-serif;
+      text-align: center;
+      margin-bottom: 18px;
+    }
+    .email-note {
+      background: linear-gradient(135deg, #eef6ff 0%, #e4f0fc 100%);
+      border: 1px solid #c0d8f0;
+      border-left: 3px solid #44aaee;
+      border-radius: 0 4px 4px 0;
+      padding: 10px 14px;
+      font-size: 12px;
+      color: #1a4888;
+      font-family: Tahoma, sans-serif;
+      margin-bottom: 18px;
+      line-height: 1.6;
+    }
+    .btn-center { text-align: center; }
+  </style>
+</head>
+<body>
+
+<div class="chrome-window">
+
+  <div class="title-bar">
+    <div class="tb-controls">
+      <div class="tb-btn tb-close"></div>
+      <div class="tb-btn tb-min"></div>
+      <div class="tb-btn tb-max"></div>
+    </div>
+    <div class="tb-icon">🎵</div>
+    <div class="tb-title">SongSender — Subscription confirmed</div>
+  </div>
+
+  <div class="site-header">
+    <div class="header-logo-area">
+      <div class="header-logo-name">SongSender</div>
+      <div class="header-logo-sub">You're subscribed · VST3 · AU · Windows · macOS</div>
+    </div>
+  </div>
+
+  <div class="main-area">
+    <div class="content" style="display:flex;align-items:center;justify-content:center;padding:40px 24px">
+
+      <div class="success-box">
+        <div class="content-section">
+          <div class="cs-heading">Subscription confirmed</div>
+
+          <div class="success-icon">✅</div>
+          <div class="success-headline">You're in.</div>
+
+          <div class="success-body">
+            Check your email — your license key and download link are on their way.<br>
+            (Check spam if it doesn't arrive in a few minutes.)
+          </div>
+
+          <div class="email-note">
+            Your license key unlocks SongSender on first launch. Keep it — it also gives you access to every future plugin I release at no extra cost.
+          </div>
+
+          <div class="btn-center">
+            <a href="/" class="btn-gel btn-gel-ghost">← Back to SongSender</a>
+          </div>
+        </div>
+
+        <div class="status-bar">
+          <div class="sb-indicator">
+            <span class="sb-led"></span>
+            Subscription active
+          </div>
+          <span>Powered by Stripe</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="outer-status">
+  <span class="os-label">Made by one person, for producers.</span>
+</div>
+
+</body>
+</html>
