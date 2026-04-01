@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lukeda Suite — Audio Plugin Collection</title>
+  <title>Lukeda — Free Projects by Lucas Ruiz</title>
   <style>
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -151,8 +151,12 @@
     font-size: 11px;
     color: #3a9888;
     line-height: 1.75;
-    max-width: 460px;
+    max-width: 500px;
     position: relative; z-index: 1;
+  }
+  .brand-tagline strong {
+    color: #55ccbb;
+    font-weight: bold;
   }
 
   /* ─ NAVBAR ─ */
@@ -179,7 +183,7 @@
     background: rgba(0,15,25,0.5);
     white-space: nowrap;
   }
-  .nav-items { display: flex; }
+  .nav-items { display: flex; flex-wrap: wrap; }
   .nav-lnk {
     display: flex;
     align-items: center;
@@ -256,13 +260,27 @@
     letter-spacing: 0.02em;
   }
 
-  /* ─ PLUGIN GRID ─ */
-  .plugin-grid {
+  /* ─ FREE BADGE ─ */
+  .free-badge {
+    display: inline-block;
+    margin-top: 14px;
+    padding: 5px 14px;
+    background: rgba(0,120,90,0.18);
+    border: 1px solid rgba(0,180,130,0.3);
+    font-family: 'Courier New', monospace;
+    font-size: 9px;
+    color: #33ccaa;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* ─ PROJECT GRID ─ */
+  .project-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(215px, 1fr));
     gap: 8px;
   }
-  .plugin-card {
+  .project-card {
     background: rgba(0,20,32,0.82);
     border: 1px solid rgba(0,180,165,0.18);
     padding: 14px 16px 13px;
@@ -273,17 +291,17 @@
     overflow: hidden;
     transition: border-color 0.12s, background 0.12s;
   }
-  .plugin-card::before {
+  .project-card::before {
     content: '';
     position: absolute;
     top: 0; left: 0; right: 0; height: 1px;
     background: linear-gradient(90deg, transparent, rgba(0,220,195,0.35), transparent);
   }
-  .plugin-card:hover {
+  .project-card:hover {
     border-color: rgba(0,200,180,0.35);
     background: rgba(0,28,42,0.88);
   }
-  .plugin-card.soon { opacity: 0.3; pointer-events: none; }
+  .project-card.soon { opacity: 0.3; pointer-events: none; }
 
   .pc-row {
     display: flex;
@@ -299,6 +317,14 @@
     text-transform: uppercase;
     letter-spacing: 0.05em;
     text-shadow: 0 0 10px rgba(0,200,180,0.2);
+  }
+  .pc-cat {
+    font-family: 'Courier New', monospace;
+    font-size: 8px;
+    color: #0a6858;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 4px;
   }
   .pc-tag {
     font-family: 'Courier New', monospace;
@@ -338,60 +364,6 @@
     margin: 14px 0;
   }
 
-  /* ─ SUBSCRIBE ─ */
-  .sub-row {
-    display: flex;
-    align-items: center;
-    gap: 28px;
-    flex-wrap: wrap;
-  }
-  .price-big {
-    font-family: 'Trebuchet MS', Impact, Arial, sans-serif;
-    font-size: 30px;
-    font-weight: bold;
-    color: #44ccbb;
-    line-height: 1;
-    text-shadow: 0 0 14px rgba(0,200,175,0.3);
-  }
-  .price-per {
-    font-size: 11px;
-    color: #1a7868;
-    font-family: Verdana, sans-serif;
-    margin-left: 3px;
-  }
-  .price-note {
-    font-family: 'Courier New', monospace;
-    font-size: 9px;
-    color: #0a5848;
-    margin-top: 5px;
-    letter-spacing: 0.04em;
-  }
-  .btn-main {
-    display: inline-block;
-    padding: 9px 22px;
-    background: linear-gradient(180deg, #009988 0%, #006655 100%);
-    border: 1px solid #005544;
-    color: #c0f0ea;
-    font-family: Verdana, Tahoma, sans-serif;
-    font-size: 10px;
-    font-weight: bold;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    text-decoration: none;
-    position: relative; overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0,150,130,0.4), inset 0 1px 0 rgba(255,255,255,0.12), inset 0 -1px 0 rgba(0,30,25,0.2);
-    transition: all 0.12s;
-  }
-  .btn-main::before {
-    content: '';
-    position: absolute; top: 0; left: 0; right: 0; height: 50%;
-    background: linear-gradient(180deg, rgba(255,255,255,0.12) 0%, transparent 100%);
-  }
-  .btn-main:hover {
-    background: linear-gradient(180deg, #00aa99 0%, #007766 100%);
-    color: #ddfaf5;
-  }
-
   /* ─ TICKER ─ */
   .ticker-bar {
     border: 1px solid rgba(0,180,165,0.18);
@@ -408,7 +380,7 @@
     font-size: 9px;
     color: #0a5848;
     letter-spacing: 0.04em;
-    animation: tickerScroll 35s linear infinite;
+    animation: tickerScroll 40s linear infinite;
   }
   @keyframes tickerScroll {
     0%   { transform: translateX(100vw); }
@@ -438,7 +410,6 @@
     body { padding: 10px 10px 32px; background-attachment: scroll; }
     .header-panel { padding: 20px 16px; }
     .brand { font-size: 26px; }
-    .sub-row { flex-direction: column; align-items: flex-start; gap: 14px; }
     .nav-lnk { padding: 9px 10px; font-size: 8px; }
   }
 
@@ -450,28 +421,29 @@
 
   <!-- System bar -->
   <div class="sysbar">
-    <span class="sysbar-left">++ Lukeda Suite // Personal Audio Plugin Collection</span>
+    <span class="sysbar-left">++ Lukeda // Free Projects by Lucas Ruiz</span>
     <div class="sysbar-right">
-      <span>v1.0</span>
+      <span>lukeda.me</span>
       <span class="online-badge"><span class="led"></span> Online</span>
     </div>
   </div>
 
   <!-- Header -->
   <div class="header-panel">
-    <div class="brand">Lukeda Suite</div>
-    <div class="brand-ver">// audio plugin collection · build 2025 · lukeda.me</div>
-    <div class="brand-tagline">Tools built while producing. Each one solves a real problem from real sessions — nothing hypothetical, nothing bloated. Subscribe once and get everything.</div>
+    <div class="brand">Lukeda</div>
+    <div class="brand-ver">// projects by lucas ruiz · lukeda.me</div>
+    <div class="brand-tagline">
+      A collection of tools, plugins, and experiments I build and release here — <strong>completely free</strong>. Audio utilities, creative software, whatever comes next. If I made it and it works, it ends up here.
+    </div>
   </div>
 
   <!-- Nav -->
   <div class="navbar">
     <span class="nav-prefix">++ nav ::</span>
     <div class="nav-items">
-      <a href="#about"     class="nav-lnk active">About</a>
-      <a href="#plugins"   class="nav-lnk">Plugins</a>
-      <a href="#subscribe" class="nav-lnk">Subscribe</a>
-      <a href="audiosend/download.html" class="nav-lnk">Download</a>
+      <a href="#about"    class="nav-lnk active">About</a>
+      <a href="#projects" class="nav-lnk">Projects</a>
+      <a href="audiosend/index.html" class="nav-lnk">AudioSend</a>
     </div>
   </div>
 
@@ -480,33 +452,36 @@
     <div class="panel-head">About</div>
     <div class="panel-body">
       <p class="about-text">
-        Lukeda Suite is a growing collection of tools I build between sessions. Each one started as something I genuinely needed and couldn't find — or found but felt overbuilt. The subscription is simple: one price, access to everything current and future.
+        Lukeda is where I put the things I build. Most of it starts as something I needed myself and couldn't find — or found but felt overengineered. Everything here is free. No subscriptions, no paywalls, no mailing lists. Just download and use it.
       </p>
-      <p class="about-quote">// One subscription. One price. Every tool I make, automatically.</p>
+      <p class="about-quote">// Built by one person. Released for free. More coming.</p>
+      <div class="free-badge">++ All projects are free to download</div>
     </div>
   </div>
 
-  <!-- Plugins -->
-  <div id="plugins" class="panel">
-    <div class="panel-head">Plugins // Available &amp; Upcoming</div>
+  <!-- Projects -->
+  <div id="projects" class="panel">
+    <div class="panel-head">Projects // Live &amp; Upcoming</div>
     <div class="panel-body">
-      <div class="plugin-grid">
+      <div class="project-grid">
 
-        <a href="audiosend/index.html" class="plugin-card">
+        <a href="audiosend/index.html" class="project-card">
           <div class="pc-row">
             <span class="pc-name">AudioSend</span>
             <span class="pc-tag tag-live">[ Live ]</span>
           </div>
-          <div class="pc-desc">Send your DAW mix to your phone instantly over local network. No cables, no bounce files, no waiting.</div>
+          <div class="pc-cat">// audio · DAW utility</div>
+          <div class="pc-desc">Send your DAW mix to your phone instantly over local network. No cables, no bounce files, no waiting. VST3 + AU for Windows &amp; macOS.</div>
           <div class="pc-link">&gt;&gt; audiosend/index.html</div>
         </a>
 
-        <div class="plugin-card soon">
+        <div class="project-card soon">
           <div class="pc-row">
-            <span class="pc-name">Next Plugin</span>
+            <span class="pc-name">Next Project</span>
             <span class="pc-tag tag-soon">[ TBA ]</span>
           </div>
-          <div class="pc-desc">Something new. Subscribers receive it automatically the moment it ships.</div>
+          <div class="pc-cat">// category unknown</div>
+          <div class="pc-desc">Something new is in progress. Check back when the status goes live.</div>
           <div class="pc-link">&gt;&gt; Coming soon</div>
         </div>
 
@@ -514,26 +489,10 @@
     </div>
   </div>
 
-  <!-- Subscribe -->
-  <div id="subscribe" class="panel">
-    <div class="panel-head">Subscribe // Creator Pass</div>
-    <div class="panel-body">
-      <div class="sub-row">
-        <div>
-          <div>
-            <span class="price-big">$4.99</span><span class="price-per">/ month</span>
-          </div>
-          <div class="price-note">// All plugins included &nbsp;·&nbsp; Cancel anytime &nbsp;·&nbsp; No upgrade fees</div>
-        </div>
-        <a href="audiosend/index.html#pricing" class="btn-main">++ Get Access</a>
-      </div>
-    </div>
-  </div>
-
   <!-- Ticker -->
   <div class="ticker-bar">
     <span class="ticker-inner">
-      ···· LUKEDA SUITE v1.0 ···· AudioSend — Send your mix to your phone over local WiFi ···· VST3 + AU ···· Windows &amp; macOS ···· Subscribe once, receive every future plugin automatically ···· $4.99 / month ···· Cancel anytime ···· Made by one person, for producers ···· lukeda.me ····
+      ···· LUKEDA ···· Free projects by Lucas Ruiz ···· AudioSend — Send your mix to your phone over local WiFi ···· VST3 + AU ···· Windows &amp; macOS ···· Everything is free ···· No accounts, no subscriptions ···· More projects coming ···· lukeda.me ····
     </span>
   </div>
 
@@ -541,9 +500,9 @@
   <div class="footbar">
     <div class="foot-left">
       <span class="led"></span>
-      <span>Lukeda Suite // Made by one person, for producers</span>
+      <span>Lukeda // Free projects by Lucas Ruiz</span>
     </div>
-    <span>© 2025 &nbsp;·&nbsp; v1.0 &nbsp;·&nbsp; All rights reserved</span>
+    <span>© 2025 &nbsp;·&nbsp; lukeda.me &nbsp;·&nbsp; All rights reserved</span>
   </div>
 
 </div>
