@@ -1,0 +1,1328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Filekit — File Tools by Lukeda</title>
+  <style>
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: Verdana, Tahoma, Arial, sans-serif;
+    font-size: 11px;
+    background-color: #0a0702;
+    background-image:
+      radial-gradient(circle at 50%  4%, rgba(230,175,50,0.55) 0%, transparent 1.2%),
+      radial-gradient(circle at 54%  6%, rgba(230,175,50,0.40) 0%, transparent 0.9%),
+      radial-gradient(circle at 47%  5%, rgba(230,175,50,0.35) 0%, transparent 0.8%),
+      radial-gradient(ellipse 22%  65% at 50%  0%, rgba(200,140,20,0.50) 0%, transparent 55%),
+      radial-gradient(ellipse 75%  55% at 50%  0%, rgba(190,120,10,0.22) 0%, transparent 55%),
+      radial-gradient(ellipse 170% 16% at 20% 44%, rgba(180,115,8,0.12) 0%, transparent 52%),
+      radial-gradient(ellipse 190% 12% at 40% 64%, rgba(170,105,5,0.08) 0%, transparent 50%),
+      radial-gradient(ellipse  80% 55% at 100% 100%, rgba(2,1,0,0.6) 0%, transparent 58%),
+      radial-gradient(ellipse  60% 45% at   0% 100%, rgba(2,1,0,0.4) 0%, transparent 50%),
+      repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.04) 3px, rgba(0,0,0,0.04) 4px),
+      linear-gradient(155deg, #1c1204 0%, #140e03 20%, #0e0a02 42%, #090602 64%, #060401 84%, #030200 100%);
+    background-attachment: fixed;
+    min-height: 100vh;
+    padding: 22px 16px 48px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: #a88c5a;
+  }
+
+  .page { width: 100%; max-width: 860px; }
+
+  /* ─ SYSBAR ─ */
+  .sysbar {
+    display: flex; align-items: center; justify-content: space-between;
+    background: linear-gradient(180deg, rgba(18,12,2,0.95) 0%, rgba(12,8,1,0.97) 100%);
+    border: 1px solid rgba(200,148,42,0.22);
+    border-bottom: 1px solid rgba(180,128,30,0.14);
+    padding: 5px 12px;
+    font-size: 9px; font-family: 'Courier New', monospace; letter-spacing: 0.06em;
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  }
+  .sysbar-left  { color: #8a6a22; font-weight: bold; text-transform: uppercase; }
+  .sysbar-right { display: flex; gap: 16px; align-items: center; color: #4a3810; text-transform: uppercase; }
+  .online-badge { display: flex; align-items: center; gap: 4px; color: #c89030; }
+  .led {
+    display: inline-block; width: 5px; height: 5px; border-radius: 50%;
+    background: radial-gradient(circle at 38% 32%, #ffe090, #d4920a);
+    box-shadow: 0 0 6px rgba(212,146,10,0.9);
+    animation: ledPulse 2.4s ease-in-out infinite;
+  }
+  @keyframes ledPulse {
+    0%,100% { box-shadow: 0 0 6px rgba(212,146,10,0.9); opacity: 1; }
+    50%      { box-shadow: 0 0 2px rgba(212,146,10,0.3); opacity: 0.5; }
+  }
+
+  /* ─ HEADER ─ */
+  .header-panel {
+    background: linear-gradient(180deg, rgba(20,13,3,0.93) 0%, rgba(14,9,2,0.95) 100%);
+    border: 1px solid rgba(200,148,42,0.22); border-top: none;
+    border-bottom: 2px solid rgba(190,130,25,0.16);
+    padding: 30px 28px 26px; position: relative; overflow: hidden;
+    margin-top: -1px; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  }
+  .header-panel::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(212,155,40,0.55), transparent);
+  }
+  .header-panel::after {
+    content: ''; position: absolute; top: -55px; right: -40px;
+    width: 280px; height: 180px;
+    background: radial-gradient(ellipse, rgba(200,140,25,0.08) 0%, transparent 65%);
+    pointer-events: none;
+  }
+  .brand {
+    font-family: 'Trebuchet MS', Impact, Arial, sans-serif;
+    font-size: clamp(28px, 6vw, 44px); font-weight: bold; color: #e8c870;
+    text-transform: uppercase; letter-spacing: 0.05em; line-height: 1; margin-bottom: 5px;
+    text-shadow: 0 0 30px rgba(212,160,40,0.45), 0 2px 6px rgba(0,0,0,0.6);
+    position: relative; z-index: 1;
+  }
+  .brand-ver {
+    font-family: 'Courier New', monospace; font-size: 9px; color: #4a3610;
+    letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 16px;
+    position: relative; z-index: 1;
+  }
+  .brand-tagline { font-size: 11px; color: #6a5222; line-height: 1.8; max-width: 540px; position: relative; z-index: 1; }
+  .brand-tagline strong { color: #c89840; font-weight: bold; }
+
+  /* ─ NAVBAR ─ */
+  .navbar {
+    display: flex; align-items: stretch;
+    background: linear-gradient(180deg, rgba(16,10,2,0.95) 0%, rgba(10,6,1,0.97) 100%);
+    border: 1px solid rgba(200,148,42,0.22); border-top: none; margin-top: -1px;
+    overflow: hidden; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    flex-wrap: wrap;
+  }
+  .nav-prefix {
+    padding: 0 12px; font-family: 'Courier New', monospace; font-size: 9px;
+    font-weight: bold; color: #3a2c0e; border-right: 1px solid rgba(180,128,30,0.14);
+    display: flex; align-items: center; background: rgba(10,6,1,0.5); white-space: nowrap;
+  }
+  .nav-items { display: flex; flex-wrap: wrap; flex: 1; }
+  .nav-lnk {
+    display: flex; align-items: center; padding: 9px 14px;
+    font-size: 9px; font-family: Verdana, Tahoma, sans-serif; font-weight: bold;
+    color: #5a4418; text-decoration: none; text-transform: uppercase;
+    letter-spacing: 0.08em; border-right: 1px solid rgba(180,128,30,0.12);
+    position: relative; transition: background 0.1s, color 0.1s; cursor: pointer;
+  }
+  .nav-lnk:hover  { background: rgba(200,148,42,0.08); color: #d4a038; }
+  .nav-lnk.active { color: #d4a038; background: rgba(200,148,42,0.07); }
+  .nav-lnk.active::after {
+    content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, #c89030 40%, transparent);
+  }
+  .nav-back {
+    margin-left: auto; font-family: 'Courier New', monospace; font-size: 9px;
+    color: #2e2208; padding: 0 14px; display: flex; align-items: center;
+    text-decoration: none; border-left: 1px solid rgba(180,128,30,0.12);
+    transition: color 0.1s; white-space: nowrap;
+  }
+  .nav-back:hover { color: #8a6a22; }
+
+  /* ─ PANEL ─ */
+  .panel {
+    border: 1px solid rgba(200,148,42,0.18); border-top: none;
+    background: rgba(10,7,2,0.90); margin-top: -1px;
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  }
+  .panel-head {
+    display: flex; align-items: center; gap: 8px; padding: 6px 14px;
+    background: rgba(18,12,3,0.65); border-bottom: 1px solid rgba(180,128,30,0.12);
+    font-size: 8px; font-family: 'Courier New', monospace; font-weight: bold;
+    color: #6a5225; text-transform: uppercase; letter-spacing: 0.14em;
+  }
+  .panel-head::before { content: '++ '; color: #3a2c0e; }
+  .panel-body { padding: 20px 22px; }
+
+  /* ─ TOOL PANELS ─ */
+  .tool-panel { display: none; }
+  .tool-panel.active { display: block; }
+
+  /* ─ INTRO ─ */
+  .intro-text { font-size: 11px; color: #5a4420; line-height: 1.8; max-width: 620px; }
+  .intro-quote {
+    font-family: 'Courier New', monospace; font-size: 10px; color: #3a2c0e;
+    padding: 8px 14px; border-left: 2px solid #7a5e18; background: rgba(180,128,20,0.06);
+    line-height: 1.6; letter-spacing: 0.02em; margin-top: 10px;
+  }
+
+  /* ─ FILE SLOT (shared) ─ */
+  .file-slot {
+    border: 1.5px dashed rgba(200,148,42,0.25); background: rgba(16,11,3,0.55);
+    position: relative; display: flex; flex-direction: column;
+    min-height: 160px; cursor: pointer;
+    transition: border-color 0.15s, background 0.15s; overflow: hidden;
+  }
+  .file-slot:hover      { border-color: rgba(200,148,42,0.52); background: rgba(22,15,4,0.70); }
+  .file-slot.drag-over  { border-color: rgba(200,148,42,0.75); background: rgba(26,18,5,0.80); border-style: solid; }
+  .file-slot.loaded     { border-style: solid; border-color: rgba(200,148,42,0.38); }
+  .file-slot.err-state  { border-style: solid; border-color: rgba(180,60,35,0.50); }
+
+  .slot-head {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 5px 10px; background: rgba(14,9,2,0.70);
+    border-bottom: 1px solid rgba(180,128,20,0.12);
+    font-family: 'Courier New', monospace; font-size: 8px; color: #3a2c0e;
+    text-transform: uppercase; letter-spacing: 0.1em; gap: 6px;
+  }
+  .slot-fname   { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .slot-ind {
+    width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+    background: rgba(180,128,20,0.15); border: 1px solid rgba(180,128,20,0.25);
+    transition: background 0.2s, box-shadow 0.2s;
+  }
+  .slot-ind.on  { background: rgba(210,148,10,0.75); box-shadow: 0 0 5px rgba(212,155,20,0.55); }
+  .slot-ind.bad { background: rgba(180,55,30,0.75); }
+
+  .slot-body {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; padding: 18px 16px; text-align: center; gap: 9px;
+    pointer-events: none;
+  }
+  .slot-glyph    { font-size: 28px; line-height: 1; opacity: 0.20; transition: opacity 0.2s; font-style: normal; }
+  .file-slot.loaded .slot-glyph { opacity: 0.50; }
+  .slot-hint     { font-family: 'Courier New', monospace; font-size: 9px; color: #2e2208; text-transform: uppercase; letter-spacing: 0.08em; line-height: 1.7; }
+  .file-slot.loaded .slot-hint  { display: none; }
+  .slot-meta     { display: none; width: 100%; }
+  .file-slot.loaded .slot-meta,
+  .file-slot.err-state .slot-meta { display: block; }
+  .meta-line     { display: flex; justify-content: space-between; font-family: 'Courier New', monospace; font-size: 8px; padding: 1.5px 0; }
+  .meta-k        { color: #3a2c0e; }
+  .meta-v        { color: #b88c2e; }
+  .meta-err      { color: #a04422; }
+
+  .slot-clear-btn {
+    display: none; position: absolute; bottom: 8px; right: 10px;
+    background: none; border: none; font-family: 'Courier New', monospace;
+    font-size: 8px; color: #3a2c0e; cursor: pointer; text-transform: uppercase;
+    letter-spacing: 0.06em; transition: color 0.1s; pointer-events: all; z-index: 2; padding: 2px 4px;
+  }
+  .file-slot.loaded .slot-clear-btn,
+  .file-slot.err-state .slot-clear-btn { display: block; }
+  .slot-clear-btn:hover { color: #c05535; }
+
+  /* ─ PDF MERGE LAYOUT ─ */
+  .merge-grid { display: grid; grid-template-columns: 1fr 24px 1fr; gap: 0 10px; align-items: start; margin-bottom: 18px; }
+  .merge-divider { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 160px; }
+  .div-line { flex: 1; width: 1px; background: linear-gradient(180deg, transparent, rgba(200,148,42,0.18), transparent); min-height: 30px; }
+  .div-sym  { font-family: 'Courier New', monospace; font-size: 11px; color: #3a2c0e; padding: 4px 0; }
+
+  /* ─ CONTROLS ROW ─ */
+  .controls-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .ctrl-label   { font-family: 'Courier New', monospace; font-size: 9px; color: #3a2c0e; text-transform: uppercase; letter-spacing: 0.1em; white-space: nowrap; }
+  .toggle-group { display: flex; border: 1px solid rgba(200,148,42,0.20); overflow: hidden; }
+  .tog-opt {
+    padding: 5px 13px; font-family: 'Courier New', monospace; font-size: 9px;
+    text-transform: uppercase; letter-spacing: 0.08em; color: #3a2c0e;
+    background: rgba(16,10,2,0.5); border: none; cursor: pointer;
+    transition: background 0.1s, color 0.1s;
+  }
+  .tog-opt + .tog-opt { border-left: 1px solid rgba(200,148,42,0.20); }
+  .tog-opt.sel        { background: rgba(200,148,42,0.12); color: #d4a038; }
+  .tog-opt:not(.sel):hover { color: #8a6a22; background: rgba(200,148,42,0.06); }
+  .ctrl-desc { font-family: 'Courier New', monospace; font-size: 9px; color: #2e2208; }
+
+  /* ─ RUN BUTTON ─ */
+  .run-btn {
+    width: 100%; padding: 13px 20px;
+    background: rgba(170,118,8,0.10); border: 1px solid rgba(200,148,42,0.32);
+    color: #b88c28; font-family: 'Courier New', monospace; font-size: 11px;
+    font-weight: bold; text-transform: uppercase; letter-spacing: 0.18em;
+    cursor: pointer; position: relative; overflow: hidden;
+    transition: background 0.15s, border-color 0.15s, color 0.15s; margin-bottom: 18px;
+  }
+  .run-btn::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(212,160,40,0.55), transparent);
+  }
+  .run-btn:hover:not(:disabled) { background: rgba(200,148,42,0.18); border-color: rgba(200,148,42,0.55); color: #f0c050; }
+  .run-btn:disabled { opacity: 0.28; cursor: not-allowed; }
+  .run-btn.running  { animation: btnAmber 0.85s ease-in-out infinite; }
+  @keyframes btnAmber {
+    0%,100% { border-color: rgba(200,148,42,0.32); box-shadow: none; }
+    50%      { border-color: rgba(200,148,42,0.70); box-shadow: 0 0 14px rgba(200,148,42,0.14); }
+  }
+
+  /* ─ LOG ─ */
+  .log-wrap { border: 1px solid rgba(200,148,42,0.14); background: rgba(6,4,1,0.65); }
+  .log-head {
+    padding: 4px 12px; font-family: 'Courier New', monospace; font-size: 8px; color: #2e2208;
+    text-transform: uppercase; letter-spacing: 0.1em;
+    border-bottom: 1px solid rgba(200,148,42,0.10); background: rgba(12,8,2,0.60);
+  }
+  .log-head::before { content: '++ '; }
+  .log-body {
+    padding: 10px 14px; font-family: 'Courier New', monospace; font-size: 9px;
+    line-height: 1.95; min-height: 58px; max-height: 140px; overflow-y: auto;
+  }
+  .log-body::-webkit-scrollbar { width: 4px; }
+  .log-body::-webkit-scrollbar-thumb { background: rgba(200,148,42,0.18); }
+  .ll      { display: block; }
+  .ll-dim  { color: #221a08; }
+  .ll-info { color: #4a3812; }
+  .ll-ok   { color: #7a5e1a; }
+  .ll-done { color: #c49028; }
+  .ll-err  { color: #a04422; }
+  .ll-warn { color: #8a6010; }
+
+  /* ─ OUTPUT ROW ─ */
+  .output-row {
+    display: none; align-items: center; gap: 14px;
+    margin-top: 16px; padding: 13px 16px;
+    border: 1px solid rgba(200,148,42,0.30); background: rgba(18,12,3,0.55);
+    position: relative; overflow: hidden;
+  }
+  .output-row::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(212,160,40,0.50), transparent);
+  }
+  .output-row.show { display: flex; }
+  .out-icon   { font-size: 22px; opacity: 0.65; flex-shrink: 0; }
+  .out-info   { flex: 1; min-width: 0; }
+  .out-name   { font-family: 'Courier New', monospace; font-size: 10px; color: #c49028; margin-bottom: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .out-meta   { font-family: 'Courier New', monospace; font-size: 8px; color: #3a2c0e; }
+  .dl-btn {
+    flex-shrink: 0; padding: 9px 18px;
+    background: rgba(170,118,8,0.14); border: 1px solid rgba(200,148,42,0.42);
+    color: #d4a038; font-family: 'Courier New', monospace; font-size: 9px;
+    font-weight: bold; text-transform: uppercase; letter-spacing: 0.12em;
+    cursor: pointer; text-decoration: none; display: inline-flex; align-items: center;
+    gap: 6px; transition: background 0.12s, color 0.12s, border-color 0.12s; white-space: nowrap;
+  }
+  .dl-btn:hover { background: rgba(200,148,42,0.22); color: #f0c050; border-color: rgba(200,148,42,0.60); }
+
+  /* ─ IMG → PDF ─ */
+  .img-drop-zone {
+    border: 1.5px dashed rgba(200,148,42,0.25); background: rgba(16,11,3,0.55);
+    padding: 28px 20px; text-align: center; cursor: pointer; margin-bottom: 16px;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .img-drop-zone:hover, .img-drop-zone.drag-over {
+    border-color: rgba(200,148,42,0.60); background: rgba(22,15,4,0.75); border-style: solid;
+  }
+  .img-drop-zone .dz-glyph { font-size: 26px; opacity: 0.22; margin-bottom: 8px; }
+  .img-drop-zone .dz-label { font-family: 'Courier New', monospace; font-size: 9px; color: #2e2208; text-transform: uppercase; letter-spacing: 0.1em; line-height: 1.8; }
+
+  .img-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+  .img-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 7px 10px; border: 1px solid rgba(200,148,42,0.18);
+    background: rgba(16,11,3,0.55); cursor: grab;
+    transition: border-color 0.12s, background 0.12s;
+  }
+  .img-item:hover        { border-color: rgba(200,148,42,0.35); }
+  .img-item.is-dragging  { opacity: 0.35; }
+  .img-item.drop-target  { border-color: rgba(200,148,42,0.75); background: rgba(24,17,5,0.80); }
+  .img-thumb {
+    width: 44px; height: 44px; object-fit: cover; flex-shrink: 0;
+    border: 1px solid rgba(200,148,42,0.20); background: rgba(10,7,2,0.6);
+  }
+  .img-info      { flex: 1; min-width: 0; }
+  .img-info-name { font-family: 'Courier New', monospace; font-size: 9px; color: #7a5e1a; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .img-info-size { font-family: 'Courier New', monospace; font-size: 8px; color: #3a2c0e; margin-top: 2px; }
+  .img-order     { font-family: 'Courier New', monospace; font-size: 9px; color: #2e2208; flex-shrink: 0; padding: 0 4px; }
+  .img-del-btn   { background: none; border: none; font-family: 'Courier New', monospace; font-size: 9px; color: #2e2208; cursor: pointer; flex-shrink: 0; padding: 2px 4px; transition: color 0.1s; }
+  .img-del-btn:hover { color: #c05535; }
+
+  /* ─ WORD → PDF ─ */
+  .word-preview-wrap {
+    border: 1px solid rgba(200,148,42,0.18); margin-bottom: 14px; display: none;
+  }
+  .word-preview-wrap.show { display: block; }
+  .word-preview-head {
+    padding: 4px 12px; font-family: 'Courier New', monospace; font-size: 8px; color: #2e2208;
+    text-transform: uppercase; letter-spacing: 0.1em;
+    border-bottom: 1px solid rgba(200,148,42,0.10); background: rgba(12,8,2,0.60);
+  }
+  .word-preview-head::before { content: '++ '; }
+  .word-preview-body {
+    background: #faf8f4; color: #1a1410; padding: 28px 32px;
+    font-family: Georgia, 'Times New Roman', serif; font-size: 12px; line-height: 1.65;
+    max-height: 360px; overflow-y: auto;
+  }
+  .word-preview-body h1,.word-preview-body h2,.word-preview-body h3 { font-family: Arial, sans-serif; margin: 12px 0 6px; }
+  .word-preview-body p   { margin-bottom: 8px; }
+  .word-preview-body table { border-collapse: collapse; width: 100%; margin-bottom: 10px; }
+  .word-preview-body td, .word-preview-body th { border: 1px solid #ccc; padding: 5px 8px; font-size: 11px; }
+  .word-preview-body img { max-width: 100%; }
+  .word-preview-body ul, .word-preview-body ol { margin: 6px 0 6px 20px; }
+
+  .word-note {
+    font-family: 'Courier New', monospace; font-size: 9px; color: #4a3812;
+    padding: 8px 12px; border-left: 2px solid rgba(200,148,42,0.30);
+    background: rgba(180,128,20,0.06); line-height: 1.7; margin-bottom: 14px;
+  }
+
+  /* ─ PAGE EDITOR ─ */
+  .thumb-toolbar {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 14px;
+    padding: 8px 12px; background: rgba(14,9,2,0.60);
+    border: 1px solid rgba(200,148,42,0.14);
+    font-family: 'Courier New', monospace; font-size: 9px; color: #3a2c0e;
+    flex-wrap: wrap;
+  }
+  .thumb-count { color: #8a6a22; font-weight: bold; }
+  .thumb-hint  { color: #2e2208; font-style: italic; margin-left: auto; }
+
+  .thumb-grid {
+    display: flex; flex-wrap: wrap; gap: 10px;
+    margin-bottom: 18px; min-height: 60px;
+  }
+  .thumb-empty {
+    font-family: 'Courier New', monospace; font-size: 9px; color: #2e2208;
+    padding: 10px; text-transform: uppercase; letter-spacing: 0.08em;
+  }
+  .thumb-card {
+    position: relative; width: 110px; flex-shrink: 0;
+    border: 1px solid rgba(200,148,42,0.20); background: rgba(14,9,2,0.65);
+    cursor: grab; transition: border-color 0.12s, box-shadow 0.12s;
+    user-select: none;
+  }
+  .thumb-card:hover        { border-color: rgba(200,148,42,0.45); }
+  .thumb-card.is-dragging  { opacity: 0.30; cursor: grabbing; }
+  .thumb-card.drop-target  { border-color: rgba(200,148,42,0.80); box-shadow: 0 0 10px rgba(200,148,42,0.18); }
+  .thumb-card.deleted-mark { opacity: 0.15; pointer-events: none; }
+  .thumb-canvas { display: block; width: 100%; background: #fff; }
+  .thumb-loading { width: 100%; height: 140px; display: flex; align-items: center; justify-content: center; font-family: 'Courier New', monospace; font-size: 8px; color: #2e2208; }
+  .thumb-foot {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 4px 6px; background: rgba(14,9,2,0.75);
+    border-top: 1px solid rgba(180,128,20,0.12);
+    font-family: 'Courier New', monospace; font-size: 8px; color: #3a2c0e;
+  }
+  .thumb-del {
+    background: none; border: none; color: #3a2c0e; cursor: pointer;
+    font-family: 'Courier New', monospace; font-size: 9px;
+    transition: color 0.1s; line-height: 1; padding: 0 1px; pointer-events: all;
+  }
+  .thumb-del:hover { color: #c05535; }
+
+  /* ─ H-RULE ─ */
+  .h-rule { height: 1px; background: linear-gradient(90deg, transparent, rgba(200,138,22,0.18), transparent); margin: 14px 0; }
+
+  /* ─ FOOTER ─ */
+  .footbar {
+    border: 1px solid rgba(200,148,42,0.16); border-top: 1px solid rgba(180,128,20,0.10);
+    margin-top: -1px; background: rgba(6,4,1,0.96); padding: 7px 14px;
+    display: flex; align-items: center; justify-content: space-between;
+    font-family: 'Courier New', monospace; font-size: 9px; color: #2e2208;
+    text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  .foot-left { display: flex; align-items: center; gap: 8px; }
+
+  /* ─ RESPONSIVE ─ */
+  @media (max-width: 580px) {
+    body { padding: 10px 10px 32px; background-attachment: scroll; }
+    .header-panel { padding: 20px 16px; }
+    .brand { font-size: 26px; }
+    .nav-lnk { padding: 8px 10px; font-size: 8px; }
+    .merge-grid { grid-template-columns: 1fr; }
+    .merge-divider { flex-direction: row; min-height: unset; padding: 6px 0; }
+    .div-line { flex: 1; width: unset; height: 1px; min-height: unset; background: linear-gradient(90deg, transparent, rgba(200,148,42,0.18), transparent); }
+    .controls-row { flex-direction: column; align-items: flex-start; }
+    .thumb-card { width: 90px; }
+  }
+
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Sysbar -->
+  <div class="sysbar">
+    <span class="sysbar-left">++ Filekit // File Tools · Lukeda</span>
+    <div class="sysbar-right">
+      <span>lukeda.me</span>
+      <span class="online-badge"><span class="led"></span> Online</span>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <div class="header-panel">
+    <div class="brand">Filekit</div>
+    <div class="brand-ver">// file utilities · lukeda.me · by lucas ruiz</div>
+    <div class="brand-tagline">
+      Browser-based file tools. <strong>No uploads, no servers, no accounts.</strong>
+      Every operation runs locally — your files never leave your machine.
+    </div>
+  </div>
+
+  <!-- Nav -->
+  <div class="navbar">
+    <span class="nav-prefix">++ tools ::</span>
+    <div class="nav-items">
+      <a class="nav-lnk active" data-tool="pdf-merge"  onclick="activateTool('pdf-merge');  return false;" href="#pdf-merge">PDF Merge</a>
+      <a class="nav-lnk"        data-tool="img-pdf"    onclick="activateTool('img-pdf');    return false;" href="#img-pdf">IMG → PDF</a>
+      <a class="nav-lnk"        data-tool="word-pdf"   onclick="activateTool('word-pdf');   return false;" href="#word-pdf">Word → PDF</a>
+      <a class="nav-lnk"        data-tool="page-edit"  onclick="activateTool('page-edit');  return false;" href="#page-edit">PDF Editor</a>
+    </div>
+    <a href="../index.html" class="nav-back">&lt;&lt; lukeda</a>
+  </div>
+
+  <!-- About -->
+  <div class="panel">
+    <div class="panel-head">About Filekit</div>
+    <div class="panel-body">
+      <p class="intro-text">A growing toolkit for common file operations. No cloud processing, no waiting, no privacy concerns. Your browser does all the work.</p>
+      <p class="intro-quote">// everything runs in-browser · your files stay on your machine · always</p>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       TOOL: PDF MERGE
+  ══════════════════════════════════════ -->
+  <div class="panel tool-panel active" id="panel-pdf-merge">
+    <div class="panel-head">PDF / Merge Two Files</div>
+    <div class="panel-body">
+
+      <div class="merge-grid">
+        <div class="file-slot" id="slotA" onclick="slotClick('A')"
+             ondragover="slotDragOver(event,'A')" ondragleave="slotDragLeave(event,'A')" ondrop="slotDrop(event,'A')">
+          <div class="slot-head"><span class="slot-fname" id="fnameA">file_a.pdf</span><span class="slot-ind" id="indA"></span></div>
+          <div class="slot-body">
+            <div class="slot-glyph">▤</div>
+            <div class="slot-hint">Drop PDF here<br>or click to browse</div>
+            <div class="slot-meta" id="metaA"></div>
+          </div>
+          <button class="slot-clear-btn" onclick="event.stopPropagation(); clearSlot('A')">[ clear ]</button>
+        </div>
+        <div class="merge-divider"><div class="div-line"></div><div class="div-sym">+</div><div class="div-line"></div></div>
+        <div class="file-slot" id="slotB" onclick="slotClick('B')"
+             ondragover="slotDragOver(event,'B')" ondragleave="slotDragLeave(event,'B')" ondrop="slotDrop(event,'B')">
+          <div class="slot-head"><span class="slot-fname" id="fnameB">file_b.pdf</span><span class="slot-ind" id="indB"></span></div>
+          <div class="slot-body">
+            <div class="slot-glyph">▤</div>
+            <div class="slot-hint">Drop PDF here<br>or click to browse</div>
+            <div class="slot-meta" id="metaB"></div>
+          </div>
+          <button class="slot-clear-btn" onclick="event.stopPropagation(); clearSlot('B')">[ clear ]</button>
+        </div>
+      </div>
+
+      <input type="file" id="inputA" accept=".pdf,application/pdf" style="display:none" onchange="onSlotFileInput(event,'A')">
+      <input type="file" id="inputB" accept=".pdf,application/pdf" style="display:none" onchange="onSlotFileInput(event,'B')">
+
+      <div class="controls-row">
+        <span class="ctrl-label">order ::</span>
+        <div class="toggle-group">
+          <button class="tog-opt sel" id="optAB" onclick="setMergeOrder('AB')">A → B</button>
+          <button class="tog-opt"     id="optBA" onclick="setMergeOrder('BA')">B → A</button>
+        </div>
+        <span class="ctrl-desc" id="mergeOrderDesc">file A pages first, then B</span>
+      </div>
+
+      <button class="run-btn" id="mergeRunBtn" disabled onclick="runMerge()">&gt;&gt;&nbsp; RUN MERGE</button>
+
+      <div class="log-wrap"><div class="log-head">process log</div><div class="log-body" id="mergeLog"><span class="ll ll-dim">// waiting for input files…</span></div></div>
+
+      <div class="output-row" id="mergeOutput">
+        <div class="out-icon">▤</div>
+        <div class="out-info"><div class="out-name" id="mergeOutName">merged.pdf</div><div class="out-meta" id="mergeOutMeta"></div></div>
+        <a class="dl-btn" id="mergeDlBtn" href="#" download="merged.pdf">&gt;&gt;&nbsp; download</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       TOOL: IMG → PDF
+  ══════════════════════════════════════ -->
+  <div class="panel tool-panel" id="panel-img-pdf">
+    <div class="panel-head">IMG → PDF / Images to PDF Document</div>
+    <div class="panel-body">
+
+      <div class="img-drop-zone" id="imgDropZone" onclick="document.getElementById('imgInput').click()"
+           ondragover="imgDragOver(event)" ondragleave="imgDragLeave(event)" ondrop="imgDrop(event)">
+        <div class="dz-glyph">🖼</div>
+        <div class="dz-label">Drop JPG / PNG / WebP images here<br>or click to browse · multiple files supported</div>
+      </div>
+      <input type="file" id="imgInput" accept="image/jpeg,image/png,image/webp,image/gif,image/bmp" multiple style="display:none" onchange="onImgInput(event)">
+
+      <div class="img-list" id="imgList"></div>
+
+      <div class="controls-row" id="imgControls" style="display:none">
+        <span class="ctrl-label">page size ::</span>
+        <div class="toggle-group">
+          <button class="tog-opt sel" id="psA4"     onclick="setPageSize('a4')">A4</button>
+          <button class="tog-opt"     id="psLetter" onclick="setPageSize('letter')">Letter</button>
+          <button class="tog-opt"     id="psFit"    onclick="setPageSize('fit')">Fit Image</button>
+        </div>
+        <span class="ctrl-label" style="margin-left:8px;">orientation ::</span>
+        <div class="toggle-group" id="orientGroup">
+          <button class="tog-opt sel" id="orPort" onclick="setOrientation('portrait')">Portrait</button>
+          <button class="tog-opt"     id="orLand" onclick="setOrientation('landscape')">Landscape</button>
+        </div>
+      </div>
+
+      <button class="run-btn" id="imgRunBtn" disabled onclick="runImgPdf()" style="display:none">&gt;&gt;&nbsp; BUILD PDF</button>
+
+      <div class="log-wrap"><div class="log-head">process log</div><div class="log-body" id="imgLog"><span class="ll ll-dim">// add images to begin…</span></div></div>
+
+      <div class="output-row" id="imgOutput">
+        <div class="out-icon">▤</div>
+        <div class="out-info"><div class="out-name" id="imgOutName">images.pdf</div><div class="out-meta" id="imgOutMeta"></div></div>
+        <a class="dl-btn" id="imgDlBtn" href="#" download="images.pdf">&gt;&gt;&nbsp; download</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       TOOL: WORD → PDF
+  ══════════════════════════════════════ -->
+  <div class="panel tool-panel" id="panel-word-pdf">
+    <div class="panel-head">Word → PDF / DOCX to PDF</div>
+    <div class="panel-body">
+
+      <p class="word-note">
+        Converts .docx files to PDF using the browser's built-in print engine. Complex formatting (tracked changes, custom fonts, macros) may not render perfectly — this works best for standard documents. When the print dialog opens, set destination to <strong style="color:#c49028;">Save as PDF</strong>.
+      </p>
+
+      <div class="file-slot" id="slotW" onclick="slotClick('W')" style="min-height:120px; margin-bottom:16px;"
+           ondragover="slotDragOver(event,'W')" ondragleave="slotDragLeave(event,'W')" ondrop="slotDrop(event,'W')">
+        <div class="slot-head"><span class="slot-fname" id="fnameW">document.docx</span><span class="slot-ind" id="indW"></span></div>
+        <div class="slot-body">
+          <div class="slot-glyph">W</div>
+          <div class="slot-hint">Drop .docx here<br>or click to browse</div>
+          <div class="slot-meta" id="metaW"></div>
+        </div>
+        <button class="slot-clear-btn" onclick="event.stopPropagation(); clearWordSlot()">[ clear ]</button>
+      </div>
+      <input type="file" id="inputW" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" style="display:none" onchange="onWordFileInput(event)">
+
+      <div class="word-preview-wrap" id="wordPreviewWrap">
+        <div class="word-preview-head">document preview</div>
+        <div class="word-preview-body" id="wordPreviewBody"></div>
+      </div>
+
+      <button class="run-btn" id="wordRunBtn" disabled onclick="runWordPdf()">&gt;&gt;&nbsp; OPEN PRINT DIALOG</button>
+
+      <div class="log-wrap"><div class="log-head">process log</div><div class="log-body" id="wordLog"><span class="ll ll-dim">// waiting for .docx file…</span></div></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       TOOL: PAGE EDITOR
+  ══════════════════════════════════════ -->
+  <div class="panel tool-panel" id="panel-page-edit">
+    <div class="panel-head">PDF Editor / Reorder &amp; Delete Pages</div>
+    <div class="panel-body">
+
+      <div class="file-slot" id="slotP" onclick="slotClick('P')" style="min-height:120px; margin-bottom:16px;"
+           ondragover="slotDragOver(event,'P')" ondragleave="slotDragLeave(event,'P')" ondrop="slotDrop(event,'P')">
+        <div class="slot-head"><span class="slot-fname" id="fnameP">document.pdf</span><span class="slot-ind" id="indP"></span></div>
+        <div class="slot-body">
+          <div class="slot-glyph">▤</div>
+          <div class="slot-hint">Drop PDF here<br>or click to browse</div>
+          <div class="slot-meta" id="metaP"></div>
+        </div>
+        <button class="slot-clear-btn" onclick="event.stopPropagation(); clearPageEditor()">[ clear ]</button>
+      </div>
+      <input type="file" id="inputP" accept=".pdf,application/pdf" style="display:none" onchange="onPageFileInput(event)">
+
+      <div class="thumb-toolbar" id="thumbToolbar" style="display:none">
+        <span class="thumb-count" id="thumbCount">0 pages</span>
+        <span style="color:#2e2208;">·</span>
+        <span id="deletedCount" style="font-family:'Courier New',monospace;font-size:9px;color:#2e2208;">0 deleted</span>
+        <button class="tog-opt" style="margin-left:8px;" onclick="resetPageOrder()">[ reset ]</button>
+        <span class="thumb-hint">drag to reorder · ✕ to delete</span>
+      </div>
+
+      <div class="thumb-grid" id="thumbGrid">
+        <span class="thumb-empty">// load a PDF to edit its pages</span>
+      </div>
+
+      <button class="run-btn" id="pageRunBtn" disabled onclick="runPageEdit()">&gt;&gt;&nbsp; EXPORT PDF</button>
+
+      <div class="log-wrap"><div class="log-head">process log</div><div class="log-body" id="pageLog"><span class="ll ll-dim">// load a PDF to begin…</span></div></div>
+
+      <div class="output-row" id="pageOutput">
+        <div class="out-icon">▤</div>
+        <div class="out-info"><div class="out-name" id="pageOutName">edited.pdf</div><div class="out-meta" id="pageOutMeta"></div></div>
+        <a class="dl-btn" id="pageDlBtn" href="#" download="edited.pdf">&gt;&gt;&nbsp; download</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footbar">
+    <div class="foot-left"><span class="led"></span><span>Filekit // File Tools by Lukeda</span></div>
+    <span>© 2025 &nbsp;·&nbsp; lukeda.me &nbsp;·&nbsp; All rights reserved</span>
+  </div>
+
+</div><!-- /page -->
+
+<!-- Libraries -->
+<script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+<script src="https://unpkg.com/mammoth@1.8.0/mammoth.browser.min.js"></script>
+<script>
+
+/* ══════════════════════════════════════════════════════════
+   CONFIG
+══════════════════════════════════════════════════════════ */
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+
+/* ══════════════════════════════════════════════════════════
+   TABS
+══════════════════════════════════════════════════════════ */
+function activateTool(id) {
+  document.querySelectorAll('.tool-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('[data-tool]').forEach(l => l.classList.remove('active'));
+  const panel = document.getElementById('panel-' + id);
+  const link  = document.querySelector(`[data-tool="${id}"]`);
+  if (panel) panel.classList.add('active');
+  if (link)  link.classList.add('active');
+  history.replaceState(null, '', '#' + id);
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  const h = location.hash.replace('#', '');
+  if (h && document.getElementById('panel-' + h)) activateTool(h);
+});
+
+/* ══════════════════════════════════════════════════════════
+   SHARED HELPERS
+══════════════════════════════════════════════════════════ */
+function fmtBytes(n) {
+  if (n < 1024)        return n + ' B';
+  if (n < 1048576)     return (n / 1024).toFixed(1) + ' KB';
+  return (n / 1048576).toFixed(2) + ' MB';
+}
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function trunc(s, max) { return s.length > max ? s.slice(0, max - 1) + '…' : s; }
+function stripExt(n)   { return n.replace(/\.[^.]+$/, ''); }
+function safeFilename(n) { return n.replace(/[^a-zA-Z0-9_\-. ]/g, '_'); }
+
+/* Log helpers — each tool has its own log element */
+const logFirstMsg = {}; // track whether we've shown the initial dim message
+function logTo(logId, type, msg) {
+  const el = document.getElementById(logId);
+  if (!logFirstMsg[logId]) { el.innerHTML = ''; logFirstMsg[logId] = true; }
+  const s = document.createElement('span');
+  s.className = 'll ll-' + type;
+  s.textContent = msg;
+  el.appendChild(s);
+  el.scrollTop = el.scrollHeight;
+}
+
+/* Revoke old blob URL and set new one */
+function setBlobDownload(anchorId, bytes, mime, filename) {
+  const a = document.getElementById(anchorId);
+  if (a.href.startsWith('blob:')) URL.revokeObjectURL(a.href);
+  const blob = new Blob([bytes], { type: mime });
+  const url  = URL.createObjectURL(blob);
+  a.href     = url;
+  a.download = filename;
+}
+
+function slotClick(slot) { document.getElementById('input' + slot).click(); }
+
+function slotDragOver(e, slot)  { e.preventDefault(); document.getElementById('slot' + slot).classList.add('drag-over'); }
+function slotDragLeave(e, slot) { document.getElementById('slot' + slot).classList.remove('drag-over'); }
+function slotDrop(e, slot) {
+  e.preventDefault();
+  document.getElementById('slot' + slot).classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) dispatchSlotFile(slot, file);
+}
+
+function onSlotFileInput(e, slot) {
+  const file = e.target.files[0];
+  if (file) dispatchSlotFile(slot, file);
+  e.target.value = '';
+}
+
+function dispatchSlotFile(slot, file) {
+  if (slot === 'W') { loadWordFile(file); return; }
+  if (slot === 'P') { loadPageEditorFile(file); return; }
+  loadPdfSlot(slot, file);
+}
+
+function setSlotLoaded(slot, name, extraLines) {
+  const el = document.getElementById('slot' + slot);
+  el.classList.remove('err-state'); el.classList.add('loaded');
+  document.getElementById('fname' + slot).textContent = trunc(name, 26);
+  document.getElementById('ind'   + slot).className   = 'slot-ind on';
+  document.getElementById('meta'  + slot).innerHTML   = extraLines;
+}
+function setSlotErr(slot, name, msg) {
+  const el = document.getElementById('slot' + slot);
+  el.classList.remove('loaded'); el.classList.add('err-state');
+  document.getElementById('fname' + slot).textContent = trunc(name, 26);
+  document.getElementById('ind'   + slot).className   = 'slot-ind bad';
+  document.getElementById('meta'  + slot).innerHTML   =
+    `<div class="meta-line"><span class="meta-err">${esc(msg)}</span></div>`;
+}
+function setSlotReset(slot, placeholder) {
+  const el = document.getElementById('slot' + slot);
+  el.classList.remove('loaded', 'err-state');
+  document.getElementById('fname' + slot).textContent = placeholder;
+  document.getElementById('ind'   + slot).className   = 'slot-ind';
+  document.getElementById('meta'  + slot).innerHTML   = '';
+  el.querySelector('.slot-hint').style.display = '';
+  el.querySelector('.slot-glyph').style.opacity = '0.20';
+}
+function metaLine(k, v) {
+  return `<div class="meta-line"><span class="meta-k">${k}</span><span class="meta-v">${esc(v)}</span></div>`;
+}
+
+/* ══════════════════════════════════════════════════════════
+   PDF MERGE
+══════════════════════════════════════════════════════════ */
+const MS = { A: null, B: null, order: 'AB', busy: false };
+
+async function loadPdfSlot(slot, file) {
+  if (!file.name.toLowerCase().endsWith('.pdf') && file.type !== 'application/pdf') {
+    setSlotErr(slot, file.name, '[ not a pdf ]');
+    logTo('mergeLog','err', `[${slot}] rejected · ${esc(file.name)}`);
+    return;
+  }
+  logTo('mergeLog','info', `[${slot}] reading · ${esc(trunc(file.name,40))} · ${fmtBytes(file.size)}`);
+  try {
+    const bytes = await file.arrayBuffer();
+    const doc   = await PDFLib.PDFDocument.load(bytes);
+    const pages = doc.getPageCount();
+    MS[slot] = { file, bytes, pages };
+    setSlotLoaded(slot, file.name,
+      metaLine('name',  trunc(file.name,22)) +
+      metaLine('size',  fmtBytes(file.size)) +
+      metaLine('pages', String(pages)));
+    logTo('mergeLog','ok', `[${slot}] ready · ${pages} page${pages!==1?'s':''}`);
+    syncMergeBtn();
+  } catch(err) {
+    setSlotErr(slot, file.name, err.message.includes('ncrypt') ? '[ encrypted pdf ]' : '[ could not read ]');
+    logTo('mergeLog','err', `[${slot}] error · ${esc(err.message)}`);
+    MS[slot] = null; syncMergeBtn();
+  }
+}
+
+function clearSlot(slot) {
+  MS[slot] = null;
+  setSlotReset(slot, `file_${slot.toLowerCase()}.pdf`);
+  hideOutput('mergeOutput'); syncMergeBtn();
+  logTo('mergeLog','dim', `[${slot}] cleared`);
+}
+
+function setMergeOrder(o) {
+  MS.order = o;
+  document.getElementById('optAB').className = 'tog-opt' + (o==='AB'?' sel':'');
+  document.getElementById('optBA').className = 'tog-opt' + (o==='BA'?' sel':'');
+  document.getElementById('mergeOrderDesc').textContent =
+    o==='AB' ? 'file A pages first, then B' : 'file B pages first, then A';
+}
+
+function syncMergeBtn() {
+  document.getElementById('mergeRunBtn').disabled = !(MS.A && MS.B) || MS.busy;
+}
+
+async function runMerge() {
+  if (!MS.A || !MS.B || MS.busy) return;
+  MS.busy = true;
+  const btn = document.getElementById('mergeRunBtn');
+  btn.disabled = true; btn.classList.add('running'); btn.textContent = '>>  PROCESSING…';
+  hideOutput('mergeOutput');
+
+  const [first, second] = MS.order==='AB' ? [MS.A,MS.B] : [MS.B,MS.A];
+  logTo('mergeLog','dim',  '────────────────────────────');
+  logTo('mergeLog','info', `>> merge · order: ${MS.order}`);
+  logTo('mergeLog','info', `   [1] ${esc(trunc(first.file.name,34))}  (${first.pages}pp)`);
+  logTo('mergeLog','info', `   [2] ${esc(trunc(second.file.name,34))}  (${second.pages}pp)`);
+  try {
+    const [docA, docB, out] = await Promise.all([
+      PDFLib.PDFDocument.load(first.bytes),
+      PDFLib.PDFDocument.load(second.bytes),
+      PDFLib.PDFDocument.create(),
+    ]);
+    logTo('mergeLog','info', `   copying ${first.pages}pp from [1]…`);
+    (await out.copyPages(docA, docA.getPageIndices())).forEach(p => out.addPage(p));
+    logTo('mergeLog','info', `   copying ${second.pages}pp from [2]…`);
+    (await out.copyPages(docB, docB.getPageIndices())).forEach(p => out.addPage(p));
+    logTo('mergeLog','info', '   saving…');
+    const bytes    = await out.save();
+    const total    = first.pages + second.pages;
+    const outName  = `${safeFilename(stripExt(MS.A.file.name))}_+_${safeFilename(stripExt(MS.B.file.name))}_merged.pdf`;
+    logTo('mergeLog','done', `>> done · ${total} pages · ${fmtBytes(bytes.byteLength)}`);
+    setBlobDownload('mergeDlBtn', bytes, 'application/pdf', outName);
+    document.getElementById('mergeOutName').textContent = outName;
+    document.getElementById('mergeOutMeta').textContent = `${total} pages · ${fmtBytes(bytes.byteLength)}`;
+    document.getElementById('mergeOutput').classList.add('show');
+  } catch(err) {
+    logTo('mergeLog','err', `>> error · ${esc(err.message)}`);
+  }
+  MS.busy = false;
+  btn.classList.remove('running'); btn.textContent = '>>  RUN MERGE';
+  syncMergeBtn();
+}
+
+/* ══════════════════════════════════════════════════════════
+   IMG → PDF
+══════════════════════════════════════════════════════════ */
+const IS = { items: [], pageSize: 'a4', orientation: 'portrait', busy: false };
+let imgDragSrcIdx = null;
+let imgDropTarget = null;
+
+function imgDragOver(e)  { e.preventDefault(); document.getElementById('imgDropZone').classList.add('drag-over'); }
+function imgDragLeave(e) { document.getElementById('imgDropZone').classList.remove('drag-over'); }
+function imgDrop(e) {
+  e.preventDefault();
+  document.getElementById('imgDropZone').classList.remove('drag-over');
+  addImages([...e.dataTransfer.files]);
+}
+function onImgInput(e) { addImages([...e.target.files]); e.target.value = ''; }
+
+const ACCEPTED_IMG = ['image/jpeg','image/jpg','image/png','image/webp','image/gif','image/bmp'];
+function addImages(files) {
+  const valid = files.filter(f => ACCEPTED_IMG.includes(f.type) || /\.(jpe?g|png|webp|gif|bmp)$/i.test(f.name));
+  if (!valid.length) { logTo('imgLog','err','no supported image files found (JPG, PNG, WebP, GIF, BMP)'); return; }
+  valid.forEach(f => {
+    IS.items.push({ file: f, url: URL.createObjectURL(f) });
+    logTo('imgLog','info', `+ ${esc(trunc(f.name,40))} · ${fmtBytes(f.size)}`);
+  });
+  renderImgList();
+}
+
+function renderImgList() {
+  const list = document.getElementById('imgList');
+  list.innerHTML = '';
+  IS.items.forEach((item, idx) => {
+    const div = document.createElement('div');
+    div.className = 'img-item';
+    div.draggable = true;
+    div.innerHTML = `
+      <img class="img-thumb" src="${item.url}" alt="">
+      <div class="img-info">
+        <div class="img-info-name">${esc(trunc(item.file.name, 38))}</div>
+        <div class="img-info-size">${fmtBytes(item.file.size)}</div>
+      </div>
+      <span class="img-order">${idx+1}</span>
+      <button class="img-del-btn" data-idx="${idx}">[ remove ]</button>`;
+    div.querySelector('.img-del-btn').addEventListener('click', e => {
+      e.stopPropagation();
+      URL.revokeObjectURL(IS.items[idx].url);
+      IS.items.splice(idx, 1);
+      renderImgList();
+    });
+    div.addEventListener('dragstart', e => {
+      imgDragSrcIdx = idx;
+      setTimeout(() => div.classList.add('is-dragging'), 0);
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    div.addEventListener('dragend', () => { div.classList.remove('is-dragging'); imgDropTarget = null; });
+    div.addEventListener('dragover', e => {
+      e.preventDefault();
+      if (imgDropTarget !== div) { imgDropTarget?.classList.remove('drop-target'); imgDropTarget = div; div.classList.add('drop-target'); }
+    });
+    div.addEventListener('drop', e => {
+      e.preventDefault();
+      div.classList.remove('drop-target'); imgDropTarget = null;
+      if (imgDragSrcIdx === null || imgDragSrcIdx === idx) return;
+      const [moved] = IS.items.splice(imgDragSrcIdx, 1);
+      IS.items.splice(imgDragSrcIdx < idx ? idx - 1 : idx, 0, moved);
+      imgDragSrcIdx = null;
+      renderImgList();
+    });
+    list.appendChild(div);
+  });
+
+  const hasItems = IS.items.length > 0;
+  document.getElementById('imgControls').style.display  = hasItems ? 'flex'  : 'none';
+  document.getElementById('imgRunBtn').style.display    = hasItems ? 'block' : 'none';
+  document.getElementById('imgRunBtn').disabled         = !hasItems || IS.busy;
+  if (!hasItems) hideOutput('imgOutput');
+}
+
+const PAGE_SIZE_IDS = { a4: 'psA4', letter: 'psLetter', fit: 'psFit' };
+
+function setPageSize(s) {
+  IS.pageSize = s;
+  Object.entries(PAGE_SIZE_IDS).forEach(([v, id]) => {
+    document.getElementById(id).className = 'tog-opt' + (v === s ? ' sel' : '');
+  });
+  // Hide orientation toggle when "Fit" is selected
+  document.getElementById('orientGroup').style.opacity = s === 'fit' ? '0.3' : '1';
+  document.getElementById('orientGroup').style.pointerEvents = s === 'fit' ? 'none' : '';
+}
+function setOrientation(o) {
+  IS.orientation = o;
+  document.getElementById('orPort').className = 'tog-opt' + (o==='portrait' ?' sel':'');
+  document.getElementById('orLand').className = 'tog-opt' + (o==='landscape'?' sel':'');
+}
+
+async function imgToEmbeddable(file, pdfDoc) {
+  return new Promise((resolve, reject) => {
+    const img    = new Image();
+    const objUrl = URL.createObjectURL(file);
+    img.onerror  = () => { URL.revokeObjectURL(objUrl); reject(new Error(`could not decode ${file.name}`)); };
+    img.onload   = () => {
+      URL.revokeObjectURL(objUrl);
+      const c = document.createElement('canvas');
+      c.width = img.naturalWidth; c.height = img.naturalHeight;
+      c.getContext('2d').drawImage(img, 0, 0);
+      c.toBlob(async blob => {
+        if (!blob) { reject(new Error('canvas toBlob failed')); return; }
+        const isJpeg = file.type === 'image/jpeg' || /\.jpe?g$/i.test(file.name);
+        try {
+          if (isJpeg) {
+            resolve(await pdfDoc.embedJpg(await file.arrayBuffer()));
+          } else {
+            resolve(await pdfDoc.embedPng(await blob.arrayBuffer()));
+          }
+        } catch { resolve(await pdfDoc.embedPng(await blob.arrayBuffer())); }
+      }, 'image/png');
+    };
+    img.src = objUrl;
+  });
+}
+
+async function runImgPdf() {
+  if (!IS.items.length || IS.busy) return;
+  IS.busy = true;
+  const btn = document.getElementById('imgRunBtn');
+  btn.disabled = true; btn.classList.add('running'); btn.textContent = '>>  BUILDING…';
+  hideOutput('imgOutput');
+
+  logTo('imgLog','dim',  '────────────────────────────');
+  logTo('imgLog','info', `>> building PDF · ${IS.items.length} image${IS.items.length!==1?'s':''} · ${IS.pageSize} · ${IS.orientation}`);
+
+  try {
+    const pdfDoc = await PDFLib.PDFDocument.create();
+    for (let i = 0; i < IS.items.length; i++) {
+      const item = IS.items[i];
+      logTo('imgLog','info', `   [${i+1}/${IS.items.length}] ${esc(trunc(item.file.name,38))}…`);
+      const embedded = await imgToEmbeddable(item.file, pdfDoc);
+      const imgW = embedded.width, imgH = embedded.height;
+
+      let pw, ph;
+      if (IS.pageSize === 'fit') {
+        pw = imgW; ph = imgH;
+      } else {
+        const dim = IS.pageSize === 'a4' ? [595, 842] : [612, 792];
+        [pw, ph] = IS.orientation === 'portrait' ? dim : [dim[1], dim[0]];
+      }
+
+      const page  = pdfDoc.addPage([pw, ph]);
+      const scale = Math.min(pw / imgW, ph / imgH);
+      const dw = imgW * scale, dh = imgH * scale;
+      page.drawImage(embedded, { x: (pw - dw) / 2, y: (ph - dh) / 2, width: dw, height: dh });
+    }
+
+    logTo('imgLog','info', '   saving…');
+    const bytes   = await pdfDoc.save();
+    const outName = IS.items.length === 1
+      ? `${safeFilename(stripExt(IS.items[0].file.name))}.pdf`
+      : 'images.pdf';
+    logTo('imgLog','done', `>> done · ${IS.items.length} pages · ${fmtBytes(bytes.byteLength)}`);
+    setBlobDownload('imgDlBtn', bytes, 'application/pdf', outName);
+    document.getElementById('imgOutName').textContent = outName;
+    document.getElementById('imgOutMeta').textContent = `${IS.items.length} pages · ${fmtBytes(bytes.byteLength)}`;
+    document.getElementById('imgOutput').classList.add('show');
+  } catch(err) {
+    logTo('imgLog','err', `>> error · ${esc(err.message)}`);
+  }
+
+  IS.busy = false;
+  btn.classList.remove('running'); btn.textContent = '>>  BUILD PDF';
+  btn.disabled = false;
+}
+
+/* ══════════════════════════════════════════════════════════
+   WORD → PDF
+══════════════════════════════════════════════════════════ */
+const WS = { html: null, name: null };
+
+async function loadWordFile(file) {
+  if (!file.name.toLowerCase().endsWith('.docx')) {
+    setSlotErr('W', file.name, '[ .docx files only ]');
+    logTo('wordLog','err', `rejected · ${esc(file.name)} — only .docx supported`);
+    return;
+  }
+  logTo('wordLog','info', `reading · ${esc(trunc(file.name,40))} · ${fmtBytes(file.size)}`);
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    logTo('wordLog','info', 'converting to HTML…');
+    const result = await mammoth.convertToHtml({ arrayBuffer });
+    WS.html = result.value;
+    WS.name = file.name;
+
+    setSlotLoaded('W', file.name,
+      metaLine('name', trunc(file.name,22)) +
+      metaLine('size', fmtBytes(file.size)));
+
+    document.getElementById('wordPreviewBody').innerHTML = WS.html;
+    document.getElementById('wordPreviewWrap').classList.add('show');
+    document.getElementById('wordRunBtn').disabled = false;
+
+    logTo('wordLog','ok', `converted successfully`);
+    if (result.messages.length) {
+      result.messages.forEach(m => logTo('wordLog','warn', `! ${esc(m.message)}`));
+    }
+    logTo('wordLog','info', `preview shown below · click RUN to open print dialog`);
+  } catch(err) {
+    setSlotErr('W', file.name, '[ conversion failed ]');
+    logTo('wordLog','err', `error · ${esc(err.message)}`);
+  }
+}
+
+function onWordFileInput(e) {
+  const f = e.target.files[0]; if (f) loadWordFile(f); e.target.value = '';
+}
+
+function clearWordSlot() {
+  WS.html = null; WS.name = null;
+  setSlotReset('W', 'document.docx');
+  document.getElementById('wordPreviewWrap').classList.remove('show');
+  document.getElementById('wordPreviewBody').innerHTML = '';
+  document.getElementById('wordRunBtn').disabled = true;
+  logTo('wordLog','dim', 'cleared');
+}
+
+function runWordPdf() {
+  if (!WS.html) return;
+  logTo('wordLog','info', 'opening print window…');
+  logTo('wordLog','info', 'set destination to "Save as PDF" in the dialog');
+  const win = window.open('about:blank', '_blank');
+  if (!win) {
+    logTo('wordLog','err', 'popup blocked — please allow popups for this page, then try again');
+    return;
+  }
+  const docName = WS.name ? esc(WS.name) : 'Document';
+  win.document.write(`<!DOCTYPE html><html><head>
+<meta charset="UTF-8"><title>${docName}</title>
+<style>
+  body{font-family:'Times New Roman',Georgia,serif;font-size:12pt;line-height:1.65;
+       max-width:750px;margin:2cm auto;color:#111;padding:0 1cm;}
+  h1,h2,h3,h4,h5,h6{font-family:Arial,sans-serif;margin:14px 0 6px;}
+  p{margin-bottom:8px;}
+  table{border-collapse:collapse;width:100%;margin-bottom:12px;}
+  td,th{border:1px solid #bbb;padding:5px 8px;font-size:11pt;}
+  img{max-width:100%;height:auto;}
+  ul,ol{margin:6px 0 6px 22px;}
+  @media print{body{margin:0;padding:0;}@page{margin:2cm;}}
+</style></head><body>${WS.html}
+<script>window.onload=function(){window.print();};<\/script>
+</body></html>`);
+  win.document.close();
+}
+
+/* ══════════════════════════════════════════════════════════
+   PAGE EDITOR
+══════════════════════════════════════════════════════════ */
+const PE = { srcBytes: null, srcName: null, pages: [], busy: false };
+let peJsDoc = null;
+let peDragSrcIdx = null;
+let peDropTarget = null;
+
+async function loadPageEditorFile(file) {
+  if (!file.name.toLowerCase().endsWith('.pdf') && file.type !== 'application/pdf') {
+    setSlotErr('P', file.name, '[ not a pdf ]');
+    logTo('pageLog','err', `rejected · ${esc(file.name)}`);
+    return;
+  }
+  PE.srcBytes = null; PE.srcName = null; PE.pages = [];
+  clearPageEditor(true /* keepSlotLoading */);
+
+  logTo('pageLog','info', `reading · ${esc(trunc(file.name,40))} · ${fmtBytes(file.size)}`);
+  try {
+    const bytes = await file.arrayBuffer();
+    const typedArray = new Uint8Array(bytes);
+    logTo('pageLog','info', 'parsing with pdf.js…');
+    const pdfJsDoc = await pdfjsLib.getDocument({ data: typedArray }).promise;
+    const pageCount = pdfJsDoc.numPages;
+
+    setSlotLoaded('P', file.name,
+      metaLine('name',  trunc(file.name,22)) +
+      metaLine('size',  fmtBytes(file.size)) +
+      metaLine('pages', String(pageCount)));
+    logTo('pageLog','ok', `loaded · ${pageCount} page${pageCount!==1?'s':''}`);
+
+    PE.srcBytes = bytes;
+    PE.srcName  = file.name;
+    PE.pages    = Array.from({ length: pageCount }, (_, i) => ({ origIdx: i, canvas: null }));
+    peJsDoc     = pdfJsDoc;
+
+    document.getElementById('thumbToolbar').style.display = 'flex';
+    document.getElementById('pageRunBtn').disabled = false;
+    updateThumbCount();
+    renderThumbGrid();
+    await renderAllThumbnails(pdfJsDoc);
+  } catch(err) {
+    setSlotErr('P', file.name, err.message.includes('ncrypt') ? '[ encrypted pdf ]' : '[ could not read ]');
+    logTo('pageLog','err', `error · ${esc(err.message)}`);
+  }
+}
+
+function onPageFileInput(e) {
+  const f = e.target.files[0]; if (f) loadPageEditorFile(f); e.target.value = '';
+}
+
+function clearPageEditor(keepSlotLoading) {
+  if (!keepSlotLoading) {
+    setSlotReset('P', 'document.pdf');
+    document.getElementById('thumbToolbar').style.display = 'none';
+    document.getElementById('pageRunBtn').disabled = true;
+    logTo('pageLog','dim', 'cleared');
+  }
+  PE.srcBytes = null; PE.srcName = null; PE.pages = []; peJsDoc = null;
+  document.getElementById('thumbGrid').innerHTML = '<span class="thumb-empty">// load a PDF to edit its pages</span>';
+  hideOutput('pageOutput');
+}
+
+async function renderAllThumbnails(pdfJsDoc) {
+  const toRender = PE.pages.filter(p => !p.canvas);
+  if (!toRender.length) return;
+  logTo('pageLog','info', `rendering ${toRender.length} thumbnail${toRender.length!==1?'s':''}…`);
+  for (let i = 0; i < PE.pages.length; i++) {
+    const pg = PE.pages[i];
+    if (pg.canvas) continue;
+    const page   = await pdfJsDoc.getPage(pg.origIdx + 1);
+    const vp     = page.getViewport({ scale: 0.22 });
+    const canvas = document.createElement('canvas');
+    canvas.width = vp.width; canvas.height = vp.height;
+    await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+    pg.canvas = canvas;
+    const card = document.getElementById('tcard-' + i);
+    if (card) {
+      const loadingEl = card.querySelector('.thumb-loading');
+      if (loadingEl) { loadingEl.replaceWith(canvas); canvas.className = 'thumb-canvas'; }
+    }
+  }
+  logTo('pageLog','ok', 'thumbnails ready · drag to reorder · ✕ to delete');
+}
+
+function renderThumbGrid() {
+  const grid = document.getElementById('thumbGrid');
+  grid.innerHTML = '';
+  if (!PE.pages.length) {
+    grid.innerHTML = '<span class="thumb-empty">// all pages deleted</span>';
+    return;
+  }
+  PE.pages.forEach((pg, idx) => {
+    const card = document.createElement('div');
+    card.className = 'thumb-card';
+    card.id = 'tcard-' + idx;
+    card.draggable = true;
+
+    const thumbArea = pg.canvas
+      ? (() => { const c = pg.canvas.cloneNode(); c.getContext('2d').drawImage(pg.canvas, 0, 0); c.className='thumb-canvas'; return c; })()
+      : Object.assign(document.createElement('div'), { className: 'thumb-loading', textContent: '…' });
+
+    const foot = document.createElement('div');
+    foot.className = 'thumb-foot';
+    foot.innerHTML = `<span>p.${pg.origIdx + 1}</span><button class="thumb-del" title="delete page">✕</button>`;
+
+    card.appendChild(thumbArea);
+    card.appendChild(foot);
+
+    foot.querySelector('.thumb-del').addEventListener('click', e => {
+      e.stopPropagation();
+      PE.pages.splice(idx, 1);
+      updateThumbCount();
+      renderThumbGrid();
+      logTo('pageLog','info', `deleted page ${pg.origIdx + 1} · ${PE.pages.length} remaining`);
+    });
+
+    // Drag-and-drop reorder
+    card.addEventListener('dragstart', e => {
+      peDragSrcIdx = idx;
+      setTimeout(() => card.classList.add('is-dragging'), 0);
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    card.addEventListener('dragend', () => { card.classList.remove('is-dragging'); peDropTarget = null; });
+    card.addEventListener('dragover', e => {
+      e.preventDefault();
+      if (peDragSrcIdx === null) return;
+      if (peDropTarget !== card) { peDropTarget?.classList.remove('drop-target'); peDropTarget = card; card.classList.add('drop-target'); }
+    });
+    card.addEventListener('drop', e => {
+      e.preventDefault();
+      card.classList.remove('drop-target'); peDropTarget = null;
+      if (peDragSrcIdx === null || peDragSrcIdx === idx) return;
+      const [moved] = PE.pages.splice(peDragSrcIdx, 1);
+      PE.pages.splice(peDragSrcIdx < idx ? idx - 1 : idx, 0, moved);
+      peDragSrcIdx = null;
+      renderThumbGrid();
+    });
+
+    grid.appendChild(card);
+  });
+  updateThumbCount();
+}
+
+function updateThumbCount() {
+  const origCount   = peJsDoc ? peJsDoc.numPages : 0;
+  const remaining   = PE.pages.length;
+  const deletedCount = origCount - remaining;
+  document.getElementById('thumbCount').textContent   = `${remaining} page${remaining!==1?'s':''}`;
+  document.getElementById('deletedCount').textContent = `${deletedCount} deleted`;
+  document.getElementById('pageRunBtn').disabled = remaining === 0 || PE.busy;
+}
+
+function resetPageOrder() {
+  if (!peJsDoc) return;
+  const canvasByOrig = new Map(PE.pages.map(p => [p.origIdx, p.canvas]));
+  PE.pages = Array.from({ length: peJsDoc.numPages }, (_, i) => ({
+    origIdx: i,
+    canvas: canvasByOrig.get(i) || null,
+  }));
+  renderThumbGrid();
+  renderAllThumbnails(peJsDoc);
+  updateThumbCount();
+  logTo('pageLog','info', 'order reset to original');
+}
+
+async function runPageEdit() {
+  if (!PE.srcBytes || !PE.pages.length || PE.busy) return;
+  PE.busy = true;
+  const btn = document.getElementById('pageRunBtn');
+  btn.disabled = true; btn.classList.add('running'); btn.textContent = '>>  EXPORTING…';
+  hideOutput('pageOutput');
+
+  const origCount = peJsDoc ? peJsDoc.numPages : '?';
+  logTo('pageLog','dim',  '────────────────────────────');
+  logTo('pageLog','info', `>> export · ${PE.pages.length}/${origCount} pages`);
+  const indices = PE.pages.map(p => p.origIdx);
+  logTo('pageLog','info', `   order: [${indices.map(i=>i+1).join(', ')}]`);
+
+  try {
+    const src = await PDFLib.PDFDocument.load(PE.srcBytes);
+    const out = await PDFLib.PDFDocument.create();
+    logTo('pageLog','info', '   copying pages…');
+    const copied = await out.copyPages(src, indices);
+    copied.forEach(p => out.addPage(p));
+    logTo('pageLog','info', '   saving…');
+    const bytes   = await out.save();
+    const outName = `${safeFilename(stripExt(PE.srcName))}_edited.pdf`;
+    logTo('pageLog','done', `>> done · ${PE.pages.length} pages · ${fmtBytes(bytes.byteLength)}`);
+    setBlobDownload('pageDlBtn', bytes, 'application/pdf', outName);
+    document.getElementById('pageOutName').textContent = outName;
+    document.getElementById('pageOutMeta').textContent = `${PE.pages.length} pages · ${fmtBytes(bytes.byteLength)}`;
+    document.getElementById('pageOutput').classList.add('show');
+  } catch(err) {
+    logTo('pageLog','err', `>> error · ${esc(err.message)}`);
+  }
+
+  PE.busy = false;
+  btn.classList.remove('running'); btn.textContent = '>>  EXPORT PDF';
+  document.getElementById('pageRunBtn').disabled = PE.pages.length === 0;
+}
+
+/* ══════════════════════════════════════════════════════════
+   SHARED UTILS
+══════════════════════════════════════════════════════════ */
+function hideOutput(id) {
+  document.getElementById(id).classList.remove('show');
+}
+
+</script>
+</body>
+</html>

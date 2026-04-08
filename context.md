@@ -113,6 +113,16 @@ Dark teal terminal / retro OS interface. Looks like a CRT monitor or old-school 
 
 ---
 
+### Filekit
+- **Location**: `filekit/index.html`
+- **Status**: Live
+- **Category**: file tools · browser utility
+- **Description**: Browser-based file utilities. All processing runs client-side (no uploads). First tool: PDF merge — drop two PDFs, receive one merged file. More tools to come.
+- **Aesthetic** (internal): Amber phosphor terminal. Same structural DNA as main site (sysbar, header-panel, navbar, panels, footer) but with a warm amber/gold color palette — dark brown-black background (`#0a0702`), amber accents (`#c89030`, `#d4a038`, `#e8c870`), scanline overlay. Feels like a vintage Hercules amber-monitor terminal. Distinct from the teal of the main site.
+- **Library**: `pdf-lib@1.17.1` from unpkg CDN for client-side PDF manipulation.
+
+---
+
 ## Writing / Voice Style
 - Lowercase descriptive lines under brand (`// projects by lucas ruiz`)
 - Section labels prefixed with `++` in monospace
