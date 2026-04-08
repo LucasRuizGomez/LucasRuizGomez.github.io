@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portfolio — Track Your Stocks · Lukeda</title>
+  <style>
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: Verdana, Tahoma, Arial, sans-serif;
+    font-size: 11px;
+    background-color: #050505;
+    background-image:
+      radial-gradient(ellipse 90% 35% at 50% 0%, rgba(255,255,255,0.025) 0%, transparent 60%),
+      repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(255,255,255,0.012) 3px, rgba(255,255,255,0.012) 4px),
+      linear-gradient(180deg, #080808 0%, #050505 50%, #030303 100%);
+    background-attachment: fixed;
+    min-height: 100vh;
+    padding: 22px 16px 48px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: #ffffff;
+  }
+
+  .page { width: 100%; max-width: 940px; }
+
+  /* ─ SYSBAR ─ */
+  .sysbar {
+    display: flex; align-items: center; justify-content: space-between;
+    background: linear-gradient(180deg, #000000 0%, #080808 100%);
+    border: 1px solid rgba(255,255,255,0.10);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    padding: 5px 12px;
+    font-size: 9px; font-family: 'Courier New', monospace; letter-spacing: 0.06em;
+  }
+  .sysbar-left  { color: #999999; font-weight: bold; text-transform: uppercase; }
+  .sysbar-right { display: flex; gap: 16px; align-items: center; color: #666666; text-transform: uppercase; }
+  .online-badge { display: flex; align-items: center; gap: 4px; color: #bbbbbb; }
+  .led {
+    display: inline-block; width: 5px; height: 5px; border-radius: 50%;
+    background: radial-gradient(circle at 38% 32%, #ffffff, #bbbbbb);
+    box-shadow: 0 0 7px rgba(255,255,255,0.85);
+    animation: ledPulse 2.2s ease-in-out infinite;
+  }
+  @keyframes ledPulse {
+    0%,100% { box-shadow: 0 0 7px rgba(255,255,255,0.85); opacity: 1; }
+    50%      { box-shadow: 0 0 2px rgba(255,255,255,0.20); opacity: 0.4; }
+  }
+
+  /* ─ HEADER ─ */
+  .header-panel {
+    background: linear-gradient(180deg, #0a0a0a 0%, #070707 100%);
+    border: 1px solid rgba(255,255,255,0.10); border-top: none;
+    border-bottom: 2px solid rgba(255,255,255,0.06);
+    padding: 28px 28px 22px; position: relative; overflow: hidden; margin-top: -1px;
+  }
+  .header-panel::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent);
+  }
+  .brand {
+    font-family: 'Trebuchet MS', Impact, Arial, sans-serif;
+    font-size: clamp(26px, 5.5vw, 42px); font-weight: bold; color: #ffffff;
+    text-transform: uppercase; letter-spacing: 0.05em; line-height: 1; margin-bottom: 5px;
+    text-shadow: 0 0 40px rgba(255,255,255,0.18), 0 2px 8px rgba(0,0,0,0.9);
+  }
+  .brand-ver {
+    font-family: 'Courier New', monospace; font-size: 9px; color: #555555;
+    letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 12px;
+  }
+  .brand-tagline { font-size: 11px; color: #999999; line-height: 1.75; }
+  .brand-tagline strong { color: #ffffff; }
+
+  /* ─ NAVBAR ─ */
+  .navbar {
+    display: flex; align-items: stretch;
+    background: linear-gradient(180deg, #080808 0%, #050505 100%);
+    border: 1px solid rgba(255,255,255,0.10); border-top: none; margin-top: -1px;
+    overflow: hidden; flex-wrap: wrap;
+  }
+  .nav-prefix {
+    padding: 0 12px; font-family: 'Courier New', monospace; font-size: 9px;
+    font-weight: bold; color: #555555; border-right: 1px solid rgba(255,255,255,0.06);
+    display: flex; align-items: center; background: rgba(0,0,0,0.4); white-space: nowrap;
+  }
+  .nav-items { display: flex; flex-wrap: wrap; flex: 1; }
+  .nav-lnk {
+    display: flex; align-items: center; padding: 9px 14px;
+    font-size: 9px; font-family: Verdana, Tahoma, sans-serif; font-weight: bold;
+    color: #888888; text-decoration: none; text-transform: uppercase;
+    letter-spacing: 0.08em; border-right: 1px solid rgba(255,255,255,0.05);
+    position: relative; transition: background 0.1s, color 0.1s;
+  }
+  .nav-lnk:hover  { background: rgba(255,255,255,0.04); color: #dddddd; }
+  .nav-lnk.active { color: #ffffff; background: rgba(255,255,255,0.04); }
+  .nav-lnk.active::after {
+    content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.65) 40%, transparent);
+  }
+
+  /* ─ PANELS ─ */
+  .panel {
+    border: 1px solid rgba(255,255,255,0.09); border-top: none;
+    background: #0c0c0c; margin-top: -1px;
+  }
+  .panel-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 14px;
+    background: rgba(0,0,0,0.55); border-bottom: 1px solid rgba(255,255,255,0.06);
+    font-size: 8px; font-family: 'Courier New', monospace; font-weight: bold;
+    color: #777777; text-transform: uppercase; letter-spacing: 0.14em;
+  }
+  .panel-head-left { display: flex; align-items: center; gap: 6px; }
+  .panel-head-left::before { content: '++ '; color: #444444; }
+  .panel-body { padding: 20px 22px; }
+  .panel-body-flush { padding: 0; }
+
+  /* ─ NO-KEY BANNER ─ */
+  .no-key-banner {
+    display: none;
+    font-family: 'Courier New', monospace; font-size: 9px; color: #777777;
+    letter-spacing: 0.05em; padding: 8px 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    background: rgba(255,255,255,0.02);
+  }
+  .no-key-banner a { color: #aaaaaa; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+
+  /* ─ SUMMARY CARDS ─ */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.07);
+  }
+  .summary-card { background: #0c0c0c; padding: 18px 20px; }
+  .s-label {
+    font-family: 'Courier New', monospace; font-size: 8px; color: #777777;
+    text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 10px;
+  }
+  .s-value {
+    font-family: 'Courier New', monospace; font-size: 20px; font-weight: bold;
+    color: #ffffff; line-height: 1; margin-bottom: 4px; letter-spacing: 0.02em;
+  }
+  .s-sub { font-family: 'Courier New', monospace; font-size: 10px; letter-spacing: 0.05em; color: #555555; }
+  .s-value.up, .s-sub.up { color: #4ade80; }
+  .s-value.down, .s-sub.down { color: #f87171; }
+  .s-value.dim { color: #444444; }
+
+  /* ─ REFRESH ROW ─ */
+  .refresh-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 9px 14px; border-bottom: 1px solid rgba(255,255,255,0.06);
+    background: rgba(0,0,0,0.3);
+  }
+  .last-updated { font-family: 'Courier New', monospace; font-size: 9px; color: #444444; letter-spacing: 0.04em; }
+  .refresh-btn {
+    background: transparent; border: 1px solid rgba(255,255,255,0.12); color: #777777;
+    font-family: 'Courier New', monospace; font-size: 9px; letter-spacing: 0.08em;
+    padding: 4px 12px; cursor: pointer; transition: all 0.1s;
+  }
+  .refresh-btn:hover { border-color: rgba(255,255,255,0.35); color: #ffffff; }
+  .refresh-btn:disabled { opacity: 0.4; cursor: default; }
+
+  /* ─ PORTFOLIO TABLE ─ */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; min-width: 680px; }
+  thead th {
+    font-family: 'Courier New', monospace; font-size: 8px; color: #555555;
+    text-transform: uppercase; letter-spacing: 0.10em;
+    padding: 9px 14px; text-align: right;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    background: rgba(0,0,0,0.4); white-space: nowrap; font-weight: bold;
+  }
+  thead th:first-child { text-align: left; }
+  thead th:last-child { text-align: center; }
+  tbody td {
+    font-family: 'Courier New', monospace; font-size: 11px; color: #ffffff;
+    padding: 11px 14px; text-align: right;
+    border-bottom: 1px solid rgba(255,255,255,0.04); vertical-align: middle; white-space: nowrap;
+  }
+  tbody td:first-child { text-align: left; }
+  tbody td:last-child { text-align: center; }
+  tbody tr:hover td { background: rgba(255,255,255,0.02); }
+  tbody tr:last-child td { border-bottom: none; }
+
+  .td-sym { font-weight: bold; font-size: 13px; letter-spacing: 0.06em; }
+  .td-date { font-size: 8px; color: #444444; margin-top: 3px; letter-spacing: 0.04em; }
+  .td-up   { color: #4ade80; }
+  .td-down { color: #f87171; }
+  .td-dim  { color: #333333; }
+
+  .rm-btn {
+    background: none; border: 1px solid rgba(255,255,255,0.10); color: #444444;
+    cursor: pointer; font-family: 'Courier New', monospace; font-size: 9px;
+    padding: 3px 8px; transition: all 0.12s; letter-spacing: 0.04em;
+  }
+  .rm-btn:hover { border-color: #f87171; color: #f87171; background: rgba(248,113,113,0.05); }
+
+  .empty-state {
+    padding: 48px 20px; text-align: center;
+    font-family: 'Courier New', monospace; font-size: 10px; color: #333333; letter-spacing: 0.06em;
+    line-height: 2;
+  }
+
+  /* ─ ADD FORM ─ */
+  .add-row { display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap; }
+  .add-input {
+    background: #000000; border: 1px solid rgba(255,255,255,0.14); color: #ffffff;
+    font-family: 'Courier New', monospace; font-size: 13px; font-weight: bold;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    padding: 12px 14px; outline: none; transition: border-color 0.15s;
+    caret-color: #ffffff;
+  }
+  .add-input.sym  { width: 120px; }
+  .add-input.num  { width: 160px; text-transform: none; letter-spacing: 0.06em; font-size: 13px; }
+  .add-input::placeholder { color: #333333; font-size: 10px; letter-spacing: 0.06em; font-weight: normal; text-transform: none; }
+  .add-input:focus { border-color: rgba(255,255,255,0.42); }
+  .add-btn {
+    background: #ffffff; color: #000000; border: none; padding: 12px 22px;
+    font-family: 'Courier New', monospace; font-size: 10px; font-weight: bold;
+    letter-spacing: 0.14em; text-transform: uppercase; cursor: pointer;
+    transition: background 0.1s; white-space: nowrap;
+  }
+  .add-btn:hover  { background: #d8d8d8; }
+  .add-btn:active { background: #aaaaaa; }
+  .add-hint { margin-top: 10px; font-family: 'Courier New', monospace; font-size: 9px; color: #666666; letter-spacing: 0.04em; }
+  .add-err  { margin-top: 8px; font-family: 'Courier New', monospace; font-size: 9px; color: #f87171; letter-spacing: 0.04em; min-height: 14px; }
+
+  /* ─ KEY SETTINGS ─ */
+  .key-row { display: flex; gap: 8px; align-items: stretch; }
+  .key-field {
+    flex: 1; background: #000000; border: 1px solid rgba(255,255,255,0.12); color: #ffffff;
+    font-family: 'Courier New', monospace; font-size: 11px; letter-spacing: 0.06em;
+    padding: 9px 12px; outline: none; transition: border-color 0.15s;
+  }
+  .key-field::placeholder { color: #333333; }
+  .key-field:focus { border-color: rgba(255,255,255,0.35); }
+  .key-save {
+    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); color: #aaaaaa;
+    font-family: 'Courier New', monospace; font-size: 9px; font-weight: bold;
+    letter-spacing: 0.12em; padding: 9px 16px; cursor: pointer; transition: all 0.1s; white-space: nowrap;
+  }
+  .key-save:hover { background: rgba(255,255,255,0.14); color: #ffffff; }
+  .key-status { margin-top: 10px; font-family: 'Courier New', monospace; font-size: 9px; color: #555555; letter-spacing: 0.04em; }
+  .key-status.active { color: #4ade80; }
+  .key-clear-btn {
+    background: none; border: none; cursor: pointer; font-family: 'Courier New', monospace;
+    font-size: 9px; color: #555555; padding: 0 0 0 10px; text-decoration: underline; text-underline-offset: 2px;
+  }
+  .key-clear-btn:hover { color: #f87171; }
+  .key-note { margin-top: 10px; font-family: 'Courier New', monospace; font-size: 9px; color: #333333; letter-spacing: 0.04em; line-height: 1.7; }
+
+  /* ─ TICKER ─ */
+  .ticker-bar {
+    border: 1px solid rgba(255,255,255,0.07); border-top: none;
+    margin-top: -1px; background: #000000;
+    padding: 5px 0; overflow: hidden; white-space: nowrap;
+  }
+  .ticker-inner {
+    display: inline-block; font-family: 'Courier New', monospace;
+    font-size: 9px; color: #444444; letter-spacing: 0.04em;
+    animation: tickerScroll 50s linear infinite;
+  }
+  @keyframes tickerScroll { 0% { transform: translateX(100vw); } 100% { transform: translateX(-100%); } }
+
+  /* ─ FOOTER ─ */
+  .footbar {
+    border: 1px solid rgba(255,255,255,0.07); border-top: 1px solid rgba(255,255,255,0.04);
+    margin-top: -1px; background: #000000;
+    padding: 7px 14px; display: flex; align-items: center; justify-content: space-between;
+    font-family: 'Courier New', monospace; font-size: 9px;
+    color: #555555; text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  .foot-left { display: flex; align-items: center; gap: 8px; }
+
+  /* ─ RESPONSIVE ─ */
+  @media (max-width: 700px) {
+    body { padding: 10px 10px 32px; background-attachment: scroll; }
+    .header-panel { padding: 18px 16px; }
+    .brand { font-size: 24px; }
+    .summary-grid { grid-template-columns: repeat(2, 1fr); }
+    .add-input.sym { width: 90px; }
+    .add-input.num { width: 130px; }
+  }
+
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Sysbar -->
+  <div class="sysbar">
+    <span class="sysbar-left">++ Portfolio // Stock Tracker by Lukeda</span>
+    <div class="sysbar-right">
+      <span>lukeda.me</span>
+      <span class="online-badge"><span class="led"></span> Live</span>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <div class="header-panel">
+    <div class="brand">Portfolio</div>
+    <div class="brand-ver">// stock tracker · lukeda.me</div>
+    <div class="brand-tagline">
+      Track what you own. Add positions with your buy price and shares — see your <strong>live P&amp;L</strong>, day change, and total portfolio value. All data stored locally in your browser.
+    </div>
+  </div>
+
+  <!-- Nav -->
+  <div class="navbar">
+    <span class="nav-prefix">++ nav ::</span>
+    <div class="nav-items">
+      <a href="../index.html" class="nav-lnk">← Lukeda</a>
+      <a href="index.html"   class="nav-lnk active">Portfolio</a>
+    </div>
+  </div>
+
+  <!-- Summary Panel -->
+  <div class="panel">
+    <div class="panel-head">
+      <span class="panel-head-left">Overview</span>
+      <span id="lastUpdated" style="font-size:8px;color:#333333;font-weight:normal;letter-spacing:0.04em;"></span>
+    </div>
+    <div class="summary-grid">
+      <div class="summary-card">
+        <div class="s-label">Total Invested</div>
+        <div class="s-value" id="sumInvested">—</div>
+        <div class="s-sub" id="sumInvestedSub"></div>
+      </div>
+      <div class="summary-card">
+        <div class="s-label">Portfolio Value</div>
+        <div class="s-value" id="sumValue">—</div>
+        <div class="s-sub" id="sumValueSub"></div>
+      </div>
+      <div class="summary-card">
+        <div class="s-label">Total P&amp;L</div>
+        <div class="s-value" id="sumPnl">—</div>
+        <div class="s-sub" id="sumPnlSub"></div>
+      </div>
+      <div class="summary-card">
+        <div class="s-label">Today's Change</div>
+        <div class="s-value" id="sumDay">—</div>
+        <div class="s-sub" id="sumDaySub"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Portfolio Panel -->
+  <div class="panel">
+    <div class="panel-head">
+      <span class="panel-head-left">Positions</span>
+      <div class="refresh-row" style="padding:0;border:none;background:none;">
+        <button class="refresh-btn" id="refreshBtn">↺ Refresh</button>
+      </div>
+    </div>
+    <div class="no-key-banner" id="noKeyBanner">
+      // live prices unavailable — add a free <a onclick="document.getElementById('keyPanel').scrollIntoView({behavior:'smooth'})">Finnhub API key</a> in the settings below to enable real-time data
+    </div>
+    <div class="panel-body-flush">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Symbol</th>
+              <th>Shares</th>
+              <th>Avg Cost</th>
+              <th>Price</th>
+              <th>Mkt Value</th>
+              <th>P&amp;L</th>
+              <th>P&amp;L %</th>
+              <th>Day Change</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="portfolioBody"></tbody>
+        </table>
+        <div class="empty-state" id="emptyState" style="display:none;">
+          // no positions yet<br>add your first stock below
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Position Panel -->
+  <div class="panel">
+    <div class="panel-head"><span class="panel-head-left">Add Position</span></div>
+    <div class="panel-body">
+      <form class="add-row" id="addForm">
+        <input class="add-input sym" id="addSymbol"
+          type="text" placeholder="TICKER" maxlength="10"
+          autocomplete="off" autocapitalize="characters" spellcheck="false">
+        <input class="add-input num" id="addShares"
+          type="number" placeholder="Shares" min="0.0001" step="any">
+        <input class="add-input num" id="addPrice"
+          type="number" placeholder="Avg buy price ($)" min="0.0001" step="any">
+        <button class="add-btn" type="submit">&gt;&gt; Add</button>
+      </form>
+      <div class="add-hint">// enter the ticker, how many shares you hold, and your average purchase price</div>
+      <div class="add-err" id="addErr"></div>
+    </div>
+  </div>
+
+  <!-- API Key Settings -->
+  <div class="panel" id="keyPanel">
+    <div class="panel-head"><span class="panel-head-left">Settings // Finnhub API Key</span></div>
+    <div class="panel-body">
+      <form class="key-row" id="keyForm">
+        <input class="key-field" id="keyInput" type="text"
+          placeholder="Paste your Finnhub API key here ..."
+          autocomplete="off" spellcheck="false">
+        <button class="key-save" type="submit">&gt;&gt; Save Key</button>
+      </form>
+      <div class="key-status" id="keyStatus">// no key set</div>
+      <div class="key-note">
+        // Live prices require a free Finnhub API key — no credit card needed.<br>
+        // Get yours in 30 seconds at <strong style="color:#aaaaaa;">finnhub.io/register</strong> → copy key from dashboard → paste above.<br>
+        // Key is stored only in your browser and sent exclusively to Finnhub's servers.
+      </div>
+    </div>
+  </div>
+
+  <!-- Ticker -->
+  <div class="ticker-bar">
+    <span class="ticker-inner">
+      ···· PORTFOLIO ···· Track your stock positions and see live P&amp;L ···· Add a position: ticker · shares · average buy price ···· All data stored locally in your browser ···· Live prices via Finnhub ···· A free tool by Lukeda ···· lukeda.me ····
+    </span>
+  </div>
+
+  <!-- Footer -->
+  <div class="footbar">
+    <div class="foot-left"><span class="led"></span><span>Portfolio // Lukeda</span></div>
+    <span>© 2025 &nbsp;·&nbsp; lukeda.me &nbsp;·&nbsp; Data: Finnhub &nbsp;·&nbsp; Not financial advice</span>
+  </div>
+
+</div>
+<script>
+// ── Storage ──────────────────────────────────────────────────
+function getPositions() {
+  try { return JSON.parse(localStorage.getItem('pf_positions') || '[]'); }
+  catch { return []; }
+}
+function savePositions(arr) { localStorage.setItem('pf_positions', JSON.stringify(arr)); }
+function getKey()  { return localStorage.getItem('sv_key') || ''; }
+function saveKey(k){ localStorage.setItem('sv_key', k.trim()); }
+function clearKey(){ localStorage.removeItem('sv_key'); liveData = {}; render(); updateKeyStatus(); }
+
+// ── Live data cache ───────────────────────────────────────────
+let liveData = {}; // { SYMBOL: { c, d, dp, o, h, l, pc } }
+let lastFetch = null;
+
+// ── DOM refs ─────────────────────────────────────────────────
+const portfolioBody = document.getElementById('portfolioBody');
+const emptyState    = document.getElementById('emptyState');
+const noKeyBanner   = document.getElementById('noKeyBanner');
+const keyStatus     = document.getElementById('keyStatus');
+const keyInput      = document.getElementById('keyInput');
+const refreshBtn    = document.getElementById('refreshBtn');
+const addErr        = document.getElementById('addErr');
+
+// ── Finnhub ──────────────────────────────────────────────────
+const FH = 'https://finnhub.io/api/v1';
+
+async function fetchQuote(symbol) {
+  const k = getKey();
+  if (!k) return null;
+  const res = await fetch(`${FH}/quote?symbol=${encodeURIComponent(symbol)}&token=${k}`);
+  if (res.status === 401 || res.status === 403) throw new Error('invalid_key');
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+async function refreshAll(silent = false) {
+  const positions = getPositions();
+  if (!positions.length || !getKey()) return;
+
+  refreshBtn.disabled = true;
+  refreshBtn.textContent = '↺ Loading...';
+
+  const symbols = [...new Set(positions.map(p => p.symbol))];
+
+  const results = await Promise.allSettled(
+    symbols.map(s => fetchQuote(s).then(data => ({ s, data })))
+  );
+
+  let keyErr = false;
+  results.forEach(r => {
+    if (r.status === 'fulfilled' && r.value?.data?.c) {
+      liveData[r.value.s] = r.value.data;
+    } else if (r.reason?.message === 'invalid_key') {
+      keyErr = true;
+    }
+  });
+
+  if (keyErr) {
+    keyStatus.textContent = '// error: invalid API key — check your Finnhub key';
+    keyStatus.className = 'key-status';
+  }
+
+  lastFetch = new Date();
+  document.getElementById('lastUpdated').textContent =
+    'updated ' + lastFetch.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+  refreshBtn.disabled = false;
+  refreshBtn.textContent = '↺ Refresh';
+
+  render();
+}
+
+// ── Format helpers ───────────────────────────────────────────
+function fmtN(n, dec = 2) {
+  if (n == null || isNaN(n) || n === 0) return null;
+  return Number(n).toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+}
+function dollar(n, dec = 2) { const f = fmtN(n, dec); return f ? '$' + f : null; }
+function signed(n, dec = 2, prefix = '') {
+  if (n == null || isNaN(n)) return null;
+  const sign = n >= 0 ? '+' : '−';
+  return sign + prefix + fmtN(Math.abs(n), dec);
+}
+function signedDollar(n, dec = 2) { return signed(n, dec, '$'); }
+function pctStr(n, dec = 2) {
+  if (n == null || isNaN(n)) return null;
+  const sign = n >= 0 ? '+' : '−';
+  return sign + fmtN(Math.abs(n), dec) + '%';
+}
+function cls(n) { if (n == null || isNaN(n)) return ''; return n >= 0 ? 'td-up' : 'td-down'; }
+function sCls(n){ if (n == null || isNaN(n)) return ''; return n >= 0 ? 'up' : 'down'; }
+function dimCell(txt) { return `<span class="td-dim">${txt ?? '—'}</span>`; }
+
+// ── Render table ─────────────────────────────────────────────
+function renderTable(positions) {
+  if (!positions.length) {
+    portfolioBody.innerHTML = '';
+    emptyState.style.display = 'block';
+    return;
+  }
+  emptyState.style.display = 'none';
+
+  portfolioBody.innerHTML = positions.map(p => {
+    const live     = liveData[p.symbol];
+    const current  = live?.c ?? null;
+    const dayChg   = live?.d ?? null;
+    const mktVal   = current != null ? current * p.shares : null;
+    const cost     = p.avgPrice * p.shares;
+    const pnl      = mktVal != null ? mktVal - cost : null;
+    const pnlPct   = current != null ? ((current - p.avgPrice) / p.avgPrice) * 100 : null;
+    const dayTotal = dayChg != null ? dayChg * p.shares : null;
+
+    const sharesStr = p.shares % 1 === 0 ? fmtN(p.shares, 0) : fmtN(p.shares, 4);
+
+    return `<tr>
+      <td>
+        <div class="td-sym">${p.symbol}</div>
+        <div class="td-date">added ${p.addedAt}</div>
+      </td>
+      <td>${sharesStr ?? '—'}</td>
+      <td>${dollar(p.avgPrice) ?? '—'}</td>
+      <td>${current != null ? dollar(current) : dimCell()}</td>
+      <td>${mktVal != null ? dollar(mktVal) : dimCell()}</td>
+      <td class="${cls(pnl)}">${pnl != null ? signedDollar(pnl) : dimCell()}</td>
+      <td class="${cls(pnlPct)}">${pnlPct != null ? pctStr(pnlPct) : dimCell()}</td>
+      <td class="${cls(dayTotal)}">${dayTotal != null ? signedDollar(dayTotal) : dimCell()}</td>
+      <td><button class="rm-btn" onclick="removePosition('${p.id}')">✕</button></td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Render summary ────────────────────────────────────────────
+function renderSummary(positions) {
+  const totalInvested = positions.reduce((s, p) => s + p.avgPrice * p.shares, 0);
+
+  let totalValue = null;
+  let totalDay   = null;
+
+  for (const p of positions) {
+    const live = liveData[p.symbol];
+    if (!live || !live.c) continue;
+    if (totalValue == null) totalValue = 0;
+    if (totalDay   == null) totalDay   = 0;
+    totalValue += live.c * p.shares;
+    totalDay   += live.d * p.shares;
+  }
+
+  const totalPnl    = totalValue != null ? totalValue - totalInvested : null;
+  const totalPnlPct = totalPnl != null && totalInvested ? (totalPnl / totalInvested) * 100 : null;
+  const dayPct      = totalDay != null && totalValue != null && (totalValue - totalDay) > 0
+    ? (totalDay / (totalValue - totalDay)) * 100 : null;
+
+  // Invested
+  const el = id => document.getElementById(id);
+  el('sumInvested').textContent = positions.length ? (dollar(totalInvested) ?? '—') : '—';
+  el('sumInvested').className = 's-value';
+  el('sumInvestedSub').textContent = positions.length ? `${positions.length} position${positions.length > 1 ? 's' : ''}` : '';
+
+  // Value
+  el('sumValue').textContent = totalValue != null ? (dollar(totalValue) ?? '—') : '—';
+  el('sumValue').className = 's-value';
+  el('sumValueSub').textContent = '';
+
+  // P&L
+  if (totalPnl != null) {
+    el('sumPnl').textContent = signedDollar(totalPnl) ?? '—';
+    el('sumPnl').className = 's-value ' + sCls(totalPnl);
+    el('sumPnlSub').textContent = totalPnlPct != null ? pctStr(totalPnlPct) : '';
+    el('sumPnlSub').className = 's-sub ' + sCls(totalPnlPct);
+  } else {
+    el('sumPnl').textContent = '—';
+    el('sumPnl').className = 's-value dim';
+    el('sumPnlSub').textContent = '';
+    el('sumPnlSub').className = 's-sub';
+  }
+
+  // Day
+  if (totalDay != null) {
+    el('sumDay').textContent = signedDollar(totalDay) ?? '—';
+    el('sumDay').className = 's-value ' + sCls(totalDay);
+    el('sumDaySub').textContent = dayPct != null ? pctStr(dayPct) : '';
+    el('sumDaySub').className = 's-sub ' + sCls(dayPct);
+  } else {
+    el('sumDay').textContent = '—';
+    el('sumDay').className = 's-value dim';
+    el('sumDaySub').textContent = '';
+    el('sumDaySub').className = 's-sub';
+  }
+}
+
+// ── Key status UI ─────────────────────────────────────────────
+function updateKeyStatus() {
+  const k = getKey();
+  noKeyBanner.style.display = k ? 'none' : 'block';
+  if (k) {
+    keyStatus.innerHTML = `// key active: ${k.substring(0,8)}...
+      <button class="key-clear-btn" onclick="clearKey()">clear</button>`;
+    keyStatus.className = 'key-status active';
+  } else {
+    keyStatus.textContent = '// no key set — live prices disabled';
+    keyStatus.className = 'key-status';
+  }
+}
+
+// ── Render all ────────────────────────────────────────────────
+function render() {
+  const positions = getPositions();
+  updateKeyStatus();
+  renderTable(positions);
+  renderSummary(positions);
+}
+
+// ── Add position ──────────────────────────────────────────────
+document.getElementById('addForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  addErr.textContent = '';
+
+  const symEl    = document.getElementById('addSymbol');
+  const sharesEl = document.getElementById('addShares');
+  const priceEl  = document.getElementById('addPrice');
+
+  const symbol = symEl.value.trim().toUpperCase();
+  const shares = parseFloat(sharesEl.value);
+  const price  = parseFloat(priceEl.value);
+
+  if (!symbol)       { addErr.textContent = '// ticker symbol required'; return; }
+  if (!shares || shares <= 0) { addErr.textContent = '// enter a valid number of shares'; return; }
+  if (!price  || price  <= 0) { addErr.textContent = '// enter a valid average buy price'; return; }
+
+  const positions = getPositions();
+  positions.push({
+    id: Date.now().toString(),
+    symbol, shares, avgPrice: price,
+    addedAt: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+  });
+  savePositions(positions);
+
+  symEl.value = ''; sharesEl.value = ''; priceEl.value = '';
+  symEl.focus();
+  render();
+
+  // Fetch live data for the new symbol if not already cached
+  if (getKey() && !liveData[symbol]) {
+    try {
+      const data = await fetchQuote(symbol);
+      if (data?.c) { liveData[symbol] = data; render(); }
+    } catch (_) {}
+  }
+});
+
+// ── Remove position ───────────────────────────────────────────
+function removePosition(id) {
+  savePositions(getPositions().filter(p => p.id !== id));
+  render();
+}
+
+// ── Key form ──────────────────────────────────────────────────
+document.getElementById('keyForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const k = keyInput.value.trim();
+  if (!k) return;
+  saveKey(k);
+  keyInput.value = '';
+  liveData = {};
+  render();
+  refreshAll();
+});
+
+// ── Refresh button ────────────────────────────────────────────
+refreshBtn.addEventListener('click', () => refreshAll());
+
+// ── Ticker input auto-uppercase ───────────────────────────────
+document.getElementById('addSymbol').addEventListener('input', function() {
+  this.value = this.value.toUpperCase();
+});
+
+// ── Init ──────────────────────────────────────────────────────
+render();
+if (getKey()) refreshAll(true);
+</script>
+</body>
+</html>

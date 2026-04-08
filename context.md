@@ -123,6 +123,17 @@ Dark teal terminal / retro OS interface. Looks like a CRT monitor or old-school 
 
 ---
 
+### StockView
+- **Location**: `stockview/index.html`
+- **Status**: Live
+- **Category**: finance · market data
+- **Description**: Enter any NYSE/NASDAQ ticker symbol to see an interactive price chart (5D/1M/3M/6M/1Y/5Y) and a key statistics grid — market cap, P/E, volume, 52-week range, beta, dividend yield, and more. No account needed.
+- **Aesthetic** (internal): Pure black terminal. Maximum contrast — near-black background (`#050505`), pure white text (`#ffffff`), white chart line, scanline overlay. Green (`#4ade80`) for positive price change, red (`#f87171`) for negative. Same structural DNA as main site (sysbar, header-panel, navbar, panels, ticker, footer) but with a monochrome white/gray palette. Feels like a Bloomberg Terminal.
+- **Libraries**: `chart.js@4.4.0` from jsDelivr CDN for the price chart canvas. Data from Yahoo Finance v8 chart API and v10 quoteSummary API (client-side, CORS-enabled, ~15 min delayed).
+- **Features**: Timeframe buttons (5D → 5Y), localStorage remembers last searched ticker, graceful error handling for bad symbols or API failures.
+
+---
+
 ## Writing / Voice Style
 - Lowercase descriptive lines under brand (`// projects by lucas ruiz`)
 - Section labels prefixed with `++` in monospace
