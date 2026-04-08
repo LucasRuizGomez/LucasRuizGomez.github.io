@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>my little board</title>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: #faf5ef;
+      font-family: 'Caveat', cursive;
+      user-select: none;
+    }
+
+    /* dot grid */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: radial-gradient(circle, #c8b89a 1px, transparent 1px);
+      background-size: 28px 28px;
+      opacity: 0.35;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .header {
+      position: fixed;
+      top: 22px;
+      left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+      z-index: 1000;
+      pointer-events: none;
+    }
+
+    .header h1 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: #8b7355;
+      letter-spacing: 3px;
+    }
+
+    .header p {
+      font-size: 0.9rem;
+      color: #b09a7a;
+      margin-top: 3px;
+      font-style: italic;
+    }
+
+    .hint {
+      position: fixed;
+      bottom: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: 'Caveat', cursive;
+      font-size: 0.9rem;
+      color: #b09a7a;
+      pointer-events: none;
+      opacity: 0.75;
+      font-style: italic;
+      z-index: 1000;
+    }
+
+    /* ---- NOTE ---- */
+    .note {
+      position: absolute;
+      width: 230px;
+      min-height: 150px;
+      border-radius: 2px 2px 2px 2px;
+      padding: 10px 14px 12px;
+      box-shadow: 3px 4px 14px rgba(0,0,0,0.13), 0 1px 3px rgba(0,0,0,0.07);
+      cursor: grab;
+      z-index: 10;
+      transition: box-shadow 0.18s ease;
+    }
+
+    .note.dragging {
+      cursor: grabbing;
+      box-shadow: 8px 10px 28px rgba(0,0,0,0.2), 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    /* tape strip at top */
+    .note-tape {
+      position: absolute;
+      top: -11px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 54px;
+      height: 22px;
+      background: rgba(255,255,255,0.55);
+      border-radius: 2px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      pointer-events: none;
+    }
+
+    .note-header {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 4px;
+    }
+
+    .delete-note-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+      color: rgba(0,0,0,0.22);
+      line-height: 1;
+      padding: 0 1px;
+      transition: color 0.15s;
+      font-family: inherit;
+    }
+
+    .delete-note-btn:hover {
+      color: rgba(0,0,0,0.5);
+    }
+
+    .pin-note-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 0.85rem;
+      color: rgba(0,0,0,0.22);
+      line-height: 1;
+      padding: 0 1px;
+      transition: color 0.15s, transform 0.2s;
+      font-family: inherit;
+    }
+    .pin-note-btn:hover {
+      color: rgba(0,0,0,0.5);
+      transform: rotate(-20deg);
+    }
+    .pin-note-btn.pinned {
+      color: #c0603a;
+      transform: rotate(-20deg);
+    }
+    .note.is-pinned {
+      box-shadow: 3px 4px 14px rgba(0,0,0,0.13), 0 0 0 2px rgba(192,96,58,0.35);
+    }
+
+    /* optional title */
+    .note-title {
+      width: 100%;
+      background: none;
+      border: none;
+      border-bottom: 1.5px solid rgba(0,0,0,0.1);
+      outline: none;
+      font-family: 'Caveat', cursive;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: rgba(0,0,0,0.7);
+      margin-bottom: 7px;
+      padding-bottom: 4px;
+      cursor: text;
+    }
+
+    .note-title::placeholder {
+      color: rgba(0,0,0,0.22);
+      font-style: italic;
+      font-weight: 400;
+    }
+
+    .note-title:focus {
+      border-bottom-color: rgba(0,0,0,0.28);
+    }
+
+    /* color swatches */
+    .note-colors {
+      display: flex;
+      gap: 5px;
+      margin-bottom: 8px;
+    }
+
+    .color-dot {
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: border-color 0.12s, transform 0.12s;
+      flex-shrink: 0;
+    }
+
+    .color-dot:hover {
+      transform: scale(1.2);
+    }
+
+    .color-dot.active {
+      border-color: rgba(0,0,0,0.35);
+    }
+
+    /* items list */
+    .note-items {
+      list-style: none;
+      margin-bottom: 6px;
+    }
+
+    .note-item {
+      position: relative;
+      display: flex;
+      align-items: flex-start;
+      gap: 5px;
+      padding: 3px 0;
+      cursor: default;
+      border-radius: 3px;
+    }
+
+    .item-bullet {
+      flex-shrink: 0;
+      font-size: 1rem;
+      color: rgba(0,0,0,0.3);
+      margin-top: 0px;
+      line-height: 1.4;
+    }
+
+    .item-text {
+      flex: 1;
+      font-size: 1.1rem;
+      line-height: 1.35;
+      color: rgba(0,0,0,0.72);
+      word-break: break-word;
+    }
+
+    .note-item.completed .item-text {
+      text-decoration: line-through;
+      color: rgba(0,0,0,0.35);
+    }
+
+    .item-actions {
+      display: none;
+      align-items: center;
+      gap: 3px;
+      flex-shrink: 0;
+      padding-top: 2px;
+    }
+
+    .note-item:hover .item-actions {
+      display: flex;
+    }
+
+    .action-btn {
+      background: rgba(0,0,0,0.08);
+      border: none;
+      border-radius: 50%;
+      width: 21px;
+      height: 21px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 0.7rem;
+      line-height: 1;
+      color: rgba(0,0,0,0.55);
+      transition: background 0.12s;
+    }
+
+    .action-btn:hover {
+      background: rgba(0,0,0,0.16);
+    }
+
+    /* input row */
+    .note-input-row {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      border-top: 1.5px dashed rgba(0,0,0,0.11);
+      padding-top: 7px;
+      margin-top: 4px;
+    }
+
+    .note-input {
+      flex: 1;
+      background: none;
+      border: none;
+      outline: none;
+      font-family: 'Caveat', cursive;
+      font-size: 1.05rem;
+      color: rgba(0,0,0,0.65);
+      cursor: text;
+      min-width: 0;
+    }
+
+    .note-input::placeholder {
+      color: rgba(0,0,0,0.28);
+      font-style: italic;
+    }
+
+    .add-item-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1.25rem;
+      color: rgba(0,0,0,0.28);
+      line-height: 1;
+      transition: color 0.12s;
+      font-family: inherit;
+      flex-shrink: 0;
+    }
+
+    .add-item-btn:hover {
+      color: rgba(0,0,0,0.5);
+    }
+
+    /* inline edit input */
+    .item-edit-input {
+      flex: 1;
+      background: rgba(255,255,255,0.5);
+      border: none;
+      border-bottom: 1.5px solid rgba(0,0,0,0.22);
+      outline: none;
+      font-family: 'Caveat', cursive;
+      font-size: 1.1rem;
+      color: rgba(0,0,0,0.72);
+      padding: 1px 2px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>✿ my little board ✿</h1>
+    <p>click anywhere to place a note</p>
+  </div>
+
+  <div id="canvas" style="position:relative;width:100%;height:100%;z-index:1;"></div>
+
+  <div class="hint">scroll on a note to tilt ✦ drag to move</div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const COLORS = ['#fff9c4','#ffdde1','#d4f1dd','#e8d5ff','#c5e6ff','#ffe4c4','#fce4b3'];
+    let colorCycle = 0;
+    let zTop = 10;
+    let dragState = null;
+    let didDrag = false;
+
+    /* ── helpers ── */
+    function nextColor() {
+      return COLORS[(colorCycle++) % COLORS.length];
+    }
+
+    function esc(t) {
+      return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    /* ── create note ── */
+    function createNote(px, py) {
+      const color = nextColor();
+      const rotation = (Math.random() - 0.5) * 9;
+      const noteEl = document.createElement('div');
+      noteEl.className = 'note';
+      noteEl.style.cssText = `left:${px}px;top:${py}px;transform:rotate(${rotation}deg);background:${color};`;
+
+      noteEl.innerHTML = `
+        <div class="note-tape"></div>
+        <div class="note-header">
+          <button class="pin-note-btn" title="pin — stays visible on other tabs">📌</button>
+          <button class="delete-note-btn" title="remove note">✕</button>
+        </div>
+        <div class="note-colors"></div>
+        <input class="note-title" type="text" placeholder="título…" autocomplete="off" spellcheck="false" maxlength="60">
+        <ul class="note-items"></ul>
+        <div class="note-input-row">
+          <input class="note-input" type="text" placeholder="add a task…" autocomplete="off" spellcheck="false">
+          <button class="add-item-btn" title="add task">+</button>
+        </div>
+      `;
+
+      /* color swatches */
+      const swatchRow = noteEl.querySelector('.note-colors');
+      COLORS.forEach(c => {
+        const dot = document.createElement('button');
+        dot.className = 'color-dot' + (c === color ? ' active' : '');
+        dot.style.background = c;
+        dot.title = 'change color';
+        dot.addEventListener('click', e => {
+          e.stopPropagation();
+          noteEl.style.background = c;
+          swatchRow.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
+          dot.classList.add('active');
+        });
+        dot.addEventListener('mousedown', e => e.stopPropagation());
+        swatchRow.appendChild(dot);
+      });
+
+      /* pin note */
+      const pinBtn = noteEl.querySelector('.pin-note-btn');
+      pinBtn.addEventListener('mousedown', e => e.stopPropagation());
+      pinBtn.addEventListener('click', e => { e.stopPropagation(); pinNote(noteEl, pinBtn); });
+
+      /* delete note */
+      noteEl.querySelector('.delete-note-btn').addEventListener('click', e => {
+        e.stopPropagation();
+        if (noteEl._pipWindow && !noteEl._pipWindow.closed) noteEl._pipWindow.close();
+        noteEl.remove();
+      });
+
+      /* add item */
+      const input = noteEl.querySelector('.note-input');
+      const addBtn = noteEl.querySelector('.add-item-btn');
+
+      function addItem() {
+        const text = input.value.trim();
+        if (!text) return;
+        appendItem(noteEl, { id: Date.now(), text, done: false });
+        input.value = '';
+        input.focus();
+      }
+
+      input.addEventListener('keydown', e => {
+        if (e.key === 'Enter') addItem();
+        e.stopPropagation();
+      });
+      input.addEventListener('mousedown', e => e.stopPropagation());
+
+      const titleInput = noteEl.querySelector('.note-title');
+      titleInput.addEventListener('mousedown', e => e.stopPropagation());
+      titleInput.addEventListener('keydown', e => e.stopPropagation());
+
+      addBtn.addEventListener('mousedown', e => e.stopPropagation());
+      addBtn.addEventListener('click', e => { e.stopPropagation(); addItem(); });
+
+      /* drag: grab from note body (not inputs/buttons) */
+      noteEl.addEventListener('mousedown', e => {
+        if (e.target.closest('button, input, .item-text, .item-edit-input')) return;
+        e.preventDefault();
+        didDrag = false;
+        bringToFront(noteEl);
+        const rect = noteEl.getBoundingClientRect();
+        dragState = { el: noteEl, ox: e.clientX - rect.left, oy: e.clientY - rect.top };
+        noteEl.classList.add('dragging');
+      });
+
+      /* scroll to rotate */
+      noteEl.addEventListener('wheel', e => {
+        e.preventDefault();
+        e.stopPropagation();
+        const curr = currentRotation(noteEl);
+        const next = curr + (e.deltaY > 0 ? 3 : -3);
+        noteEl.style.transform = `rotate(${next}deg)`;
+      }, { passive: false });
+
+      canvas.appendChild(noteEl);
+      return noteEl;
+    }
+
+    /* ── append list item ── */
+    function appendItem(noteEl, item) {
+      const ul = noteEl.querySelector('.note-items');
+      const li = document.createElement('li');
+      li.className = 'note-item' + (item.done ? ' completed' : '');
+      li.dataset.id = item.id;
+
+      const bullet = document.createElement('span');
+      bullet.className = 'item-bullet';
+      bullet.textContent = '·';
+
+      const textSpan = document.createElement('span');
+      textSpan.className = 'item-text';
+      textSpan.textContent = item.text;
+
+      const actions = document.createElement('div');
+      actions.className = 'item-actions';
+
+      const editBtn = document.createElement('button');
+      editBtn.className = 'action-btn';
+      editBtn.title = 'edit';
+      editBtn.textContent = '✏';
+
+      const checkBtn = document.createElement('button');
+      checkBtn.className = 'action-btn';
+      checkBtn.title = 'toggle done';
+      checkBtn.textContent = item.done ? '↩' : '✓';
+
+      const delBtn = document.createElement('button');
+      delBtn.className = 'action-btn';
+      delBtn.title = 'delete';
+      delBtn.textContent = '✕';
+
+      actions.append(editBtn, checkBtn, delBtn);
+      li.append(bullet, textSpan, actions);
+      ul.appendChild(li);
+
+      /* toggle done */
+      checkBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        item.done = !item.done;
+        li.classList.toggle('completed', item.done);
+        checkBtn.textContent = item.done ? '↩' : '✓';
+      });
+
+      /* delete */
+      delBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        li.remove();
+      });
+
+      /* edit inline */
+      editBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        const editInput = document.createElement('input');
+        editInput.className = 'item-edit-input';
+        editInput.value = item.text;
+        textSpan.replaceWith(editInput);
+        actions.style.display = 'none';
+        bullet.style.display = 'none';
+        editInput.focus();
+        editInput.select();
+
+        function finishEdit() {
+          const val = editInput.value.trim();
+          if (val) item.text = val;
+          textSpan.textContent = item.text;
+          editInput.replaceWith(textSpan);
+          actions.style.display = '';
+          bullet.style.display = '';
+        }
+
+        editInput.addEventListener('blur', finishEdit);
+        editInput.addEventListener('keydown', ev => {
+          if (ev.key === 'Enter' || ev.key === 'Escape') { ev.preventDefault(); finishEdit(); }
+          ev.stopPropagation();
+        });
+        editInput.addEventListener('mousedown', ev => ev.stopPropagation());
+      });
+
+      li.addEventListener('mousedown', e => e.stopPropagation());
+    }
+
+    /* ── z-index ── */
+    function bringToFront(el) {
+      el.style.zIndex = ++zTop;
+    }
+
+    /* ── read current rotation ── */
+    function currentRotation(el) {
+      const t = el.style.transform;
+      const m = t.match(/rotate\(([-\d.]+)deg\)/);
+      return m ? parseFloat(m[1]) : 0;
+    }
+
+    /* ── canvas click → new note (only if not dragging) ── */
+    canvas.addEventListener('click', e => {
+      if (didDrag) return;
+      if (e.target !== canvas) return;
+      const noteEl = createNote(e.clientX - 115, e.clientY - 90);
+      bringToFront(noteEl);
+      noteEl.querySelector('.note-input').focus();
+    });
+
+    /* ── global drag ── */
+    document.addEventListener('mousemove', e => {
+      if (!dragState) return;
+      didDrag = true;
+      const x = e.clientX - dragState.ox;
+      const y = e.clientY - dragState.oy;
+      dragState.el.style.left = x + 'px';
+      dragState.el.style.top  = y + 'px';
+    });
+
+    document.addEventListener('mouseup', () => {
+      if (dragState) {
+        dragState.el.classList.remove('dragging');
+        dragState = null;
+      }
+      didDrag = false;
+    });
+
+    /* ── prevent body scroll hijack on notes ── */
+    document.body.addEventListener('wheel', e => {
+      if (e.target.closest('.note')) e.preventDefault();
+    }, { passive: false });
+
+    /* ── pin note (Document Picture-in-Picture) ── */
+    async function pinNote(noteEl, pinBtn) {
+      // Toggle off if already pinned
+      if (noteEl._pipWindow && !noteEl._pipWindow.closed) {
+        noteEl._pipWindow.close();
+        return;
+      }
+
+      if (!('documentPictureInPicture' in window)) {
+        alert('Pinned notes use the Document Picture-in-Picture API, which requires Chrome 116+ or Edge 116+.\nThis browser does not support it.');
+        return;
+      }
+
+      let pipWin;
+      try {
+        pipWin = await window.documentPictureInPicture.requestWindow({ width: 280, height: 360 });
+      } catch (err) {
+        alert('Could not open pinned note: ' + err.message);
+        return;
+      }
+
+      noteEl._pipWindow = pipWin;
+      pinBtn.classList.add('pinned');
+      noteEl.classList.add('is-pinned');
+
+      // Inject Google Fonts
+      const link = pipWin.document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = 'https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600;700&display=swap';
+      pipWin.document.head.appendChild(link);
+
+      // Inject styles
+      const styleEl = pipWin.document.createElement('style');
+      styleEl.textContent = getPipStyles();
+      pipWin.document.head.appendChild(styleEl);
+
+      function syncPip() {
+        if (pipWin.closed) return;
+        const color = noteEl.style.background || '#fff9c4';
+        const title = noteEl.querySelector('.note-title').value;
+        const items = [...noteEl.querySelectorAll('.note-item')].map(li => ({
+          text: li.querySelector('.item-text')?.textContent || '',
+          done: li.classList.contains('completed')
+        }));
+        pipWin.document.body.style.background = color;
+        pipWin.document.body.innerHTML = buildPipHTML(title, items);
+      }
+
+      syncPip();
+
+      const interval = setInterval(() => {
+        if (pipWin.closed) {
+          clearInterval(interval);
+          pinBtn.classList.remove('pinned');
+          noteEl.classList.remove('is-pinned');
+          noteEl._pipWindow = null;
+          return;
+        }
+        syncPip();
+      }, 400);
+
+      pipWin.addEventListener('pagehide', () => {
+        clearInterval(interval);
+        pinBtn.classList.remove('pinned');
+        noteEl.classList.remove('is-pinned');
+        noteEl._pipWindow = null;
+      });
+    }
+
+    function getPipStyles() {
+      return `
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+          font-family: 'Caveat', cursive, sans-serif;
+          min-height: 100vh;
+          padding: 18px 18px 20px;
+          position: relative;
+          overflow-x: hidden;
+        }
+        body::before {
+          content: '';
+          position: fixed;
+          inset: 0;
+          background-image: radial-gradient(circle, #c8b89a 1px, transparent 1px);
+          background-size: 28px 28px;
+          opacity: 0.18;
+          pointer-events: none;
+        }
+        .pip-tape {
+          position: absolute;
+          top: -10px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 52px;
+          height: 20px;
+          background: rgba(255,255,255,0.52);
+          border-radius: 2px;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        .pip-label {
+          font-size: 0.72rem;
+          color: rgba(192,96,58,0.65);
+          letter-spacing: 1.5px;
+          text-transform: uppercase;
+          margin-bottom: 8px;
+        }
+        .pip-title {
+          font-size: 1.3rem;
+          font-weight: 700;
+          color: rgba(0,0,0,0.72);
+          border-bottom: 1.5px solid rgba(0,0,0,0.1);
+          padding-bottom: 5px;
+          margin-bottom: 10px;
+          min-height: 1.4rem;
+          word-break: break-word;
+        }
+        .pip-title.empty {
+          color: rgba(0,0,0,0.22);
+          font-style: italic;
+          font-weight: 400;
+        }
+        .pip-items { list-style: none; }
+        .pip-item {
+          display: flex;
+          align-items: flex-start;
+          gap: 6px;
+          padding: 3px 0;
+          font-size: 1.1rem;
+          color: rgba(0,0,0,0.72);
+          line-height: 1.35;
+          word-break: break-word;
+        }
+        .pip-item.done {
+          text-decoration: line-through;
+          color: rgba(0,0,0,0.32);
+        }
+        .pip-bullet { color: rgba(0,0,0,0.28); flex-shrink: 0; }
+        .pip-empty {
+          font-size: 0.95rem;
+          color: rgba(0,0,0,0.25);
+          font-style: italic;
+          margin-top: 6px;
+        }
+      `;
+    }
+
+    function buildPipHTML(title, items) {
+      const titleHTML = title
+        ? `<div class="pip-title">${esc(title)}</div>`
+        : `<div class="pip-title empty">untitled</div>`;
+
+      const itemsHTML = items.length
+        ? `<ul class="pip-items">${items.map(it =>
+            `<li class="pip-item${it.done ? ' done' : ''}"><span class="pip-bullet">·</span><span>${esc(it.text)}</span></li>`
+          ).join('')}</ul>`
+        : `<p class="pip-empty">no tasks yet</p>`;
+
+      return `<div class="pip-tape"></div><div class="pip-label">📌 pinned</div>${titleHTML}${itemsHTML}`;
+    }
+  </script>
+</body>
+</html>
