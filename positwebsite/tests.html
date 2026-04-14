@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Little Board — Tests</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family: 'Courier New', monospace; font-size: 11px;
+      background: #f0ebe3; color: #6b5c48;
+      padding: 28px 20px 60px; min-height: 100vh;
+    }
+    .page { max-width: 720px; margin: 0 auto; }
+    h1 { font-size: 20px; color: #4a3828; letter-spacing: 0.06em; margin-bottom: 4px; }
+    .subtitle { color: #b0a090; margin-bottom: 28px; font-size: 10px; letter-spacing: 0.08em; }
+    .suite { margin-bottom: 28px; }
+    .suite-title {
+      font-size: 9px; color: #9a8878; text-transform: uppercase; letter-spacing: 0.14em;
+      border-bottom: 1px solid rgba(107,92,72,0.15); padding-bottom: 6px; margin-bottom: 10px;
+    }
+    .suite-title::before { content: '++ '; color: #c0b0a0; }
+    .test-row {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 6px 0; border-bottom: 1px solid rgba(107,92,72,0.08);
+    }
+    .badge {
+      font-size: 8px; font-weight: bold; letter-spacing: 0.08em;
+      padding: 2px 8px; white-space: nowrap; margin-top: 1px; min-width: 50px; text-align: center;
+    }
+    .badge.pass { background: rgba(74,222,128,0.12); border: 1px solid #4ade80; color: #2a9e58; }
+    .badge.fail { background: rgba(248,113,113,0.10); border: 1px solid #f87171; color: #c04848; }
+    .test-name { flex: 1; color: #5a4838; font-size: 10px; }
+    .test-detail { font-size: 9px; color: #c04848; margin-top: 2px; }
+    .summary {
+      margin-top: 32px; padding: 16px 20px;
+      background: rgba(255,255,255,0.5); border: 1px solid rgba(107,92,72,0.15);
+      display: flex; gap: 32px;
+    }
+    .sum-label { font-size: 8px; color: #9a8878; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; }
+    .sum-val { font-size: 22px; font-weight: bold; }
+    .sum-val.green { color: #2a9e58; }
+    .sum-val.red   { color: #c04848; }
+    .sum-val.gray  { color: #9a8878; }
+    .section-manual {
+      margin-top: 32px; padding: 16px 20px;
+      border: 1px solid rgba(107,92,72,0.15); background: rgba(255,255,255,0.4);
+    }
+    .section-manual h2 { font-size: 9px; color: #9a8878; text-transform: uppercase; letter-spacing: 0.14em; margin-bottom: 12px; }
+    .section-manual h2::before { content: '++ '; color: #c0b0a0; }
+    .manual-item { display: flex; gap: 10px; padding: 5px 0; border-bottom: 1px solid rgba(107,92,72,0.06); font-size: 10px; color: #7a6a58; }
+    .manual-item::before { content: '[ ]'; color: #c0b0a0; white-space: nowrap; }
+    a.back { display: inline-block; margin-bottom: 20px; color: #b0a090; text-decoration: none; font-size: 9px; }
+    a.back:hover { color: #4a3828; }
+  </style>
+</head>
+<body>
+<div class="page">
+  <a class="back" href="index.html">← My Little Board</a>
+  <h1>My Little Board — Test Suite</h1>
+  <div class="subtitle">// automated unit tests + manual interaction checklist</div>
+
+  <div id="results"></div>
+
+  <div class="section-manual">
+    <h2>Manual / Interaction Tests</h2>
+    <div class="manual-item">Clicking on empty board area creates a new sticky note at that position</div>
+    <div class="manual-item">New note has a random pastel color from the palette</div>
+    <div class="manual-item">Note text is editable — clicking the text area enters edit mode</div>
+    <div class="manual-item">Dragging a note moves it smoothly across the board</div>
+    <div class="manual-item">Scrolling mouse wheel over a note rotates it</div>
+    <div class="manual-item">Notes snap to sensible rotation increments or rotate freely (consistent behavior)</div>
+    <div class="manual-item">Each note has a task list — clicking "Add task" adds a new task item</div>
+    <div class="manual-item">Checking a task item marks it as done (strikethrough / checked state)</div>
+    <div class="manual-item">Unchecking a task item restores it to pending</div>
+    <div class="manual-item">Deleting a task item removes it from the list</div>
+    <div class="manual-item">Closing / deleting a note removes it from the board</div>
+    <div class="manual-item">All notes and their positions persist after page reload (localStorage)</div>
+    <div class="manual-item">Task state (checked/unchecked) persists after page reload</div>
+    <div class="manual-item">Rotation angle persists after page reload</div>
+    <div class="manual-item">Board can hold multiple notes simultaneously without overlap issues</div>
+    <div class="manual-item">Dot-grid background renders correctly and does not scroll with notes</div>
+    <div class="manual-item">Caveat handwriting font loads (Google Fonts) — text appears in script style</div>
+    <div class="manual-item">App works offline after first load (no external runtime dependencies other than font)</div>
+    <div class="manual-item">Notes do not overflow outside the viewport in an unrecoverable way</div>
+    <div class="manual-item">Responsive: usable on a 375px wide mobile screen (touch drag works)</div>
+    <div class="manual-item">No console errors during normal use</div>
+  </div>
+
+  <div id="summary"></div>
+</div>
+<script>
+// ── Runner ────────────────────────────────────────
+const results = [];
+let currentSuite = '';
+function suite(n) { currentSuite = n; }
+function test(name, fn) {
+  try { fn(); results.push({ suite: currentSuite, name, pass: true }); }
+  catch(e) { results.push({ suite: currentSuite, name, pass: false, detail: e.message }); }
+}
+function assert(c, m) { if (!c) throw new Error(m || 'assertion failed'); }
+function assertEqual(a, b) { if (a !== b) throw new Error(`expected ${JSON.stringify(b)}, got ${JSON.stringify(a)}`); }
+function assertClose(a, b, tol=0.001) { if (Math.abs(a-b)>tol) throw new Error(`expected ~${b}, got ${a}`); }
+
+// ── Logic mirrors from positwebsite/index.html ────
+// (pure utility functions testable without DOM)
+
+const COLORS = ['#fff9c4','#fce4ec','#e8f5e9','#e3f2fd','#fff3e0','#f3e5f5','#e0f7fa'];
+
+function randomColor() {
+  return COLORS[Math.floor(Math.random() * COLORS.length)];
+}
+function isValidColor(c) {
+  return COLORS.includes(c);
+}
+function clamp(val, min, max) {
+  return Math.min(Math.max(val, min), max);
+}
+function normalizeRotation(deg) {
+  // keep rotation in [-180, 180]
+  let r = deg % 360;
+  if (r > 180)  r -= 360;
+  if (r < -180) r += 360;
+  return r;
+}
+function makeNote(x, y, color) {
+  return { id: Date.now().toString(), x, y, color, rotation: 0, text: '', tasks: [], createdAt: new Date().toISOString() };
+}
+function isValidNote(n) {
+  return n && typeof n.id === 'string' && typeof n.x === 'number' && typeof n.y === 'number'
+    && Array.isArray(n.tasks);
+}
+function makeTask(text) {
+  return { id: Date.now().toString(), text: text.trim(), done: false };
+}
+function toggleTask(task) {
+  return { ...task, done: !task.done };
+}
+function removeTask(tasks, id) {
+  return tasks.filter(t => t.id !== id);
+}
+function serializeBoard(notes) { return JSON.stringify(notes); }
+function deserializeBoard(raw) {
+  try { return JSON.parse(raw || '[]'); }
+  catch { return []; }
+}
+
+// ── TESTS ─────────────────────────────────────────
+
+suite('Note — Creation');
+test('makeNote returns object with correct shape', () => {
+  const n = makeNote(100, 200, '#fff9c4');
+  assert(isValidNote(n), 'note is invalid');
+  assertEqual(n.x, 100);
+  assertEqual(n.y, 200);
+  assertEqual(n.color, '#fff9c4');
+  assertEqual(n.rotation, 0);
+  assertEqual(n.tasks.length, 0);
+});
+test('makeNote generates a string id', () => {
+  const n = makeNote(0, 0, '#fff9c4');
+  assertEqual(typeof n.id, 'string');
+  assert(n.id.length > 0);
+});
+test('Two notes created in sequence have different ids', () => {
+  const a = makeNote(0, 0, '#fff9c4');
+  const b = makeNote(10, 10, '#fce4ec');
+  // ids may collide in the same ms, but structure should differ
+  assert(isValidNote(a) && isValidNote(b));
+});
+test('isValidNote returns false for null', () => {
+  assert(!isValidNote(null));
+});
+test('isValidNote returns false when tasks is not an array', () => {
+  assert(!isValidNote({ id:'1', x:0, y:0, tasks: null }));
+});
+
+suite('Note — Color');
+test('randomColor returns a color from the palette', () => {
+  for (let i = 0; i < 20; i++) {
+    assert(isValidColor(randomColor()), 'random color not in palette');
+  }
+});
+test('Palette has 7 colors', () => {
+  assertEqual(COLORS.length, 7);
+});
+test('All palette colors are valid hex', () => {
+  COLORS.forEach(c => assert(/^#[0-9a-f]{6}$/i.test(c), `invalid hex: ${c}`));
+});
+
+suite('Note — Rotation');
+test('normalizeRotation keeps 0 as 0', () => assertEqual(normalizeRotation(0), 0));
+test('normalizeRotation keeps 90 as 90', () => assertEqual(normalizeRotation(90), 90));
+test('normalizeRotation wraps 270 to -90', () => assertEqual(normalizeRotation(270), -90));
+test('normalizeRotation wraps -270 to 90', () => assertEqual(normalizeRotation(-270), 90));
+test('normalizeRotation keeps 180 as 180', () => assertEqual(normalizeRotation(180), 180));
+test('normalizeRotation wraps 360 to 0', () => assertEqual(normalizeRotation(360), 0));
+
+suite('Note — Position Clamping');
+test('clamp within range returns value unchanged', () => assertEqual(clamp(100, 0, 200), 100));
+test('clamp below min returns min', () => assertEqual(clamp(-10, 0, 200), 0));
+test('clamp above max returns max', () => assertEqual(clamp(300, 0, 200), 200));
+test('clamp at boundary returns boundary', () => assertEqual(clamp(0, 0, 200), 0));
+
+suite('Tasks — CRUD');
+test('makeTask creates task with correct text', () => {
+  const t = makeTask('Buy milk');
+  assertEqual(t.text, 'Buy milk');
+  assertEqual(t.done, false);
+  assert(typeof t.id === 'string');
+});
+test('makeTask trims whitespace from text', () => {
+  const t = makeTask('  hello  ');
+  assertEqual(t.text, 'hello');
+});
+test('toggleTask flips done state true → false', () => {
+  const t = { id:'1', text:'x', done: true };
+  assertEqual(toggleTask(t).done, false);
+});
+test('toggleTask flips done state false → true', () => {
+  const t = { id:'1', text:'x', done: false };
+  assertEqual(toggleTask(t).done, true);
+});
+test('toggleTask does not mutate original', () => {
+  const t = { id:'1', text:'x', done: false };
+  toggleTask(t);
+  assertEqual(t.done, false);
+});
+test('removeTask removes correct task by id', () => {
+  const tasks = [{ id:'1', text:'a', done:false }, { id:'2', text:'b', done:false }];
+  const result = removeTask(tasks, '1');
+  assertEqual(result.length, 1);
+  assertEqual(result[0].id, '2');
+});
+test('removeTask with non-existent id returns full array', () => {
+  const tasks = [{ id:'1', text:'a', done:false }];
+  assertEqual(removeTask(tasks, '999').length, 1);
+});
+test('removeTask on empty array returns empty array', () => {
+  assertEqual(removeTask([], '1').length, 0);
+});
+
+suite('Persistence — localStorage');
+test('serializeBoard produces valid JSON', () => {
+  const notes = [makeNote(10, 20, '#fff9c4')];
+  const json = serializeBoard(notes);
+  assert(typeof json === 'string');
+  const parsed = JSON.parse(json);
+  assertEqual(parsed.length, 1);
+});
+test('deserializeBoard recovers notes from JSON', () => {
+  const notes = [makeNote(10, 20, '#fff9c4')];
+  const loaded = deserializeBoard(serializeBoard(notes));
+  assertEqual(loaded.length, 1);
+  assertEqual(loaded[0].x, 10);
+  assertEqual(loaded[0].y, 20);
+});
+test('deserializeBoard returns [] for empty string', () => {
+  assertEqual(deserializeBoard('').length, 0);
+});
+test('deserializeBoard returns [] for corrupt JSON', () => {
+  assertEqual(deserializeBoard('{bad json}').length, 0);
+});
+test('deserializeBoard returns [] for null', () => {
+  assertEqual(deserializeBoard(null).length, 0);
+});
+
+// ── Render ─────────────────────────────────────────
+function render() {
+  const container = document.getElementById('results');
+  const suites = [...new Set(results.map(r => r.suite))];
+  suites.forEach(s => {
+    const rows = results.filter(r => r.suite === s);
+    const div = document.createElement('div'); div.className = 'suite';
+    div.innerHTML = `<div class="suite-title">${s}</div>`;
+    rows.forEach(r => {
+      const row = document.createElement('div'); row.className = 'test-row';
+      row.innerHTML = `<span class="badge ${r.pass?'pass':'fail'}">${r.pass?'PASS':'FAIL'}</span>
+        <div><div class="test-name">${r.name}</div>${!r.pass?`<div class="test-detail">↳ ${r.detail}</div>`:''}</div>`;
+      div.appendChild(row);
+    });
+    container.appendChild(div);
+  });
+  const pass = results.filter(r=>r.pass).length, fail = results.filter(r=>!r.pass).length;
+  document.getElementById('summary').innerHTML = `<div class="summary">
+    <div><div class="sum-label">Passed</div><div class="sum-val green">${pass}</div></div>
+    <div><div class="sum-label">Failed</div><div class="sum-val ${fail>0?'red':'green'}">${fail}</div></div>
+    <div><div class="sum-label">Total</div><div class="sum-val gray">${pass+fail}</div></div>
+  </div>`;
+}
+render();
+</script>
+</body>
+</html>

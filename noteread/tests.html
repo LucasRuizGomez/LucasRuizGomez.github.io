@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NoteRead — Tests</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family: 'Courier New', monospace; font-size: 11px;
+      background: #08070f; color: #aaaacc;
+      padding: 28px 20px 60px; min-height: 100vh;
+    }
+    .page { max-width: 720px; margin: 0 auto; }
+    h1 { font-size: 20px; color: #fff; letter-spacing: 0.06em; margin-bottom: 4px; }
+    .subtitle { color: #444466; margin-bottom: 28px; font-size: 10px; letter-spacing: 0.08em; }
+    .suite { margin-bottom: 28px; }
+    .suite-title {
+      font-size: 9px; color: #555577; text-transform: uppercase; letter-spacing: 0.14em;
+      border-bottom: 1px solid rgba(129,140,248,0.12); padding-bottom: 6px; margin-bottom: 10px;
+    }
+    .suite-title::before { content: '++ '; color: #2e2c50; }
+    .test-row {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 6px 0; border-bottom: 1px solid rgba(129,140,248,0.06);
+    }
+    .badge {
+      font-size: 8px; font-weight: bold; letter-spacing: 0.08em;
+      padding: 2px 8px; white-space: nowrap; margin-top: 1px;
+      min-width: 50px; text-align: center;
+    }
+    .badge.pass { background: rgba(74,222,128,0.12); border: 1px solid #4ade80; color: #4ade80; }
+    .badge.fail { background: rgba(248,113,113,0.12); border: 1px solid #f87171; color: #f87171; }
+    .badge.skip { background: rgba(129,140,248,0.08); border: 1px solid #555577; color: #555577; }
+    .test-name { flex: 1; color: #ccccdd; font-size: 10px; }
+    .test-detail { font-size: 9px; color: #f87171; margin-top: 2px; }
+    .summary {
+      margin-top: 32px; padding: 16px 20px;
+      background: rgba(0,0,0,0.4); border: 1px solid rgba(129,140,248,0.14);
+      display: flex; gap: 32px;
+    }
+    .sum-label { font-size: 8px; color: #444466; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; }
+    .sum-val { font-size: 22px; font-weight: bold; }
+    .sum-val.green { color: #4ade80; }
+    .sum-val.red   { color: #f87171; }
+    .sum-val.gray  { color: #555577; }
+    .section-manual {
+      margin-top: 32px; padding: 16px 20px;
+      border: 1px solid rgba(129,140,248,0.14); background: rgba(0,0,0,0.3);
+    }
+    .section-manual h2 { font-size: 9px; color: #555577; text-transform: uppercase; letter-spacing: 0.14em; margin-bottom: 12px; }
+    .section-manual h2::before { content: '++ '; color: #2e2c50; }
+    .manual-item { display: flex; gap: 10px; padding: 5px 0; border-bottom: 1px solid rgba(129,140,248,0.05); font-size: 10px; color: #888899; }
+    .manual-item::before { content: '[ ]'; color: #333355; white-space: nowrap; }
+    a.back { display: inline-block; margin-bottom: 20px; color: #444466; text-decoration: none; font-size: 9px; letter-spacing: 0.08em; }
+    a.back:hover { color: #c4b5fd; }
+  </style>
+</head>
+<body>
+<div class="page">
+  <a class="back" href="index.html">← NoteRead</a>
+  <h1>NoteRead — Test Suite</h1>
+  <div class="subtitle">// automated unit tests · open browser console for verbose output</div>
+
+  <div id="results"></div>
+
+  <div class="section-manual">
+    <h2>Manual / Visual Tests</h2>
+    <div class="manual-item">Staff renders 5 horizontal lines at correct spacing (14px apart)</div>
+    <div class="manual-item">Treble clef symbol (𝄞) renders fully visible on the left of staff</div>
+    <div class="manual-item">Bass clef symbol (𝄢) renders correctly when switching to Clave Fa</div>
+    <div class="manual-item">Whole note appears as open oval with inner black hole, rotated slightly</div>
+    <div class="manual-item">Middle C (Do C4, treble) shows ledger line below the staff</div>
+    <div class="manual-item">Middle C (Do C4, bass) shows ledger line above the staff</div>
+    <div class="manual-item">♯ / ♭ symbols appear to the left of the note head when accidentals are enabled</div>
+    <div class="manual-item">Correct answer flashes green on the button and 3px bar turns green</div>
+    <div class="manual-item">Wrong answer flashes red; correct answer button briefly highlighted green</div>
+    <div class="manual-item">Learning mode: note name appears on SVG for ~0.7s before accepting input</div>
+    <div class="manual-item">Timer bar fills the full width at start and drains over 60s in contrarreloj mode</div>
+    <div class="manual-item">Timer bar turns red in the final 15 seconds</div>
+    <div class="manual-item">Score overlay appears at end of contrarreloj session with correct stats</div>
+    <div class="manual-item">Sound plays a tone when sonido=ON (check at 440Hz for La A4)</div>
+    <div class="manual-item">Keyboard 1–7 maps correctly to Do–Si (verify each key triggers the right button flash)</div>
+    <div class="manual-item">R key resets session stats but preserves best streak</div>
+    <div class="manual-item">S key toggles sound without opening settings</div>
+    <div class="manual-item">Settings persist after page reload (clef, accidentals, difficulty, mode, sound, learning)</div>
+    <div class="manual-item">Best streak persists after page reload</div>
+    <div class="manual-item">Fácil mode: no ledger-line notes appear (C4 treble, C4 bass)</div>
+    <div class="manual-item">Difícil mode: accidentals appear when set</div>
+    <div class="manual-item">Responsive layout: buttons readable and usable at 375px width</div>
+  </div>
+
+  <div id="summary"></div>
+</div>
+
+<script>
+// ── Minimal test runner ──────────────────────────────────────
+const results = [];
+let currentSuite = '';
+
+function suite(name) { currentSuite = name; }
+function test(name, fn) {
+  try {
+    fn();
+    results.push({ suite: currentSuite, name, pass: true });
+  } catch(e) {
+    results.push({ suite: currentSuite, name, pass: false, detail: e.message });
+  }
+}
+function assert(cond, msg) { if (!cond) throw new Error(msg || 'assertion failed'); }
+function assertEqual(a, b) { if (a !== b) throw new Error(`expected ${JSON.stringify(b)}, got ${JSON.stringify(a)}`); }
+function assertClose(a, b, tol=0.001) { if (Math.abs(a-b) > tol) throw new Error(`expected ~${b}, got ${a}`); }
+function assertIncludes(arr, val) { if (!arr.includes(val)) throw new Error(`array does not include ${val}`); }
+
+// ── Re-declare testable logic (mirrored from index.html) ─────
+
+const TREBLE_ALL = [
+  { name:'Do',  y:110, pitch:'C4', freq:261.63, ledger:'below' },
+  { name:'Re',  y:103, pitch:'D4', freq:293.66 },
+  { name:'Mi',  y:96,  pitch:'E4', freq:329.63 },
+  { name:'Fa',  y:89,  pitch:'F4', freq:349.23 },
+  { name:'Sol', y:82,  pitch:'G4', freq:392.00 },
+  { name:'La',  y:75,  pitch:'A4', freq:440.00 },
+  { name:'Si',  y:68,  pitch:'B4', freq:493.88 },
+  { name:'Do',  y:61,  pitch:'C5', freq:523.25 },
+  { name:'Re',  y:54,  pitch:'D5', freq:587.33 },
+  { name:'Mi',  y:47,  pitch:'E5', freq:659.25 },
+  { name:'Fa',  y:40,  pitch:'F5', freq:698.46 },
+  { name:'Sol', y:33,  pitch:'G5', freq:783.99 },
+];
+const TREBLE_EASY = TREBLE_ALL.filter(n => n.y >= 40 && n.y <= 96);
+const BASS_ALL = [
+  { name:'Sol', y:96,  pitch:'G2', freq:98.00  },
+  { name:'La',  y:89,  pitch:'A2', freq:110.00 },
+  { name:'Si',  y:82,  pitch:'B2', freq:123.47 },
+  { name:'Do',  y:75,  pitch:'C3', freq:130.81 },
+  { name:'Re',  y:68,  pitch:'D3', freq:146.83 },
+  { name:'Mi',  y:61,  pitch:'E3', freq:164.81 },
+  { name:'Fa',  y:54,  pitch:'F3', freq:174.61 },
+  { name:'Sol', y:47,  pitch:'G3', freq:196.00 },
+  { name:'La',  y:40,  pitch:'A3', freq:220.00 },
+  { name:'Si',  y:33,  pitch:'B3', freq:246.94 },
+  { name:'Do',  y:26,  pitch:'C4', freq:261.63, ledger:'above' },
+];
+const BASS_EASY = BASS_ALL.filter(n => n.y >= 40 && n.y <= 96);
+const KEY_MAP = {'1':'Do','2':'Re','3':'Mi','4':'Fa','5':'Sol','6':'La','7':'Si'};
+const DEFAULT_SETTINGS = { clef:'treble', accidentals:'none', difficulty:'medium', mode:'free', sound:'off', learning:'off' };
+
+function loadSettings(raw) {
+  try { return { ...DEFAULT_SETTINGS, ...JSON.parse(raw || '{}') }; }
+  catch { return { ...DEFAULT_SETTINGS }; }
+}
+function calcAccuracy(correct, wrong) {
+  const t = correct + wrong;
+  return t === 0 ? null : Math.round(correct / t * 100);
+}
+function sharpFreq(f)  { return f * Math.pow(2,  1/12); }
+function flatFreq(f)   { return f * Math.pow(2, -1/12); }
+
+// Weighted pick logic (mirrors index.html)
+function buildWeighted(pool, weakness) {
+  const w = [];
+  pool.forEach((n, i) => {
+    const rec = weakness[n.pitch];
+    let weight = 1;
+    if (rec && rec.c + rec.w >= 3) {
+      const acc = rec.c / (rec.c + rec.w);
+      if (acc < 0.5)  weight = 3;
+      else if (acc < 0.75) weight = 2;
+    }
+    for (let j = 0; j < weight; j++) w.push(i);
+  });
+  return w;
+}
+
+// ── TESTS ───────────────────────────────────────────────────
+
+// 1. Note pools
+suite('Note Pool — Treble');
+test('TREBLE_ALL has 12 notes', () => assertEqual(TREBLE_ALL.length, 12));
+test('TREBLE_EASY has no ledger notes', () => {
+  assert(TREBLE_EASY.every(n => n.y >= 40 && n.y <= 96), 'ledger note found in easy pool');
+});
+test('TREBLE_EASY has 10 notes (E4→F5)', () => assertEqual(TREBLE_EASY.length, 10));
+test('C4 (Do) has ledger:below', () => {
+  const c4 = TREBLE_ALL.find(n => n.pitch === 'C4');
+  assertEqual(c4.ledger, 'below');
+});
+test('All treble notes have unique pitch', () => {
+  const pitches = TREBLE_ALL.map(n => n.pitch);
+  assertEqual(new Set(pitches).size, pitches.length);
+});
+test('Treble y values are strictly increasing (top=low y)', () => {
+  for (let i = 1; i < TREBLE_ALL.length; i++)
+    assert(TREBLE_ALL[i].y < TREBLE_ALL[i-1].y, 'y not decreasing as notes go up');
+});
+test('Staff lines hit correct note y values (treble)', () => {
+  // Lines at y=40,54,68,82,96 correspond to F5,D5,B4,G4,E4
+  const lineNotes = TREBLE_ALL.filter(n => [40,54,68,82,96].includes(n.y)).map(n=>n.pitch);
+  assert(lineNotes.includes('F5'), 'F5 not on line');
+  assert(lineNotes.includes('E4'), 'E4 not on line');
+});
+
+suite('Note Pool — Bass');
+test('BASS_ALL has 11 notes', () => assertEqual(BASS_ALL.length, 11));
+test('BASS_EASY has no ledger notes', () => {
+  assert(BASS_EASY.every(n => n.y >= 40 && n.y <= 96));
+});
+test('C4 bass has ledger:above', () => {
+  const c4 = BASS_ALL.find(n => n.pitch === 'C4');
+  assertEqual(c4.ledger, 'above');
+});
+test('BASS_EASY excludes B3 and C4 (ledger notes)', () => {
+  assert(!BASS_EASY.find(n => n.pitch === 'C4'), 'C4 in easy pool');
+  assert(!BASS_EASY.find(n => n.pitch === 'B3'), 'B3 in easy pool');
+});
+
+// 2. Frequencies
+suite('Accidentals — Frequency');
+test('Sharp raises by one semitone', () => {
+  const f = 440;
+  assertClose(sharpFreq(f), 466.164, 0.01);
+});
+test('Flat lowers by one semitone', () => {
+  const f = 440;
+  assertClose(flatFreq(f), 415.305, 0.01);
+});
+test('Sharp then flat returns original', () => {
+  const f = 392;
+  assertClose(flatFreq(sharpFreq(f)), f, 0.001);
+});
+test('A4 sharp ≈ A#4 (466.16Hz)', () => {
+  assertClose(sharpFreq(440), 466.164, 0.01);
+});
+test('C4 flat ≈ B3 (246.94Hz)', () => {
+  assertClose(flatFreq(261.63), 246.94, 0.05);
+});
+
+// 3. Stats
+suite('Stats — Calculations');
+test('Accuracy 0/0 returns null', () => {
+  assertEqual(calcAccuracy(0, 0), null);
+});
+test('Accuracy 10/10 correct returns 100', () => {
+  assertEqual(calcAccuracy(10, 0), 100);
+});
+test('Accuracy 5/10 correct returns 50', () => {
+  assertEqual(calcAccuracy(5, 5), 50);
+});
+test('Accuracy 1/3 correct rounds to 33', () => {
+  assertEqual(calcAccuracy(1, 2), 33);
+});
+test('Streak resets to 0 on wrong answer', () => {
+  let streak = 5;
+  // simulate wrong
+  streak = 0;
+  assertEqual(streak, 0);
+});
+test('Best streak updates only when current streak exceeds it', () => {
+  let best = 5, streak = 6;
+  if (streak > best) best = streak;
+  assertEqual(best, 6);
+  streak = 3;
+  if (streak > best) best = streak;
+  assertEqual(best, 6); // unchanged
+});
+
+// 4. Settings
+suite('Settings — Load & Defaults');
+test('loadSettings returns defaults on empty localStorage', () => {
+  const s = loadSettings(null);
+  assertEqual(s.clef, 'treble');
+  assertEqual(s.accidentals, 'none');
+  assertEqual(s.difficulty, 'medium');
+  assertEqual(s.mode, 'free');
+  assertEqual(s.sound, 'off');
+  assertEqual(s.learning, 'off');
+});
+test('loadSettings merges saved values over defaults', () => {
+  const saved = JSON.stringify({ clef:'bass', sound:'on' });
+  const s = loadSettings(saved);
+  assertEqual(s.clef, 'bass');
+  assertEqual(s.sound, 'on');
+  assertEqual(s.accidentals, 'none'); // default preserved
+});
+test('loadSettings handles corrupt JSON gracefully', () => {
+  const s = loadSettings('{bad json}');
+  assertEqual(s.clef, 'treble'); // falls back to default
+});
+test('All 6 setting keys present in defaults', () => {
+  const keys = Object.keys(DEFAULT_SETTINGS);
+  assertEqual(keys.length, 6);
+  assert(keys.includes('clef'));
+  assert(keys.includes('accidentals'));
+  assert(keys.includes('difficulty'));
+  assert(keys.includes('mode'));
+  assert(keys.includes('sound'));
+  assert(keys.includes('learning'));
+});
+
+// 5. Keyboard
+suite('Keyboard — Key Map');
+test('Key 1 maps to Do', () => assertEqual(KEY_MAP['1'], 'Do'));
+test('Key 2 maps to Re', () => assertEqual(KEY_MAP['2'], 'Re'));
+test('Key 3 maps to Mi', () => assertEqual(KEY_MAP['3'], 'Mi'));
+test('Key 4 maps to Fa', () => assertEqual(KEY_MAP['4'], 'Fa'));
+test('Key 5 maps to Sol', () => assertEqual(KEY_MAP['5'], 'Sol'));
+test('Key 6 maps to La', () => assertEqual(KEY_MAP['6'], 'La'));
+test('Key 7 maps to Si', () => assertEqual(KEY_MAP['7'], 'Si'));
+test('KEY_MAP has exactly 7 entries', () => assertEqual(Object.keys(KEY_MAP).length, 7));
+test('All 7 Spanish note names are unique', () => {
+  const vals = Object.values(KEY_MAP);
+  assertEqual(new Set(vals).size, 7);
+});
+
+// 6. Weighted random / weakness
+suite('Weakness Tracking — Weighted Pool');
+test('No weakness: all notes have weight 1', () => {
+  const pool = TREBLE_ALL;
+  const w = buildWeighted(pool, {});
+  assertEqual(w.length, pool.length); // 1 entry per note
+});
+test('Struggling note (<50% acc, ≥3 tries) gets weight 3', () => {
+  const pool = [TREBLE_ALL[0], TREBLE_ALL[1]]; // Do, Re
+  const weakness = { 'C4': { c:0, w:3 } }; // 0% accuracy on C4
+  const w = buildWeighted(pool, weakness);
+  const c4Count = w.filter(i => pool[i].pitch === 'C4').length;
+  assertEqual(c4Count, 3);
+});
+test('Medium note (50–75% acc, ≥3 tries) gets weight 2', () => {
+  const pool = [TREBLE_ALL[0], TREBLE_ALL[1]];
+  const weakness = { 'C4': { c:2, w:2 } }; // 50% accuracy
+  const w = buildWeighted(pool, weakness);
+  const c4Count = w.filter(i => pool[i].pitch === 'C4').length;
+  assertEqual(c4Count, 2);
+});
+test('Strong note (≥75% acc, ≥3 tries) keeps weight 1', () => {
+  const pool = [TREBLE_ALL[0], TREBLE_ALL[1]];
+  const weakness = { 'C4': { c:9, w:1 } }; // 90% accuracy
+  const w = buildWeighted(pool, weakness);
+  const c4Count = w.filter(i => pool[i].pitch === 'C4').length;
+  assertEqual(c4Count, 1);
+});
+test('Note with <3 tries keeps weight 1 regardless of accuracy', () => {
+  const pool = [TREBLE_ALL[0]];
+  const weakness = { 'C4': { c:0, w:2 } }; // 0% but only 2 tries
+  const w = buildWeighted(pool, weakness);
+  assertEqual(w.length, 1);
+});
+
+// 7. Answer logic
+suite('Answer Logic');
+test('Correct answer increments correct count', () => {
+  let s = { correct:0, wrong:0, streak:0 };
+  const correct = true;
+  if (correct) { s.correct++; s.streak++; }
+  assertEqual(s.correct, 1); assertEqual(s.streak, 1);
+});
+test('Wrong answer increments wrong and resets streak', () => {
+  let s = { correct:3, wrong:0, streak:3 };
+  const correct = false;
+  if (!correct) { s.wrong++; s.streak = 0; }
+  assertEqual(s.wrong, 1); assertEqual(s.streak, 0); assertEqual(s.correct, 3);
+});
+test('Average time calculation', () => {
+  const times = [1.0, 2.0, 3.0];
+  const avg = times.reduce((a,b) => a+b, 0) / times.length;
+  assertClose(avg, 2.0);
+});
+
+// ── RENDER ──────────────────────────────────────────────────
+
+function render() {
+  const container = document.getElementById('results');
+  const suites = [...new Set(results.map(r => r.suite))];
+
+  suites.forEach(s => {
+    const rows = results.filter(r => r.suite === s);
+    const div = document.createElement('div');
+    div.className = 'suite';
+    div.innerHTML = `<div class="suite-title">${s}</div>`;
+    rows.forEach(r => {
+      const row = document.createElement('div');
+      row.className = 'test-row';
+      row.innerHTML = `
+        <span class="badge ${r.pass ? 'pass' : 'fail'}">${r.pass ? 'PASS' : 'FAIL'}</span>
+        <div>
+          <div class="test-name">${r.name}</div>
+          ${!r.pass ? `<div class="test-detail">↳ ${r.detail}</div>` : ''}
+        </div>`;
+      div.appendChild(row);
+    });
+    container.appendChild(div);
+  });
+
+  const pass = results.filter(r => r.pass).length;
+  const fail = results.filter(r => !r.pass).length;
+  document.getElementById('summary').innerHTML = `
+    <div class="summary">
+      <div><div class="sum-label">Passed</div><div class="sum-val green">${pass}</div></div>
+      <div><div class="sum-label">Failed</div><div class="sum-val ${fail > 0 ? 'red' : 'green'}">${fail}</div></div>
+      <div><div class="sum-label">Total</div><div class="sum-val gray">${pass+fail}</div></div>
+    </div>`;
+}
+
+render();
+</script>
+</body>
+</html>

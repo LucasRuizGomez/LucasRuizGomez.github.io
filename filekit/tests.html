@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Filekit — Tests</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family: 'Courier New', monospace; font-size: 11px;
+      background: #0a0702; color: #c89030;
+      padding: 28px 20px 60px; min-height: 100vh;
+    }
+    .page { max-width: 720px; margin: 0 auto; }
+    h1 { font-size: 20px; color: #e8c870; letter-spacing: 0.06em; margin-bottom: 4px; }
+    .subtitle { color: #4a3010; margin-bottom: 28px; font-size: 10px; letter-spacing: 0.08em; }
+    .suite { margin-bottom: 28px; }
+    .suite-title {
+      font-size: 9px; color: #6a4818; text-transform: uppercase; letter-spacing: 0.14em;
+      border-bottom: 1px solid rgba(200,144,48,0.12); padding-bottom: 6px; margin-bottom: 10px;
+    }
+    .suite-title::before { content: '++ '; color: #3a2808; }
+    .test-row {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 6px 0; border-bottom: 1px solid rgba(200,144,48,0.06);
+    }
+    .badge {
+      font-size: 8px; font-weight: bold; letter-spacing: 0.08em;
+      padding: 2px 8px; white-space: nowrap; margin-top: 1px; min-width: 50px; text-align: center;
+    }
+    .badge.pass { background: rgba(74,222,128,0.08); border: 1px solid #4ade80; color: #4ade80; }
+    .badge.fail { background: rgba(248,113,113,0.08); border: 1px solid #f87171; color: #f87171; }
+    .test-name { flex: 1; color: #d4a038; font-size: 10px; }
+    .test-detail { font-size: 9px; color: #f87171; margin-top: 2px; }
+    .summary {
+      margin-top: 32px; padding: 16px 20px;
+      background: rgba(0,0,0,0.4); border: 1px solid rgba(200,144,48,0.12);
+      display: flex; gap: 32px;
+    }
+    .sum-label { font-size: 8px; color: #4a3010; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; }
+    .sum-val { font-size: 22px; font-weight: bold; }
+    .sum-val.green { color: #4ade80; }
+    .sum-val.red   { color: #f87171; }
+    .sum-val.gray  { color: #6a4818; }
+    .section-manual {
+      margin-top: 32px; padding: 16px 20px;
+      border: 1px solid rgba(200,144,48,0.12); background: rgba(0,0,0,0.3);
+    }
+    .section-manual h2 { font-size: 9px; color: #6a4818; text-transform: uppercase; letter-spacing: 0.14em; margin-bottom: 12px; }
+    .section-manual h2::before { content: '++ '; color: #3a2808; }
+    .manual-item { display: flex; gap: 10px; padding: 5px 0; border-bottom: 1px solid rgba(200,144,48,0.04); font-size: 10px; color: #8a6028; }
+    .manual-item::before { content: '[ ]'; color: #3a2808; white-space: nowrap; }
+    a.back { display: inline-block; margin-bottom: 20px; color: #4a3010; text-decoration: none; font-size: 9px; }
+    a.back:hover { color: #e8c870; }
+  </style>
+</head>
+<body>
+<div class="page">
+  <a class="back" href="index.html">← Filekit</a>
+  <h1>Filekit — Test Suite</h1>
+  <div class="subtitle">// automated unit tests + manual checklist</div>
+
+  <div id="results"></div>
+
+  <div class="section-manual">
+    <h2>Manual / Visual Tests — PDF Merge</h2>
+    <div class="manual-item">Drop zone accepts .pdf files and shows filename on drop</div>
+    <div class="manual-item">Drop zone rejects non-PDF files (e.g. .txt, .jpg) with an error message</div>
+    <div class="manual-item">Merge button is disabled until both PDF A and PDF B are loaded</div>
+    <div class="manual-item">After dropping both files, Merge button becomes active</div>
+    <div class="manual-item">Clicking Merge triggers download of a merged .pdf file</div>
+    <div class="manual-item">Merged PDF contains pages from PDF A followed by pages from PDF B, in order</div>
+    <div class="manual-item">Merged PDF page count equals sum of input page counts</div>
+    <div class="manual-item">Works with single-page PDFs</div>
+    <div class="manual-item">Works with multi-page PDFs (e.g. 10 + 15 = 25 pages)</div>
+    <div class="manual-item">Works with PDFs that have images, not just text</div>
+    <div class="manual-item">Dropping a new file onto a slot replaces the previous file</div>
+    <div class="manual-item">Merge runs entirely client-side — no network requests made (verify in DevTools Network tab)</div>
+    <div class="manual-item">No console errors during normal merge operation</div>
+    <div class="manual-item">Scanline overlay visible but not obscuring content</div>
+    <div class="manual-item">Amber terminal aesthetic consistent: background #0a0702, accents #c89030</div>
+    <div class="manual-item">Responsive: drop zones stack vertically on screens ≤ 560px</div>
+    <div class="manual-item">pdf-lib CDN loads successfully (check Network tab for unpkg.com request)</div>
+    <div class="manual-item">Error message shown if user tries to merge a password-protected PDF</div>
+  </div>
+
+  <div id="summary"></div>
+</div>
+<script>
+// ── Runner ────────────────────────────────────────
+const results = [];
+let currentSuite = '';
+function suite(n) { currentSuite = n; }
+function test(name, fn) {
+  try { fn(); results.push({ suite: currentSuite, name, pass: true }); }
+  catch(e) { results.push({ suite: currentSuite, name, pass: false, detail: e.message }); }
+}
+function assert(c, m) { if (!c) throw new Error(m || 'assertion failed'); }
+function assertEqual(a, b) { if (a !== b) throw new Error(`expected ${JSON.stringify(b)}, got ${JSON.stringify(a)}`); }
+
+// ── Logic mirrors from filekit/index.html ─────────
+
+function isPdf(file) {
+  return file && (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf'));
+}
+function canMerge(fileA, fileB) { return fileA !== null && fileB !== null; }
+function mergedFilename(a, b) {
+  const na = (a || 'file_a').replace(/\.pdf$/i, '');
+  const nb = (b || 'file_b').replace(/\.pdf$/i, '');
+  return `${na}_+_${nb}_merged.pdf`;
+}
+function truncateName(name, max=28) {
+  if (!name || name.length <= max) return name;
+  return name.slice(0, max - 3) + '...';
+}
+
+// ── TESTS ─────────────────────────────────────────
+
+suite('File Validation');
+test('isPdf returns true for application/pdf type', () => {
+  assert(isPdf({ type:'application/pdf', name:'doc.pdf' }));
+});
+test('isPdf returns true for .pdf extension regardless of type', () => {
+  assert(isPdf({ type:'', name:'report.pdf' }));
+});
+test('isPdf returns false for image files', () => {
+  assert(!isPdf({ type:'image/jpeg', name:'photo.jpg' }));
+});
+test('isPdf returns false for .txt files', () => {
+  assert(!isPdf({ type:'text/plain', name:'readme.txt' }));
+});
+test('isPdf returns false for null', () => {
+  assert(!isPdf(null));
+});
+test('isPdf is case-insensitive for extension', () => {
+  assert(isPdf({ type:'', name:'DOC.PDF' }));
+});
+
+suite('Merge State Machine');
+test('canMerge false when both slots empty', () => {
+  assert(!canMerge(null, null));
+});
+test('canMerge false when only slot A filled', () => {
+  assert(!canMerge({ name:'a.pdf' }, null));
+});
+test('canMerge false when only slot B filled', () => {
+  assert(!canMerge(null, { name:'b.pdf' }));
+});
+test('canMerge true when both slots filled', () => {
+  assert(canMerge({ name:'a.pdf' }, { name:'b.pdf' }));
+});
+
+suite('Output Filename');
+test('Merged filename combines both input names', () => {
+  assertEqual(mergedFilename('invoice.pdf', 'receipt.pdf'), 'invoice_+_receipt_merged.pdf');
+});
+test('Strips .pdf extension from inputs', () => {
+  assertEqual(mergedFilename('doc.pdf', 'page.pdf'), 'doc_+_page_merged.pdf');
+});
+test('Handles missing extension gracefully', () => {
+  assertEqual(mergedFilename('doc', 'page'), 'doc_+_page_merged.pdf');
+});
+test('Handles null inputs with fallback names', () => {
+  assertEqual(mergedFilename(null, null), 'file_a_+_file_b_merged.pdf');
+});
+
+suite('UI Helpers');
+test('truncateName returns full name if short enough', () => {
+  assertEqual(truncateName('short.pdf', 28), 'short.pdf');
+});
+test('truncateName truncates long names with ellipsis', () => {
+  const long = 'this_is_a_very_long_filename_indeed.pdf';
+  const result = truncateName(long, 28);
+  assert(result.endsWith('...'), 'should end with ...');
+  assert(result.length <= 28, 'should be at most 28 chars');
+});
+test('truncateName handles empty string', () => {
+  assertEqual(truncateName(''), '');
+});
+test('truncateName handles null', () => {
+  assertEqual(truncateName(null), null);
+});
+
+// ── Render ─────────────────────────────────────────
+function render() {
+  const container = document.getElementById('results');
+  const suites = [...new Set(results.map(r => r.suite))];
+  suites.forEach(s => {
+    const rows = results.filter(r => r.suite === s);
+    const div = document.createElement('div'); div.className = 'suite';
+    div.innerHTML = `<div class="suite-title">${s}</div>`;
+    rows.forEach(r => {
+      const row = document.createElement('div'); row.className = 'test-row';
+      row.innerHTML = `<span class="badge ${r.pass?'pass':'fail'}">${r.pass?'PASS':'FAIL'}</span>
+        <div><div class="test-name">${r.name}</div>${!r.pass?`<div class="test-detail">↳ ${r.detail}</div>`:''}</div>`;
+      div.appendChild(row);
+    });
+    container.appendChild(div);
+  });
+  const pass = results.filter(r=>r.pass).length, fail = results.filter(r=>!r.pass).length;
+  document.getElementById('summary').innerHTML = `<div class="summary">
+    <div><div class="sum-label">Passed</div><div class="sum-val green">${pass}</div></div>
+    <div><div class="sum-label">Failed</div><div class="sum-val ${fail>0?'red':'green'}">${fail}</div></div>
+    <div><div class="sum-label">Total</div><div class="sum-val gray">${pass+fail}</div></div>
+  </div>`;
+}
+render();
+</script>
+</body>
+</html>

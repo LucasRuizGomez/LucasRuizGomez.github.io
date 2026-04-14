@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portfolio — Tests</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family: 'Courier New', monospace; font-size: 11px;
+      background: #050505; color: #aaaaaa;
+      padding: 28px 20px 60px; min-height: 100vh;
+    }
+    .page { max-width: 720px; margin: 0 auto; }
+    h1 { font-size: 20px; color: #fff; letter-spacing: 0.06em; margin-bottom: 4px; }
+    .subtitle { color: #444444; margin-bottom: 28px; font-size: 10px; letter-spacing: 0.08em; }
+    .suite { margin-bottom: 28px; }
+    .suite-title {
+      font-size: 9px; color: #555555; text-transform: uppercase; letter-spacing: 0.14em;
+      border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 6px; margin-bottom: 10px;
+    }
+    .suite-title::before { content: '++ '; color: #333333; }
+    .test-row {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .badge {
+      font-size: 8px; font-weight: bold; letter-spacing: 0.08em;
+      padding: 2px 8px; white-space: nowrap; margin-top: 1px; min-width: 50px; text-align: center;
+    }
+    .badge.pass { background: rgba(74,222,128,0.10); border: 1px solid #4ade80; color: #4ade80; }
+    .badge.fail { background: rgba(248,113,113,0.10); border: 1px solid #f87171; color: #f87171; }
+    .test-name { flex: 1; color: #cccccc; font-size: 10px; }
+    .test-detail { font-size: 9px; color: #f87171; margin-top: 2px; }
+    .summary {
+      margin-top: 32px; padding: 16px 20px;
+      background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.08);
+      display: flex; gap: 32px;
+    }
+    .sum-label { font-size: 8px; color: #444444; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; }
+    .sum-val { font-size: 22px; font-weight: bold; }
+    .sum-val.green { color: #4ade80; }
+    .sum-val.red   { color: #f87171; }
+    .sum-val.gray  { color: #555555; }
+    .section-manual {
+      margin-top: 32px; padding: 16px 20px;
+      border: 1px solid rgba(255,255,255,0.08); background: rgba(0,0,0,0.3);
+    }
+    .section-manual h2 { font-size: 9px; color: #555555; text-transform: uppercase; letter-spacing: 0.14em; margin-bottom: 12px; }
+    .section-manual h2::before { content: '++ '; color: #333333; }
+    .manual-item { display: flex; gap: 10px; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.03); font-size: 10px; color: #888888; }
+    .manual-item::before { content: '[ ]'; color: #333333; white-space: nowrap; }
+    a.back { display: inline-block; margin-bottom: 20px; color: #444444; text-decoration: none; font-size: 9px; }
+    a.back:hover { color: #ffffff; }
+  </style>
+</head>
+<body>
+<div class="page">
+  <a class="back" href="index.html">← Portfolio</a>
+  <h1>Portfolio — Test Suite</h1>
+  <div class="subtitle">// automated unit tests · open browser console for verbose output</div>
+
+  <div id="results"></div>
+
+  <div class="section-manual">
+    <h2>Manual / Integration Tests</h2>
+    <div class="manual-item">Adding a position saves it to localStorage under key <code>pf_positions</code></div>
+    <div class="manual-item">After page reload, previously added positions still appear in the table</div>
+    <div class="manual-item">Remove button deletes only that position, others remain</div>
+    <div class="manual-item">With a valid Finnhub key, clicking Refresh fetches live prices and updates the table</div>
+    <div class="manual-item">With no API key, all price/P&L columns show — instead of erroring</div>
+    <div class="manual-item">Invalid ticker symbol shows an error in the hint area, not a crash</div>
+    <div class="manual-item">401/403 from Finnhub shows "invalid key" message</div>
+    <div class="manual-item">Entering 0 or negative shares shows validation error</div>
+    <div class="manual-item">Entering 0 or negative average price shows validation error</div>
+    <div class="manual-item">Ticker input converts lowercase to uppercase automatically</div>
+    <div class="manual-item">Summary cards (Total Invested, Portfolio Value, P&L, Day Change) reflect sum of all positions</div>
+    <div class="manual-item">P&L % is green when positive, red when negative</div>
+    <div class="manual-item">Refresh timestamp updates each time the button is clicked</div>
+    <div class="manual-item">API key panel: entering and saving key shows truncated version (e.g. "abc1...xyz9")</div>
+    <div class="manual-item">Clear key button removes key from localStorage and resets live data to —</div>
+  </div>
+
+  <div id="summary"></div>
+</div>
+<script>
+// ── Runner ────────────────────────────────────────
+const results = [];
+let currentSuite = '';
+function suite(n) { currentSuite = n; }
+function test(name, fn) {
+  try { fn(); results.push({ suite: currentSuite, name, pass: true }); }
+  catch(e) { results.push({ suite: currentSuite, name, pass: false, detail: e.message }); }
+}
+function assert(c, m) { if (!c) throw new Error(m || 'assertion failed'); }
+function assertEqual(a, b) { if (a !== b) throw new Error(`expected ${JSON.stringify(b)}, got ${JSON.stringify(a)}`); }
+function assertClose(a, b, tol=0.001) { if (Math.abs(a-b)>tol) throw new Error(`expected ~${b}, got ${a}`); }
+
+// ── Logic mirrors from stockview/index.html ───────
+
+function fmtN(n, dec=2) {
+  if (n == null || isNaN(n)) return null;
+  return n.toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+}
+function dollar(n, dec=2) { const f = fmtN(n, dec); return f ? '$' + f : null; }
+function signed(n, dec=2, prefix='') {
+  if (n == null || isNaN(n)) return null;
+  const s = (n >= 0 ? '+' : '') + prefix + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+  return s;
+}
+function signedDollar(n, dec=2) { return signed(n, dec, '$'); }
+function pctStr(n, dec=2) {
+  if (n == null || isNaN(n)) return null;
+  return (n >= 0 ? '+' : '') + n.toFixed(dec) + '%';
+}
+function cls(n) { if (n == null || isNaN(n)) return ''; return n >= 0 ? 'td-up' : 'td-down'; }
+
+// P&L calculations
+function calcMktVal(currentPrice, shares) { return currentPrice * shares; }
+function calcCost(avgPrice, shares)       { return avgPrice * shares; }
+function calcPnlDollar(currentPrice, avgPrice, shares) { return (currentPrice - avgPrice) * shares; }
+function calcPnlPct(currentPrice, avgPrice) { return ((currentPrice - avgPrice) / avgPrice) * 100; }
+function calcDayTotal(dayChg, shares)     { return dayChg * shares; }
+function calcTotalInvested(positions)     { return positions.reduce((s, p) => s + p.avgPrice * p.shares, 0); }
+function calcTotalValue(positions, live)  {
+  return positions.reduce((s, p) => {
+    const q = live[p.symbol];
+    return s + (q ? q.c * p.shares : p.avgPrice * p.shares);
+  }, 0);
+}
+
+// localStorage helpers (pure, using a mock store)
+function makeStore() {
+  const store = {};
+  return {
+    getItem: k => store[k] ?? null,
+    setItem: (k,v) => { store[k] = v; },
+    removeItem: k => { delete store[k]; },
+  };
+}
+function getPositions(ls) {
+  try { return JSON.parse(ls.getItem('pf_positions') || '[]'); }
+  catch { return []; }
+}
+function savePositions(ls, arr) { ls.setItem('pf_positions', JSON.stringify(arr)); }
+
+// Position model validator
+function isValidPosition(p) {
+  return p && typeof p.id === 'string' && typeof p.symbol === 'string' &&
+         typeof p.shares === 'number' && p.shares > 0 &&
+         typeof p.avgPrice === 'number' && p.avgPrice > 0 &&
+         typeof p.addedAt === 'string';
+}
+
+// ── TESTS ─────────────────────────────────────────
+
+suite('P&L — Core Calculations');
+test('Market value = price × shares', () => assertClose(calcMktVal(150, 10), 1500));
+test('Cost basis = avgPrice × shares', () => assertClose(calcCost(100, 10), 1000));
+test('P&L dollar = (current - avg) × shares (gain)', () => assertClose(calcPnlDollar(150, 100, 10), 500));
+test('P&L dollar = (current - avg) × shares (loss)', () => assertClose(calcPnlDollar(80, 100, 10), -200));
+test('P&L % = (current - avg) / avg × 100 (gain)', () => assertClose(calcPnlPct(150, 100), 50));
+test('P&L % = (current - avg) / avg × 100 (loss)', () => assertClose(calcPnlPct(80, 100), -20));
+test('Day total = dayChg × shares', () => assertClose(calcDayTotal(1.5, 20), 30));
+test('Day total is negative when dayChg < 0', () => assertClose(calcDayTotal(-2.0, 10), -20));
+test('P&L = 0 when current = avgPrice', () => assertClose(calcPnlDollar(100, 100, 10), 0));
+test('P&L % = 0 when current = avgPrice', () => assertClose(calcPnlPct(100, 100), 0));
+
+suite('P&L — Portfolio Totals');
+test('Total invested sums cost basis of all positions', () => {
+  const pos = [
+    { symbol:'AAPL', shares:10, avgPrice:150 },
+    { symbol:'TSLA', shares:5,  avgPrice:200 },
+  ];
+  assertClose(calcTotalInvested(pos), 2500); // 1500 + 1000
+});
+test('Total invested with single position', () => {
+  assertClose(calcTotalInvested([{ symbol:'X', shares:3, avgPrice:100 }]), 300);
+});
+test('Total portfolio value uses live prices when available', () => {
+  const pos  = [{ symbol:'AAPL', shares:10, avgPrice:150 }];
+  const live = { 'AAPL': { c: 200, d: 1 } };
+  assertClose(calcTotalValue(pos, live), 2000);
+});
+test('Total value falls back to avgPrice when no live data', () => {
+  const pos  = [{ symbol:'AAPL', shares:10, avgPrice:150 }];
+  assertClose(calcTotalValue(pos, {}), 1500);
+});
+test('Total value mixes live and fallback correctly', () => {
+  const pos  = [
+    { symbol:'AAPL', shares:10, avgPrice:150 },
+    { symbol:'TSLA', shares:5,  avgPrice:200 },
+  ];
+  const live = { 'AAPL': { c:180, d:2 } }; // TSLA has no live data
+  assertClose(calcTotalValue(pos, live), 180*10 + 200*5); // 1800 + 1000
+});
+
+suite('Formatting — Display Strings');
+test('dollar formats positive number with $ prefix', () => assertEqual(dollar(1234.56), '$1,234.56'));
+test('dollar returns null for null input', () => assertEqual(dollar(null), null));
+test('dollar returns null for NaN', () => assertEqual(dollar(NaN), null));
+test('pctStr formats positive with + prefix', () => assertEqual(pctStr(5.25), '+5.25%'));
+test('pctStr formats negative with - prefix', () => assertEqual(pctStr(-3.5), '-3.50%'));
+test('pctStr returns null for null', () => assertEqual(pctStr(null), null));
+test('signedDollar formats gain', () => assertEqual(signedDollar(250), '+$250.00'));
+test('signedDollar formats loss', () => assertEqual(signedDollar(-100), '-$100.00'));
+test('cls returns td-up for positive', () => assertEqual(cls(1), 'td-up'));
+test('cls returns td-down for negative', () => assertEqual(cls(-1), 'td-down'));
+test('cls returns empty string for null', () => assertEqual(cls(null), ''));
+
+suite('localStorage — Position Persistence');
+test('getPositions returns [] on empty store', () => {
+  const ls = makeStore();
+  const p = getPositions(ls);
+  assertEqual(p.length, 0);
+});
+test('Saved positions round-trip through localStorage', () => {
+  const ls = makeStore();
+  const pos = [{ id:'1', symbol:'AAPL', shares:10, avgPrice:150, addedAt:'2025-01-01' }];
+  savePositions(ls, pos);
+  const loaded = getPositions(ls);
+  assertEqual(loaded.length, 1);
+  assertEqual(loaded[0].symbol, 'AAPL');
+  assertClose(loaded[0].shares, 10);
+});
+test('getPositions handles corrupt JSON gracefully', () => {
+  const ls = makeStore();
+  ls.setItem('pf_positions', '{bad}');
+  const p = getPositions(ls);
+  assertEqual(p.length, 0);
+});
+test('savePositions overwrites previous data', () => {
+  const ls = makeStore();
+  savePositions(ls, [{ id:'1', symbol:'AAPL', shares:5, avgPrice:100, addedAt:'x' }]);
+  savePositions(ls, [{ id:'2', symbol:'TSLA', shares:3, avgPrice:200, addedAt:'x' }]);
+  const p = getPositions(ls);
+  assertEqual(p.length, 1);
+  assertEqual(p[0].symbol, 'TSLA');
+});
+test('Removing a position by id filters correctly', () => {
+  const ls = makeStore();
+  const pos = [
+    { id:'1', symbol:'AAPL', shares:5,  avgPrice:100, addedAt:'x' },
+    { id:'2', symbol:'TSLA', shares:10, avgPrice:200, addedAt:'x' },
+  ];
+  savePositions(ls, pos);
+  const updated = getPositions(ls).filter(p => p.id !== '1');
+  savePositions(ls, updated);
+  const final = getPositions(ls);
+  assertEqual(final.length, 1);
+  assertEqual(final[0].symbol, 'TSLA');
+});
+
+suite('Position Model — Validation');
+test('Valid position passes model check', () => {
+  const p = { id:'123', symbol:'AAPL', shares:10, avgPrice:150, addedAt:'2025-01-01' };
+  assert(isValidPosition(p));
+});
+test('Position with 0 shares is invalid', () => {
+  const p = { id:'1', symbol:'AAPL', shares:0, avgPrice:150, addedAt:'x' };
+  assert(!isValidPosition(p));
+});
+test('Position with negative avgPrice is invalid', () => {
+  const p = { id:'1', symbol:'AAPL', shares:5, avgPrice:-10, addedAt:'x' };
+  assert(!isValidPosition(p));
+});
+test('Position with no symbol is invalid', () => {
+  assert(!isValidPosition({ id:'1', shares:5, avgPrice:100, addedAt:'x' }));
+});
+
+// ── Render ─────────────────────────────────────────
+function render() {
+  const container = document.getElementById('results');
+  const suites = [...new Set(results.map(r => r.suite))];
+  suites.forEach(s => {
+    const rows = results.filter(r => r.suite === s);
+    const div = document.createElement('div'); div.className = 'suite';
+    div.innerHTML = `<div class="suite-title">${s}</div>`;
+    rows.forEach(r => {
+      const row = document.createElement('div'); row.className = 'test-row';
+      row.innerHTML = `<span class="badge ${r.pass?'pass':'fail'}">${r.pass?'PASS':'FAIL'}</span>
+        <div><div class="test-name">${r.name}</div>${!r.pass?`<div class="test-detail">↳ ${r.detail}</div>`:''}</div>`;
+      div.appendChild(row);
+    });
+    container.appendChild(div);
+  });
+  const pass = results.filter(r=>r.pass).length, fail = results.filter(r=>!r.pass).length;
+  document.getElementById('summary').innerHTML = `<div class="summary">
+    <div><div class="sum-label">Passed</div><div class="sum-val green">${pass}</div></div>
+    <div><div class="sum-label">Failed</div><div class="sum-val ${fail>0?'red':'green'}">${fail}</div></div>
+    <div><div class="sum-label">Total</div><div class="sum-val gray">${pass+fail}</div></div>
+  </div>`;
+}
+render();
+</script>
+</body>
+</html>

@@ -19,6 +19,17 @@ audiosend/
   hero-illustration.html
 positwebsite/
   index.html            ← "My Little Board" interactive sticky-note app
+  tests.html            ← Test suite
+filekit/
+  index.html            ← Filekit PDF tools
+  tests.html            ← Test suite
+stockview/
+  index.html            ← Portfolio tracker
+  tests.html            ← Test suite
+noteread/
+  index.html            ← NoteRead music sight-reading trainer
+  tests.html            ← Test suite
+  context.md            ← NoteRead-specific context and spec
 context.md              ← This file
 prompts/base_prompt.md
 ```
@@ -134,6 +145,18 @@ Dark teal terminal / retro OS interface. Looks like a CRT monitor or old-school 
 
 ---
 
+### NoteRead
+- **Location**: `noteread/index.html`
+- **Status**: Live
+- **Category**: music · sight-reading trainer
+- **Description**: Music note recognition speed trainer. A random note appears on a treble clef staff; the user clicks (or presses 1–7) the correct Spanish note name (Do, Re, Mi, Fa, Sol, La, Si) as fast as possible. Tracks correct answers, errors, current streak, and average response time. Press R to reset stats.
+- **Note range**: C4 (Middle C, ledger line below staff) through G5 (space above staff) — 12 positions, 7px vertical step.
+- **Aesthetic** (internal): Dark indigo/purple theme. Background `#0f0e17`, accent `#818cf8` (indigo), secondary `#c4b5fd` (violet). Same structural DNA as main site but with a purple palette. Completely distinct from all other apps.
+- **Keyboard shortcuts**: 1=Do, 2=Re, 3=Mi, 4=Fa, 5=Sol, 6=La, 7=Si, R=Reset
+- **Note rendering**: SVG whole note — outer white ellipse rotated -20°, inner black ellipse rotated -15° (open note head appearance). Ledger line drawn for Middle C.
+
+---
+
 ## Writing / Voice Style
 - Lowercase descriptive lines under brand (`// projects by lucas ruiz`)
 - Section labels prefixed with `++` in monospace
@@ -150,6 +173,65 @@ Dark teal terminal / retro OS interface. Looks like a CRT monitor or old-school 
 3. Nav bar: add `<a href="path" class="nav-lnk">Label</a>` if it warrants top-level navigation
 4. Ticker: add a description blurb to `.ticker-inner`
 5. If replacing the "Next Project" placeholder card, remove the `.soon` div
+6. **Create `appname/tests.html`** — MANDATORY (see Testing Standard below)
+7. Update this `context.md` with the new app's section
+
+---
+
+## Testing Standard — MANDATORY FOR EVERY APP
+
+Every application in this repo MUST have a `tests.html` file in its folder.
+
+### Format
+- Self-contained HTML file — no build tools, no external test framework
+- Matches the aesthetic of the app it tests (same color palette, monospace font, dark background)
+- Has a `← AppName` back link to `index.html`
+
+### Structure
+```
+tests.html
+├── Automated unit tests  (vanilla JS, run on page load, show PASS / FAIL badges)
+└── Manual / visual checklist  (things that require human eyes or browser interaction)
+```
+
+### Test Runner Pattern (copy this boilerplate)
+```javascript
+const results = [];
+let currentSuite = '';
+function suite(n) { currentSuite = n; }
+function test(name, fn) {
+  try { fn(); results.push({ suite: currentSuite, name, pass: true }); }
+  catch(e) { results.push({ suite: currentSuite, name, pass: false, detail: e.message }); }
+}
+function assert(c, m) { if (!c) throw new Error(m || 'assertion failed'); }
+function assertEqual(a, b) { if (a !== b) throw new Error(`expected ${JSON.stringify(b)}, got ${JSON.stringify(a)}`); }
+function assertClose(a, b, tol=0.001) { if (Math.abs(a-b)>tol) throw new Error(`expected ~${b}, got ${a}`); }
+```
+
+### What to test (unit tests)
+- **Pure logic functions**: calculations, formatters, validators, data transforms
+- **localStorage**: round-trip persistence, corrupt-JSON graceful fallback, key names
+- **State machines**: any enable/disable/toggle logic (e.g. canMerge, canSubmit)
+- **Data models**: shape validation, required fields
+- **Keyboard maps / constants**: every defined mapping
+
+### What to put in the manual checklist
+- Visual/aesthetic correctness (colors, fonts, layout)
+- Browser API interactions (drag, drop, audio, canvas, file download)
+- CDN-dependent features (pdf-lib, chart.js, etc.)
+- Responsive breakpoints
+- Error states that require real API calls or file input
+
+### Naming convention for logic mirrors
+Since all app logic is inline in `index.html`, re-declare the pure functions inside `tests.html` so they can be tested without loading the full app. Label them with `// mirrors index.html`.
+
+### Existing test files
+| App | File | Suites |
+|---|---|---|
+| NoteRead | `noteread/tests.html` | Note Pool, Accidentals, Stats, Settings, Keyboard, Weakness Tracking, Answer Logic |
+| Portfolio | `stockview/tests.html` | P&L Calculations, Portfolio Totals, Formatting, localStorage, Position Model |
+| Filekit | `filekit/tests.html` | File Validation, Merge State Machine, Output Filename, UI Helpers |
+| My Little Board | `positwebsite/tests.html` | Note Creation, Color, Rotation, Position Clamping, Tasks CRUD, Persistence |
 
 ---
 

@@ -1,0 +1,1214 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NoteRead — Lectura Musical · Lukeda</title>
+  <style>
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: Verdana, Tahoma, Arial, sans-serif;
+    font-size: 11px;
+    background-color: #08070f;
+    background-image:
+      radial-gradient(ellipse 80% 40% at 50% 0%, rgba(129,140,248,0.08) 0%, transparent 60%),
+      repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(255,255,255,0.007) 3px, rgba(255,255,255,0.007) 4px),
+      linear-gradient(180deg, #0d0b18 0%, #08070f 50%, #050408 100%);
+    background-attachment: fixed;
+    min-height: 100vh;
+    padding: 22px 16px 48px;
+    display: flex; flex-direction: column; align-items: center;
+    color: #ffffff;
+  }
+
+  .page { width: 100%; max-width: 760px; }
+
+  /* ─ SYSBAR ─ */
+  .sysbar {
+    display: flex; align-items: center; justify-content: space-between;
+    background: linear-gradient(180deg, #000000 0%, #080710 100%);
+    border: 1px solid rgba(129,140,248,0.18);
+    border-bottom: 1px solid rgba(129,140,248,0.10);
+    padding: 5px 12px;
+    font-size: 9px; font-family: 'Courier New', monospace; letter-spacing: 0.06em;
+  }
+  .sysbar-left  { color: #888888; font-weight: bold; text-transform: uppercase; }
+  .sysbar-right { display: flex; gap: 16px; align-items: center; color: #555555; text-transform: uppercase; }
+  .online-badge { display: flex; align-items: center; gap: 4px; color: #aaaaaa; }
+  .led {
+    display: inline-block; width: 5px; height: 5px; border-radius: 50%;
+    background: radial-gradient(circle at 38% 32%, #c4b5fd, #818cf8);
+    box-shadow: 0 0 7px rgba(129,140,248,0.9);
+    animation: ledPulse 2.2s ease-in-out infinite;
+  }
+  @keyframes ledPulse {
+    0%,100% { box-shadow: 0 0 7px rgba(129,140,248,0.9); opacity: 1; }
+    50%      { box-shadow: 0 0 2px rgba(129,140,248,0.2); opacity: 0.4; }
+  }
+
+  /* ─ HEADER ─ */
+  .header-panel {
+    background: linear-gradient(180deg, #0c0b18 0%, #090810 100%);
+    border: 1px solid rgba(129,140,248,0.18); border-top: none;
+    border-bottom: 2px solid rgba(129,140,248,0.10);
+    padding: 28px 28px 22px; position: relative; overflow: hidden; margin-top: -1px;
+  }
+  .header-panel::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(167,139,250,0.55), transparent);
+  }
+  .brand {
+    font-family: 'Trebuchet MS', Impact, Arial, sans-serif;
+    font-size: clamp(26px, 5.5vw, 42px); font-weight: bold; color: #ffffff;
+    text-transform: uppercase; letter-spacing: 0.05em; line-height: 1; margin-bottom: 5px;
+    text-shadow: 0 0 40px rgba(167,139,250,0.35), 0 2px 8px rgba(0,0,0,0.9);
+  }
+  .brand-ver {
+    font-family: 'Courier New', monospace; font-size: 9px; color: #7878aa;
+    letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 12px;
+  }
+  .brand-tagline { font-size: 11px; color: #aaaacc; line-height: 1.75; }
+  .brand-tagline strong { color: #c4b5fd; }
+
+  /* ─ NAVBAR ─ */
+  .navbar {
+    display: flex; align-items: stretch;
+    background: linear-gradient(180deg, #090810 0%, #070610 100%);
+    border: 1px solid rgba(129,140,248,0.18); border-top: none; margin-top: -1px;
+    overflow: hidden;
+  }
+  .nav-prefix {
+    padding: 0 12px; font-family: 'Courier New', monospace; font-size: 9px;
+    font-weight: bold; color: #6060a0; border-right: 1px solid rgba(129,140,248,0.12);
+    display: flex; align-items: center; background: rgba(0,0,0,0.4); white-space: nowrap;
+  }
+  .nav-items { display: flex; flex-wrap: wrap; flex: 1; }
+  .nav-lnk {
+    display: flex; align-items: center; padding: 9px 14px;
+    font-size: 9px; font-family: Verdana, Tahoma, sans-serif; font-weight: bold;
+    color: #8888bb; text-decoration: none; text-transform: uppercase;
+    letter-spacing: 0.08em; border-right: 1px solid rgba(129,140,248,0.08);
+    position: relative; transition: background 0.1s, color 0.1s;
+  }
+  .nav-lnk:hover  { background: rgba(129,140,248,0.06); color: #a5b4fc; }
+  .nav-lnk.active { color: #c4b5fd; background: rgba(129,140,248,0.06); }
+  .nav-lnk.active::after {
+    content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(167,139,250,0.7) 40%, transparent);
+  }
+
+  /* ─ PANELS ─ */
+  .panel {
+    border: 1px solid rgba(129,140,248,0.14); border-top: none;
+    background: #0a091a; margin-top: -1px;
+  }
+  .panel-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 14px;
+    background: rgba(0,0,0,0.5); border-bottom: 1px solid rgba(129,140,248,0.10);
+    font-size: 8px; font-family: 'Courier New', monospace; font-weight: bold;
+    color: #8888bb; text-transform: uppercase; letter-spacing: 0.14em;
+    cursor: pointer; user-select: none;
+    transition: background 0.1s;
+  }
+  .panel-head:hover { background: rgba(129,140,248,0.05); }
+  .panel-head-l::before { content: '++ '; color: #6060a0; }
+  .panel-toggle { color: #6666aa; font-size: 10px; transition: transform 0.2s; }
+  .panel-toggle.open { transform: rotate(180deg); }
+
+  /* ─ SETTINGS BODY ─ */
+  .settings-body {
+    padding: 16px 20px;
+    display: none;
+    border-bottom: 1px solid rgba(129,140,248,0.08);
+  }
+  .settings-body.open { display: block; }
+  .settings-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px 24px;
+  }
+  .setting-row { display: flex; flex-direction: column; gap: 7px; }
+  .setting-label {
+    font-family: 'Courier New', monospace; font-size: 8px; color: #9090bb;
+    text-transform: uppercase; letter-spacing: 0.10em;
+  }
+  .pill-group { display: flex; gap: 5px; flex-wrap: wrap; }
+  .pill {
+    padding: 4px 11px;
+    background: rgba(0,0,0,0.5);
+    border: 1px solid rgba(129,140,248,0.18);
+    color: #8888bb;
+    font-family: 'Courier New', monospace; font-size: 9px; letter-spacing: 0.06em;
+    cursor: pointer; transition: all 0.1s;
+    user-select: none;
+  }
+  .pill:hover { border-color: rgba(167,139,250,0.4); color: #a5b4fc; }
+  .pill.active {
+    background: rgba(129,140,248,0.14);
+    border-color: rgba(167,139,250,0.6);
+    color: #c4b5fd;
+  }
+
+  /* ─ STAT BAR ─ */
+  .stat-bar {
+    display: flex; align-items: stretch;
+    background: rgba(0,0,0,0.5); border-bottom: 1px solid rgba(129,140,248,0.10);
+  }
+  .stat-item {
+    flex: 1; padding: 10px 8px; border-right: 1px solid rgba(129,140,248,0.07);
+    text-align: center; min-width: 0;
+  }
+  .stat-item:last-child { border-right: none; }
+  .stat-label {
+    font-family: 'Courier New', monospace; font-size: 7px; color: #7878aa;
+    text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px;
+    white-space: nowrap;
+  }
+  .stat-value {
+    font-family: 'Courier New', monospace; font-size: 15px; font-weight: bold;
+    color: #ffffff; line-height: 1; letter-spacing: 0.02em;
+  }
+  .stat-value.accent  { color: #c4b5fd; }
+  .stat-value.correct { color: #4ade80; }
+  .stat-value.wrong   { color: #f87171; }
+  .stat-value.gold    { color: #fbbf24; }
+  .stat-actions {
+    display: flex; flex-direction: column; justify-content: center;
+    gap: 4px; padding: 8px 10px; border-left: 1px solid rgba(129,140,248,0.07);
+  }
+  .icon-btn {
+    background: none; border: 1px solid rgba(129,140,248,0.18); color: #8888bb;
+    font-family: 'Courier New', monospace; font-size: 8px; letter-spacing: 0.05em;
+    padding: 3px 8px; cursor: pointer; transition: all 0.1s; white-space: nowrap;
+  }
+  .icon-btn:hover { border-color: rgba(167,139,250,0.5); color: #c4b5fd; }
+
+  /* ─ TIMER BAR ─ */
+  .timer-wrap {
+    background: rgba(0,0,0,0.6);
+    border-bottom: 1px solid rgba(129,140,248,0.10);
+    padding: 0;
+    display: none;
+    position: relative;
+    height: 28px;
+    overflow: hidden;
+  }
+  .timer-wrap.visible { display: block; }
+  .timer-track {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(129,140,248,0.08);
+  }
+  .timer-fill {
+    height: 100%;
+    background: linear-gradient(90deg, rgba(129,140,248,0.35), rgba(196,181,253,0.5));
+    transition: width 1s linear;
+    width: 100%;
+  }
+  .timer-fill.urgent { background: linear-gradient(90deg, rgba(248,113,113,0.4), rgba(248,113,113,0.6)); }
+  .timer-label {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    font-family: 'Courier New', monospace; font-size: 10px; font-weight: bold;
+    color: #aaaacc; letter-spacing: 0.12em; pointer-events: none;
+  }
+
+  /* ─ STAFF AREA ─ */
+  .staff-panel {
+    background: #000000;
+    border-bottom: 1px solid rgba(129,140,248,0.10);
+    padding: 8px 0;
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+    min-height: 165px;
+  }
+  .staff-svg { width: 100%; max-height: 165px; display: block; user-select: none; }
+
+  /* ─ NOTE LABEL (learning mode) ─ */
+  #noteLabelEl {
+    position: absolute;
+    bottom: 12px; right: 18px;
+    font-family: 'Courier New', monospace;
+    font-size: 22px; font-weight: bold;
+    color: rgba(196,181,253,0.9);
+    letter-spacing: 0.04em;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  #noteLabelEl.show { opacity: 1; }
+
+  /* ─ FEEDBACK BAR ─ */
+  .feedback-bar { height: 3px; opacity: 0; transition: opacity 0.15s; background: #4ade80; }
+  .feedback-bar.show-correct { opacity: 1; background: #4ade80; }
+  .feedback-bar.show-wrong   { opacity: 1; background: #f87171; }
+  .feedback-bar.show-info    { opacity: 1; background: #818cf8; }
+
+  /* ─ NOTE BUTTONS ─ */
+  .note-buttons {
+    display: flex; gap: 6px; padding: 18px 18px 14px; flex-wrap: wrap;
+  }
+  .note-btn {
+    flex: 1; min-width: 52px;
+    background: #0e0d1e;
+    border: 1px solid rgba(129,140,248,0.22);
+    color: #ffffff;
+    font-family: 'Courier New', monospace;
+    font-size: 14px; font-weight: bold; letter-spacing: 0.04em;
+    padding: 15px 6px;
+    cursor: pointer;
+    transition: background 0.08s, border-color 0.08s, color 0.08s;
+    text-align: center;
+    display: flex; flex-direction: column; align-items: center; gap: 5px;
+  }
+  .note-btn:hover { background: rgba(129,140,248,0.10); border-color: rgba(167,139,250,0.45); }
+  .note-btn:active { background: rgba(129,140,248,0.18); }
+  .note-btn .kbd { font-size: 8px; color: #6666aa; font-weight: normal; letter-spacing: 0.05em; }
+  .note-btn.flash-correct {
+    background: rgba(74,222,128,0.16) !important;
+    border-color: #4ade80 !important; color: #4ade80 !important;
+  }
+  .note-btn.flash-wrong {
+    background: rgba(248,113,113,0.14) !important;
+    border-color: #f87171 !important; color: #f87171 !important;
+  }
+  .note-btn.flash-reveal {
+    background: rgba(74,222,128,0.08) !important;
+    border-color: rgba(74,222,128,0.4) !important; color: rgba(74,222,128,0.7) !important;
+  }
+
+  /* ─ HINT AREA ─ */
+  .hint-area {
+    padding: 6px 18px 14px;
+    font-family: 'Courier New', monospace; font-size: 9px; color: #8888cc;
+    letter-spacing: 0.05em; text-align: center; min-height: 28px;
+  }
+
+  /* ─ SCORE OVERLAY (timer end) ─ */
+  .score-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.88);
+    display: none; align-items: center; justify-content: center;
+    z-index: 100;
+    backdrop-filter: blur(4px);
+  }
+  .score-overlay.show { display: flex; }
+  .score-card {
+    background: #0c0b1e;
+    border: 1px solid rgba(167,139,250,0.3);
+    padding: 40px 48px;
+    text-align: center;
+    max-width: 360px; width: 90%;
+    position: relative;
+  }
+  .score-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(167,139,250,0.6), transparent);
+  }
+  .score-title {
+    font-family: 'Courier New', monospace; font-size: 9px; color: #9999bb;
+    text-transform: uppercase; letter-spacing: 0.18em; margin-bottom: 24px;
+  }
+  .score-big {
+    font-family: 'Trebuchet MS', Arial, sans-serif; font-size: 64px; font-weight: bold;
+    color: #ffffff; line-height: 1;
+    text-shadow: 0 0 40px rgba(196,181,253,0.4);
+    margin-bottom: 6px;
+  }
+  .score-sub { font-family: 'Courier New', monospace; font-size: 10px; color: #9999bb; margin-bottom: 28px; }
+  .score-detail {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px 24px;
+    margin-bottom: 28px;
+  }
+  .score-stat { text-align: left; }
+  .score-stat-label { font-family: 'Courier New', monospace; font-size: 8px; color: #7878aa; text-transform: uppercase; letter-spacing: 0.1em; }
+  .score-stat-val { font-family: 'Courier New', monospace; font-size: 14px; color: #c4b5fd; font-weight: bold; }
+  .score-new-best {
+    font-family: 'Courier New', monospace; font-size: 9px; color: #fbbf24;
+    letter-spacing: 0.12em; margin-bottom: 16px; display: none;
+  }
+  .score-new-best.show { display: block; }
+  .score-restart {
+    width: 100%; padding: 11px;
+    background: rgba(129,140,248,0.12);
+    border: 1px solid rgba(167,139,250,0.4);
+    color: #c4b5fd;
+    font-family: 'Courier New', monospace; font-size: 10px; letter-spacing: 0.10em;
+    cursor: pointer; transition: all 0.1s;
+  }
+  .score-restart:hover { background: rgba(129,140,248,0.22); }
+
+  /* ─ TICKER ─ */
+  .ticker-bar {
+    border: 1px solid rgba(129,140,248,0.10); border-top: none;
+    margin-top: -1px; background: #000000;
+    padding: 5px 0; overflow: hidden; white-space: nowrap;
+  }
+  .ticker-inner {
+    display: inline-block; font-family: 'Courier New', monospace;
+    font-size: 9px; color: #222240; letter-spacing: 0.04em;
+    animation: tickerScroll 55s linear infinite;
+  }
+  @keyframes tickerScroll { 0% { transform: translateX(100vw); } 100% { transform: translateX(-100%); } }
+
+  /* ─ FOOTER ─ */
+  .footbar {
+    border: 1px solid rgba(129,140,248,0.10); border-top: 1px solid rgba(129,140,248,0.06);
+    margin-top: -1px; background: #000000;
+    padding: 7px 14px; display: flex; align-items: center; justify-content: space-between;
+    font-family: 'Courier New', monospace; font-size: 9px;
+    color: #555577; text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  .foot-left { display: flex; align-items: center; gap: 8px; }
+
+  /* ─ RESPONSIVE ─ */
+  @media (max-width: 560px) {
+    body { padding: 10px 10px 32px; background-attachment: scroll; }
+    .header-panel { padding: 18px 16px; }
+    .brand { font-size: 24px; }
+    .note-btn { font-size: 12px; padding: 13px 2px; }
+    .note-btn .kbd { display: none; }
+    .stat-value { font-size: 13px; }
+    .settings-grid { grid-template-columns: 1fr; }
+    .score-big { font-size: 48px; }
+    .score-card { padding: 28px 24px; }
+  }
+
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Sysbar -->
+  <div class="sysbar">
+    <span class="sysbar-left">++ NoteRead // Lectura Musical by Lukeda</span>
+    <div class="sysbar-right">
+      <span>lukeda.me</span>
+      <span class="online-badge"><span class="led"></span> Online</span>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <div class="header-panel">
+    <div class="brand">NoteRead</div>
+    <div class="brand-ver">// lectura musical · lukeda.me</div>
+    <div class="brand-tagline">
+      Aparece una nota en el pentagrama — di cómo se llama lo más rápido posible.
+      Entrena tu lectura hasta que sea <strong>automática</strong>.
+    </div>
+  </div>
+
+  <!-- Nav -->
+  <div class="navbar">
+    <span class="nav-prefix">++ nav ::</span>
+    <div class="nav-items">
+      <a href="../index.html" class="nav-lnk">← Lukeda</a>
+      <a href="index.html"   class="nav-lnk active">NoteRead</a>
+    </div>
+  </div>
+
+  <!-- Settings panel -->
+  <div class="panel" id="settingsPanel">
+    <div class="panel-head" onclick="toggleSettings()">
+      <span class="panel-head-l">Configuración</span>
+      <span class="panel-toggle" id="settingsToggle">▼</span>
+    </div>
+    <div class="settings-body" id="settingsBody">
+      <div class="settings-grid">
+
+        <div class="setting-row">
+          <div class="setting-label">Clave</div>
+          <div class="pill-group" id="clefPills">
+            <div class="pill active" data-val="treble" onclick="setSetting('clef','treble',this)">𝄞 Sol</div>
+            <div class="pill"        data-val="bass"   onclick="setSetting('clef','bass',this)">𝄢 Fa</div>
+          </div>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-label">Alteraciones</div>
+          <div class="pill-group" id="accPills">
+            <div class="pill active" data-val="none"  onclick="setSetting('accidentals','none',this)">Ninguna</div>
+            <div class="pill"        data-val="sharp" onclick="setSetting('accidentals','sharp',this)">♯ Sostenido</div>
+            <div class="pill"        data-val="flat"  onclick="setSetting('accidentals','flat',this)">♭ Bemol</div>
+            <div class="pill"        data-val="both"  onclick="setSetting('accidentals','both',this)">♯♭ Ambas</div>
+          </div>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-label">Dificultad</div>
+          <div class="pill-group" id="diffPills">
+            <div class="pill"        data-val="easy"   onclick="setSetting('difficulty','easy',this)">Fácil</div>
+            <div class="pill active" data-val="medium" onclick="setSetting('difficulty','medium',this)">Medio</div>
+            <div class="pill"        data-val="hard"   onclick="setSetting('difficulty','hard',this)">Difícil</div>
+          </div>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-label">Modo de juego</div>
+          <div class="pill-group" id="modePills">
+            <div class="pill active" data-val="free"  onclick="setSetting('mode','free',this)">Libre</div>
+            <div class="pill"        data-val="timer" onclick="setSetting('mode','timer',this)">⏱ 60s</div>
+          </div>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-label">Sonido</div>
+          <div class="pill-group" id="soundPills">
+            <div class="pill"        data-val="on"  onclick="setSetting('sound','on',this)">ON</div>
+            <div class="pill active" data-val="off" onclick="setSetting('sound','off',this)">OFF</div>
+          </div>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-label">Modo aprendizaje</div>
+          <div class="pill-group" id="learnPills">
+            <div class="pill"        data-val="on"  onclick="setSetting('learning','on',this)">ON</div>
+            <div class="pill active" data-val="off" onclick="setSetting('learning','off',this)">OFF</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Game panel -->
+  <div class="panel" id="gamePanel">
+
+    <!-- Stat bar -->
+    <div class="stat-bar">
+      <div class="stat-item">
+        <div class="stat-label">Correctas</div>
+        <div class="stat-value correct" id="statCorrect">0</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">Errores</div>
+        <div class="stat-value wrong" id="statWrong">0</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">Racha</div>
+        <div class="stat-value accent" id="statStreak">0</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">Precisión</div>
+        <div class="stat-value" id="statAccuracy">—</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">T. prom.</div>
+        <div class="stat-value" id="statAvg">—</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">Mejor racha</div>
+        <div class="stat-value gold" id="statBest">0</div>
+      </div>
+      <div class="stat-actions">
+        <button class="icon-btn" onclick="resetGame()">↺ Reset</button>
+        <button class="icon-btn" id="soundBtn" onclick="toggleSound()">♪ OFF</button>
+      </div>
+    </div>
+
+    <!-- Timer bar -->
+    <div class="timer-wrap" id="timerWrap">
+      <div class="timer-track">
+        <div class="timer-fill" id="timerFill"></div>
+      </div>
+      <div class="timer-label" id="timerLabel">60s</div>
+    </div>
+
+    <!-- Staff -->
+    <div class="staff-panel">
+      <svg id="staffSvg" class="staff-svg" viewBox="0 0 500 148" preserveAspectRatio="xMidYMid meet">
+        <rect width="500" height="148" fill="#000000"/>
+
+        <!-- Staff lines -->
+        <line x1="92" y1="40" x2="470" y2="40" stroke="#cccccc" stroke-width="1.5"/>
+        <line x1="92" y1="54" x2="470" y2="54" stroke="#cccccc" stroke-width="1.5"/>
+        <line x1="92" y1="68" x2="470" y2="68" stroke="#cccccc" stroke-width="1.5"/>
+        <line x1="92" y1="82" x2="470" y2="82" stroke="#cccccc" stroke-width="1.5"/>
+        <line x1="92" y1="96" x2="470" y2="96" stroke="#cccccc" stroke-width="1.5"/>
+
+        <!-- Clef (injected by JS) -->
+        <g id="clefGroup"></g>
+
+        <!-- Note (injected by JS) -->
+        <g id="noteGroup"></g>
+      </svg>
+      <div id="noteLabelEl"></div>
+    </div>
+
+    <!-- Feedback bar -->
+    <div class="feedback-bar" id="feedbackBar"></div>
+
+    <!-- Answer buttons — rendered dynamically by JS -->
+    <div class="note-buttons" id="noteButtons"></div>
+
+    <div class="hint-area" id="hintArea">// pulsa una tecla · 1–7 = Do a Si · R = reset · S = sonido</div>
+
+  </div>
+
+  <!-- Score overlay (timer mode end) -->
+  <div class="score-overlay" id="scoreOverlay">
+    <div class="score-card">
+      <div class="score-title">// sesión completada — 60 segundos</div>
+      <div class="score-big" id="scoreBig">0</div>
+      <div class="score-sub">notas correctas</div>
+      <div class="score-new-best" id="scoreNewBest">★ NUEVA MEJOR RACHA ★</div>
+      <div class="score-detail">
+        <div class="score-stat">
+          <div class="score-stat-label">Errores</div>
+          <div class="score-stat-val" id="scoreWrong">—</div>
+        </div>
+        <div class="score-stat">
+          <div class="score-stat-label">Precisión</div>
+          <div class="score-stat-val" id="scoreAcc">—</div>
+        </div>
+        <div class="score-stat">
+          <div class="score-stat-label">Mejor racha</div>
+          <div class="score-stat-val" id="scoreStreak">—</div>
+        </div>
+        <div class="score-stat">
+          <div class="score-stat-label">T. promedio</div>
+          <div class="score-stat-val" id="scoreAvg">—</div>
+        </div>
+      </div>
+      <button class="score-restart" onclick="restartTimer()">↺ JUGAR DE NUEVO</button>
+    </div>
+  </div>
+
+  <!-- Ticker -->
+  <div class="ticker-bar">
+    <span class="ticker-inner">
+      ···· NOTEREAD ···· Clave de Sol · Clave de Fa ···· Sostenidos ♯ · Bemoles ♭ ···· Modo Libre · Contrarreloj 60s ···· Do · Re · Mi · Fa · Sol · La · Si ···· Cuanto más rápido respondas, mejor ···· NoteRead es un proyecto gratuito de Lukeda ···· lukeda.me ····
+    </span>
+  </div>
+
+  <!-- Footer -->
+  <div class="footbar">
+    <div class="foot-left"><span class="led"></span><span>NoteRead // Lukeda</span></div>
+    <span>© 2025 &nbsp;·&nbsp; lukeda.me &nbsp;·&nbsp; Free forever</span>
+  </div>
+
+</div>
+
+<script>
+// ══════════════════════════════════════════════════
+//  NOTE DEFINITIONS
+// ══════════════════════════════════════════════════
+
+const TREBLE_ALL = [
+  { name:'Do',  y:110, pitch:'C4', freq:261.63, ledger:'below' },
+  { name:'Re',  y:103, pitch:'D4', freq:293.66 },
+  { name:'Mi',  y:96,  pitch:'E4', freq:329.63 },
+  { name:'Fa',  y:89,  pitch:'F4', freq:349.23 },
+  { name:'Sol', y:82,  pitch:'G4', freq:392.00 },
+  { name:'La',  y:75,  pitch:'A4', freq:440.00 },
+  { name:'Si',  y:68,  pitch:'B4', freq:493.88 },
+  { name:'Do',  y:61,  pitch:'C5', freq:523.25 },
+  { name:'Re',  y:54,  pitch:'D5', freq:587.33 },
+  { name:'Mi',  y:47,  pitch:'E5', freq:659.25 },
+  { name:'Fa',  y:40,  pitch:'F5', freq:698.46 },
+  { name:'Sol', y:33,  pitch:'G5', freq:783.99 },
+];
+// Fácil: notes on or in staff, no ledger lines
+const TREBLE_EASY = TREBLE_ALL.filter(n => n.y >= 40 && n.y <= 96);
+
+const BASS_ALL = [
+  { name:'Sol', y:96,  pitch:'G2', freq:98.00  },
+  { name:'La',  y:89,  pitch:'A2', freq:110.00 },
+  { name:'Si',  y:82,  pitch:'B2', freq:123.47 },
+  { name:'Do',  y:75,  pitch:'C3', freq:130.81 },
+  { name:'Re',  y:68,  pitch:'D3', freq:146.83 },
+  { name:'Mi',  y:61,  pitch:'E3', freq:164.81 },
+  { name:'Fa',  y:54,  pitch:'F3', freq:174.61 },
+  { name:'Sol', y:47,  pitch:'G3', freq:196.00 },
+  { name:'La',  y:40,  pitch:'A3', freq:220.00 },
+  { name:'Si',  y:33,  pitch:'B3', freq:246.94 },
+  { name:'Do',  y:26,  pitch:'C4', freq:261.63, ledger:'above' },
+];
+const BASS_EASY = BASS_ALL.filter(n => n.y >= 40 && n.y <= 96);
+
+// ══════════════════════════════════════════════════
+//  SETTINGS
+// ══════════════════════════════════════════════════
+
+const DEFAULT_SETTINGS = {
+  clef: 'treble', accidentals: 'none', difficulty: 'medium',
+  mode: 'free', sound: 'off', learning: 'off'
+};
+let settings = loadSettings();
+
+function loadSettings() {
+  try { return { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem('nr_settings') || '{}') }; }
+  catch { return { ...DEFAULT_SETTINGS }; }
+}
+function saveSettings() {
+  localStorage.setItem('nr_settings', JSON.stringify(settings));
+}
+
+function setSetting(key, val, el) {
+  settings[key] = val;
+  saveSettings();
+  // update pill UI
+  const group = el.closest('.pill-group');
+  group.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  // react to change
+  if (key === 'clef' || key === 'difficulty') {
+    applyNotePool();
+    resetGame();
+  }
+  if (key === 'mode') {
+    resetGame();
+  }
+  if (key === 'sound') {
+    updateSoundBtn();
+  }
+}
+
+function applySettingsUI() {
+  const apply = (groupId, val) => {
+    const g = document.getElementById(groupId);
+    if (!g) return;
+    g.querySelectorAll('.pill').forEach(p => {
+      p.classList.toggle('active', p.dataset.val === val);
+    });
+  };
+  apply('clefPills',   settings.clef);
+  apply('accPills',    settings.accidentals);
+  apply('diffPills',   settings.difficulty);
+  apply('modePills',   settings.mode);
+  apply('soundPills',  settings.sound);
+  apply('learnPills',  settings.learning);
+  updateSoundBtn();
+}
+
+function toggleSettings() {
+  const body    = document.getElementById('settingsBody');
+  const toggle  = document.getElementById('settingsToggle');
+  const isOpen  = body.classList.toggle('open');
+  toggle.classList.toggle('open', isOpen);
+}
+
+// ══════════════════════════════════════════════════
+//  GAME STATE
+// ══════════════════════════════════════════════════
+
+let currentNote     = null;
+let currentAccidental = null; // null | '#' | 'b'
+let lastNoteIdx     = -1;
+let startTime       = null;
+let accepting       = true;
+let learningPhase   = false; // true while showing the note name before accepting
+let times           = [];
+let stats           = { correct: 0, wrong: 0, streak: 0, best: 0 };
+let globalBest      = parseInt(localStorage.getItem('nr_best') || '0', 10);
+let notePool        = [];
+
+// per-note weakness tracking: { [pitch]: { c:0, w:0 } }
+let noteWeakness    = {};
+
+// Timer mode
+let timerActive     = false;
+let timerSeconds    = 60;
+let timerInterval   = null;
+
+// ══════════════════════════════════════════════════
+//  SVG HELPERS
+// ══════════════════════════════════════════════════
+
+const NS = 'http://www.w3.org/2000/svg';
+function svgEl(tag, attrs) {
+  const el = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+  return el;
+}
+
+// ══════════════════════════════════════════════════
+//  CLEF DRAWING
+// ══════════════════════════════════════════════════
+
+function drawClef() {
+  const g = document.getElementById('clefGroup');
+  g.innerHTML = '';
+  if (settings.clef === 'treble') {
+    const t = svgEl('text', {
+      x: '4', y: '108',
+      'font-family': "Georgia, 'Times New Roman', 'DejaVu Serif', serif",
+      'font-size': '88', fill: '#cccccc', style: 'user-select:none'
+    });
+    t.textContent = '𝄞';
+    g.appendChild(t);
+  } else {
+    // Bass clef: 𝄢
+    const t = svgEl('text', {
+      x: '92', y: '74',
+      'font-family': "Georgia, 'Times New Roman', 'DejaVu Serif', serif",
+      'font-size': '44', fill: '#cccccc', style: 'user-select:none'
+    });
+    t.textContent = '𝄢';
+    g.appendChild(t);
+  }
+}
+
+// ══════════════════════════════════════════════════
+//  NOTE POOL
+// ══════════════════════════════════════════════════
+
+function applyNotePool() {
+  const all  = settings.clef === 'treble' ? TREBLE_ALL : BASS_ALL;
+  const easy = settings.clef === 'treble' ? TREBLE_EASY : BASS_EASY;
+  notePool = settings.difficulty === 'easy' ? easy : all;
+  noteWeakness = {};
+  drawClef();
+}
+
+// ══════════════════════════════════════════════════
+//  ANSWER CHOICES — dynamic per question
+// ══════════════════════════════════════════════════
+
+function shuffleArr(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function getCorrectAnswer(note, acc) {
+  if (!acc) return note.name;
+  return note.name + (acc === '#' ? '♯' : '♭');
+}
+
+function buildAnswerChoices(correct, accidentals) {
+  const BASE = ['Do', 'Re', 'Mi', 'Fa', 'Sol', 'La', 'Si'];
+
+  if (accidentals === 'none') {
+    // Fixed order, no shuffling — muscle memory friendly
+    return [...BASE];
+  }
+
+  // Build pool of all possible answers for this mode
+  let pool = [...BASE];
+  if (accidentals === 'sharp' || accidentals === 'both') {
+    BASE.forEach(n => pool.push(n + '♯'));
+  }
+  if (accidentals === 'flat' || accidentals === 'both') {
+    BASE.forEach(n => pool.push(n + '♭'));
+  }
+
+  // Pick 6 wrong distractors (prioritise same-letter variants and close notes)
+  const wrongs = shuffleArr(pool.filter(n => n !== correct));
+  const choices = shuffleArr([correct, ...wrongs.slice(0, 6)]);
+  return choices;
+}
+
+function renderButtons(choices) {
+  const container = document.getElementById('noteButtons');
+  container.innerHTML = '';
+  choices.forEach((label, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'note-btn';
+    btn.dataset.answer = label;
+    // Show accidental symbol larger for readability
+    const base = label.replace('♯','').replace('♭','');
+    const acc  = label.includes('♯') ? '<span style="font-size:11px;opacity:0.9">♯</span>'
+               : label.includes('♭') ? '<span style="font-size:11px;opacity:0.9">♭</span>' : '';
+    btn.innerHTML = `${base}${acc}<span class="kbd">[ ${i+1} ]</span>`;
+    btn.addEventListener('click', () => answer(label));
+    container.appendChild(btn);
+  });
+}
+
+// ══════════════════════════════════════════════════
+//  NOTE DRAWING
+// ══════════════════════════════════════════════════
+
+function drawNote(note, acc) {
+  const g = document.getElementById('noteGroup');
+  g.innerHTML = '';
+
+  const cx = 290, cy = note.y;
+
+  // Ledger lines
+  if (note.ledger === 'below') {
+    g.appendChild(svgEl('line', { x1: cx-18, y1: cy, x2: cx+18, y2: cy, stroke:'#cccccc', 'stroke-width':'1.5' }));
+  }
+  if (note.ledger === 'above') {
+    g.appendChild(svgEl('line', { x1: cx-18, y1: cy, x2: cx+18, y2: cy, stroke:'#cccccc', 'stroke-width':'1.5' }));
+  }
+
+  // Glow
+  g.appendChild(svgEl('ellipse', {
+    cx, cy, rx:15, ry:10, fill:'none',
+    stroke:'rgba(255,255,255,0.06)', 'stroke-width':'3',
+    transform:`rotate(-20,${cx},${cy})`
+  }));
+
+  // Whole note: outer white + inner black
+  g.appendChild(svgEl('ellipse', {
+    cx, cy, rx:13, ry:8.5, fill:'#ffffff',
+    transform:`rotate(-20,${cx},${cy})`
+  }));
+  g.appendChild(svgEl('ellipse', {
+    cx, cy: cy-0.5, rx:6.5, ry:3.5, fill:'#000000',
+    transform:`rotate(-15,${cx},${cy-0.5})`
+  }));
+
+  // Accidental symbol
+  if (acc) {
+    const t = svgEl('text', {
+      x: cx - 22, y: cy + 6,
+      'font-family': "Georgia, 'Times New Roman', serif",
+      'font-size': '20', fill: '#ffffff',
+      'text-anchor': 'middle', style:'user-select:none'
+    });
+    t.textContent = acc === '#' ? '♯' : '♭';
+    g.appendChild(t);
+  }
+}
+
+// ══════════════════════════════════════════════════
+//  NEXT NOTE (with weakness weighting)
+// ══════════════════════════════════════════════════
+
+function pickNextNote() {
+  if (notePool.length === 0) return 0;
+
+  // Build weighted list
+  const weighted = [];
+  notePool.forEach((n, i) => {
+    const w = noteWeakness[n.pitch];
+    let weight = 1;
+    if (w && w.c + w.w >= 3) {
+      const acc = w.c / (w.c + w.w);
+      if (acc < 0.5) weight = 3; // struggling: triple chance
+      else if (acc < 0.75) weight = 2;
+    }
+    for (let j = 0; j < weight; j++) weighted.push(i);
+  });
+
+  // Avoid same note twice
+  let idx;
+  let tries = 0;
+  do {
+    idx = weighted[Math.floor(Math.random() * weighted.length)];
+    tries++;
+  } while (notePool.length > 1 && idx === lastNoteIdx && tries < 20);
+
+  return idx;
+}
+
+function nextNote() {
+  const idx = pickNextNote();
+  lastNoteIdx = idx;
+  currentNote = notePool[idx];
+
+  // Pick accidental based on settings
+  currentAccidental = null;
+  if (settings.accidentals !== 'none' && settings.difficulty !== 'easy') {
+    if (Math.random() < 0.4) {
+      if (settings.accidentals === 'sharp') currentAccidental = '#';
+      else if (settings.accidentals === 'flat') currentAccidental = 'b';
+      else currentAccidental = Math.random() < 0.5 ? '#' : 'b';
+    }
+  }
+
+  drawNote(currentNote, currentAccidental);
+
+  // Build answer buttons for this question
+  const correct = getCorrectAnswer(currentNote, currentAccidental);
+  renderButtons(buildAnswerChoices(correct, settings.accidentals));
+
+  // Learning mode: show name briefly, then start timer
+  if (settings.learning === 'on') {
+    learningPhase = true;
+    accepting = false;
+    const el = document.getElementById('noteLabelEl');
+    el.textContent = currentNote.name + (currentAccidental === '#' ? '♯' : currentAccidental === 'b' ? '♭' : '');
+    el.classList.add('show');
+    setTimeout(() => {
+      el.classList.remove('show');
+      setTimeout(() => {
+        learningPhase = false;
+        accepting = true;
+        startTime = performance.now();
+        playNoteSound();
+      }, 200);
+    }, 700);
+  } else {
+    startTime = performance.now();
+    accepting = true;
+    playNoteSound();
+  }
+
+  hintArea.textContent = '// pulsa una tecla · 1–7 = Do a Si · R = reset · S = sonido';
+}
+
+// ══════════════════════════════════════════════════
+//  ANSWER
+// ══════════════════════════════════════════════════
+
+const hintArea    = document.getElementById('hintArea');
+const feedbackBar = document.getElementById('feedbackBar');
+
+function answer(label) {
+  // In timer mode, first button press starts the timer
+  if (settings.mode === 'timer' && !timerActive) {
+    startTimerIfNeeded();
+    nextNote();
+    return;
+  }
+  if (!accepting || !currentNote) return;
+  accepting = false;
+
+  const elapsed     = (performance.now() - startTime) / 1000;
+  const correctLabel = getCorrectAnswer(currentNote, currentAccidental);
+  const isCorrect   = label === correctLabel;
+  times.push(elapsed);
+
+  // Update weakness tracker (keyed on base note pitch)
+  if (!noteWeakness[currentNote.pitch]) noteWeakness[currentNote.pitch] = { c:0, w:0 };
+  if (isCorrect) noteWeakness[currentNote.pitch].c++;
+  else           noteWeakness[currentNote.pitch].w++;
+
+  if (isCorrect) {
+    stats.correct++;
+    stats.streak++;
+    if (stats.streak > stats.best) stats.best = stats.streak;
+    if (stats.streak > globalBest) {
+      globalBest = stats.streak;
+      localStorage.setItem('nr_best', globalBest);
+    }
+    flashBtn(label, 'correct');
+    showFeedback('correct');
+    hintArea.textContent = `// ✓ correcto — ${correctLabel} (${currentNote.pitch}) en ${elapsed.toFixed(2)}s`;
+  } else {
+    stats.wrong++;
+    stats.streak = 0;
+    flashBtn(label, 'wrong');
+    flashBtn(correctLabel, 'reveal');
+    showFeedback('wrong');
+    hintArea.textContent = `// ✗ era ${correctLabel} (${currentNote.pitch}) — respondiste ${label}`;
+  }
+
+  updateStats();
+  setTimeout(nextNote, 650);
+}
+
+// ══════════════════════════════════════════════════
+//  FEEDBACK
+// ══════════════════════════════════════════════════
+
+function showFeedback(type) {
+  feedbackBar.className = `feedback-bar show-${type}`;
+  setTimeout(() => { feedbackBar.className = 'feedback-bar'; }, 550);
+}
+
+function flashBtn(label, cls) {
+  document.querySelectorAll('.note-btn').forEach(b => {
+    if (b.dataset.answer === label) {
+      b.classList.add(`flash-${cls}`);
+      setTimeout(() => b.classList.remove(`flash-${cls}`), 600);
+    }
+  });
+}
+
+// ══════════════════════════════════════════════════
+//  STATS
+// ══════════════════════════════════════════════════
+
+function updateStats() {
+  document.getElementById('statCorrect').textContent  = stats.correct;
+  document.getElementById('statWrong').textContent    = stats.wrong;
+  document.getElementById('statStreak').textContent   = stats.streak;
+  document.getElementById('statBest').textContent     = globalBest;
+  const total = stats.correct + stats.wrong;
+  document.getElementById('statAccuracy').textContent = total ? Math.round(stats.correct / total * 100) + '%' : '—';
+  if (times.length) {
+    const avg = times.reduce((a,b) => a+b, 0) / times.length;
+    document.getElementById('statAvg').textContent = avg.toFixed(2) + 's';
+  }
+}
+
+function resetGame() {
+  // stop timer if running
+  stopTimer();
+  document.getElementById('timerWrap').classList.toggle('visible', settings.mode === 'timer');
+
+  stats = { correct:0, wrong:0, streak:0, best:0 };
+  times = [];
+  noteWeakness = {};
+  updateStats();
+  document.getElementById('statAvg').textContent      = '—';
+  document.getElementById('statAccuracy').textContent = '—';
+  document.getElementById('scoreOverlay').classList.remove('show');
+
+  applyNotePool();
+
+  if (settings.mode === 'timer') {
+    timerActive = false;
+    accepting = false; // block answers until timer starts
+    currentNote = null;
+    resetTimerBar();
+    drawClef();
+    // Draw a preview note (not counted — timer hasn't started)
+    const previewIdx = Math.floor(Math.random() * notePool.length);
+    drawNote(notePool[previewIdx], null);
+    hintArea.textContent = '// Pulsa cualquier botón o tecla para iniciar el contador';
+  } else {
+    nextNote();
+  }
+}
+
+// ══════════════════════════════════════════════════
+//  TIMER MODE
+// ══════════════════════════════════════════════════
+
+function resetTimerBar() {
+  timerSeconds = 60;
+  const fill  = document.getElementById('timerFill');
+  const label = document.getElementById('timerLabel');
+  fill.style.transition = 'none';
+  fill.style.width = '100%';
+  fill.classList.remove('urgent');
+  label.textContent = '60s';
+}
+
+function startTimerIfNeeded() {
+  if (settings.mode !== 'timer' || timerActive) return;
+  timerActive = true;
+  timerSeconds = 60;
+  const fill  = document.getElementById('timerFill');
+  const label = document.getElementById('timerLabel');
+  // kick off smooth CSS transition
+  requestAnimationFrame(() => {
+    fill.style.transition = 'width 60s linear';
+    fill.style.width = '0%';
+  });
+  timerInterval = setInterval(() => {
+    timerSeconds--;
+    label.textContent = timerSeconds + 's';
+    if (timerSeconds <= 15) fill.classList.add('urgent');
+    if (timerSeconds <= 0) {
+      stopTimer();
+      showScoreOverlay();
+    }
+  }, 1000);
+}
+
+function stopTimer() {
+  timerActive = false;
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+}
+
+function showScoreOverlay() {
+  accepting = false;
+  const total    = stats.correct + stats.wrong;
+  const acc      = total ? Math.round(stats.correct / total * 100) : 0;
+  const avgT     = times.length ? (times.reduce((a,b)=>a+b,0)/times.length).toFixed(2)+'s' : '—';
+  const isNewBest = stats.best >= globalBest && stats.best > 0;
+
+  document.getElementById('scoreBig').textContent    = stats.correct;
+  document.getElementById('scoreWrong').textContent  = stats.wrong;
+  document.getElementById('scoreAcc').textContent    = acc + '%';
+  document.getElementById('scoreStreak').textContent = stats.best;
+  document.getElementById('scoreAvg').textContent    = avgT;
+  document.getElementById('scoreNewBest').classList.toggle('show', isNewBest);
+  document.getElementById('scoreOverlay').classList.add('show');
+}
+
+function restartTimer() {
+  document.getElementById('scoreOverlay').classList.remove('show');
+  resetGame();
+}
+
+// ══════════════════════════════════════════════════
+//  SOUND — Web Audio API
+// ══════════════════════════════════════════════════
+
+let audioCtx = null;
+
+function initAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+}
+
+function playNoteSound() {
+  if (settings.sound !== 'on' || !currentNote) return;
+  try {
+    initAudio();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+
+    let freq = currentNote.freq;
+    if (currentAccidental === '#') freq *= Math.pow(2, 1/12);
+    if (currentAccidental === 'b') freq *= Math.pow(2, -1/12);
+
+    const osc  = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    // Add a bit of warmth with a second harmonic
+    const osc2  = audioCtx.createOscillator();
+    const gain2 = audioCtx.createGain();
+
+    osc.connect(gain);
+    osc2.connect(gain2);
+    gain.connect(audioCtx.destination);
+    gain2.connect(audioCtx.destination);
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(freq * 2, audioCtx.currentTime); // octave up
+
+    const t = audioCtx.currentTime;
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(0.35, t + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.9);
+
+    gain2.gain.setValueAtTime(0, t);
+    gain2.gain.linearRampToValueAtTime(0.08, t + 0.012);
+    gain2.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
+
+    osc.start(t);  osc.stop(t + 0.9);
+    osc2.start(t); osc2.stop(t + 0.6);
+  } catch(e) { /* silently fail */ }
+}
+
+function toggleSound() {
+  settings.sound = settings.sound === 'on' ? 'off' : 'on';
+  saveSettings();
+  applySettingsUI();
+  // sync pill UI
+  const g = document.getElementById('soundPills');
+  g.querySelectorAll('.pill').forEach(p => p.classList.toggle('active', p.dataset.val === settings.sound));
+}
+
+function updateSoundBtn() {
+  document.getElementById('soundBtn').textContent = settings.sound === 'on' ? '♪ ON' : '♪ OFF';
+}
+
+// ══════════════════════════════════════════════════
+//  KEYBOARD
+// ══════════════════════════════════════════════════
+
+document.addEventListener('keydown', e => {
+  if (e.repeat) return;
+  const idx = parseInt(e.key, 10);
+  if (idx >= 1 && idx <= 7) {
+    // Map key 1–7 to the current rendered button at that position
+    const btns = document.querySelectorAll('#noteButtons .note-btn');
+    if (btns[idx - 1]) answer(btns[idx - 1].dataset.answer);
+  }
+  if (e.key === 'r' || e.key === 'R') resetGame();
+  if (e.key === 's' || e.key === 'S') toggleSound();
+});
+
+// ══════════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════════
+
+applySettingsUI();
+applyNotePool();
+resetGame();
+
+</script>
+</body>
+</html>
