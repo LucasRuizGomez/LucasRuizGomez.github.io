@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RPG — Lukeda</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0d1117;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+      font-family: Verdana, Tahoma, Arial, sans-serif;
+    }
+    canvas {
+      display: block;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      border: 2px solid #2a2a2a;
+    }
+  </style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<script>
+
+// ── CONSTANTS ───────────────────────────────────────────────────────────────
+const TILE  = 32;
+const COLS  = 25;
+const ROWS  = 20;
+const SPEED = 2.5;
+
+// ── TILE TYPES ──────────────────────────────────────────────────────────────
+const T = { GRASS:0, WATER:1, TREE:2, PATH:3, SAND:4, WALL:5 };
+
+const TILE_DEF = {
+  [T.GRASS]: { base: '#3d6b47', walkable: true  },
+  [T.WATER]: { base: '#1e4d8c', walkable: false },
+  [T.TREE]:  { base: '#1c3d24', walkable: false },
+  [T.PATH]:  { base: '#b89a5a', walkable: true  },
+  [T.SAND]:  { base: '#c9a84c', walkable: true  },
+  [T.WALL]:  { base: '#5a4a32', walkable: false },
+};
+
+// ── MAP ─────────────────────────────────────────────────────────────────────
+const MAP = [
+  [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+  [2,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+  [2,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+  [2,0,0,5,5,5,5,5,0,0,2,0,0,2,2,2,0,0,0,0,0,0,0,0,2],
+  [2,0,0,5,0,0,0,5,0,0,3,3,3,0,0,2,0,0,0,1,1,0,0,0,2],
+  [2,0,0,5,0,0,0,5,0,0,2,0,0,0,0,2,0,0,0,1,1,0,0,0,2],
+  [2,0,0,5,5,3,5,5,0,0,2,0,0,0,0,2,0,0,0,1,1,0,0,0,2],
+  [2,0,0,0,0,3,0,0,0,0,2,0,0,0,0,0,0,0,0,1,1,0,0,0,2],
+  [2,0,0,0,0,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+  [2,0,2,0,0,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+  [2,0,2,0,0,3,3,3,3,3,3,3,3,3,3,3,0,0,0,0,0,2,0,0,2],
+  [2,0,2,0,0,0,0,0,0,0,0,0,0,0,0,3,0,0,0,0,0,2,0,0,2],
+  [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,0,0,0,0,0,0,0,0,2],
+  [2,0,0,0,4,4,4,4,0,0,0,0,0,0,0,3,0,0,0,0,0,0,0,0,2],
+  [2,0,0,0,4,4,4,4,0,0,0,0,0,0,0,3,3,3,3,0,0,0,0,0,2],
+  [2,0,0,0,4,4,4,4,0,0,0,0,0,0,0,0,0,0,3,0,0,0,0,0,2],
+  [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,0,0,0,0,0,2],
+  [2,0,0,0,0,0,0,0,2,2,2,0,0,0,0,0,0,0,3,0,0,0,0,0,2],
+  [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+  [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+];
+
+// ── ITEMS ────────────────────────────────────────────────────────────────────
+const ITEMS = {
+  // Raw
+  wood:       { name: 'Wood',           desc: 'Sturdy wood. Good for crafting.'         },
+  stone:      { name: 'Stone',          desc: 'A rough grey stone.'                     },
+  herb:       { name: 'Herb',           desc: 'A healing herb from the wild.'           },
+  coal:       { name: 'Coal',           desc: 'Dark mineral used for smelting.'         },
+  iron:       { name: 'Iron Ore',       desc: 'Raw iron ore from the earth.'            },
+  gold:       { name: 'Gold',           desc: 'Shiny gold coins.'                       },
+  // Processed
+  iron_ingot: { name: 'Iron Ingot',     desc: 'Smelted iron, ready for forging.'        },
+  rope:       { name: 'Rope',           desc: 'Strong twisted rope.'                    },
+  torch:      { name: 'Torch',          desc: 'Lights dark places.'                     },
+  // Consumables
+  potion:     { name: 'Health Potion',  desc: 'Restores 3 HP. Press Enter to use.'     },
+  bandage:    { name: 'Bandage',        desc: 'Restores 2 HP. Press Enter to use.'     },
+  // Equipment
+  sword:      { name: 'Iron Sword',     desc: 'A powerful forged sword.'               },
+  shield:     { name: 'Wooden Shield',  desc: 'Reduces incoming damage.'               },
+  arrows:     { name: 'Arrows',         desc: 'Sharp projectiles for a bow. (×5)'      },
+  bow:        { name: 'Short Bow',      desc: 'A nimble ranged weapon.'                },
+};
+
+// ── RECIPES ──────────────────────────────────────────────────────────────────
+// category: 'consumable' | 'material' | 'combat'
+const RECIPES = [
+  // Consumables
+  { name: 'Health Potion', category: 'consumable',
+    inputs: [{ id: 'herb',  qty: 2 }],
+    output: { id: 'potion', qty: 1 } },
+  { name: 'Bandage',       category: 'consumable',
+    inputs: [{ id: 'herb',  qty: 1 }],
+    output: { id: 'bandage', qty: 1 } },
+  // Materials
+  { name: 'Rope',          category: 'material',
+    inputs: [{ id: 'herb',  qty: 3 }],
+    output: { id: 'rope',   qty: 1 } },
+  { name: 'Iron Ingot',    category: 'material',
+    inputs: [{ id: 'iron',  qty: 2 }, { id: 'coal', qty: 1 }],
+    output: { id: 'iron_ingot', qty: 1 } },
+  { name: 'Torch',         category: 'material',
+    inputs: [{ id: 'wood',  qty: 1 }, { id: 'coal', qty: 1 }],
+    output: { id: 'torch',  qty: 2 } },
+  // Combat
+  { name: 'Arrows',        category: 'combat',
+    inputs: [{ id: 'wood',  qty: 1 }, { id: 'stone', qty: 1 }],
+    output: { id: 'arrows', qty: 5 } },
+  { name: 'Short Bow',     category: 'combat',
+    inputs: [{ id: 'wood',  qty: 2 }, { id: 'rope',  qty: 1 }],
+    output: { id: 'bow',    qty: 1 } },
+  { name: 'Wooden Shield', category: 'combat',
+    inputs: [{ id: 'wood',  qty: 3 }, { id: 'rope',  qty: 1 }],
+    output: { id: 'shield', qty: 1 } },
+  { name: 'Iron Sword',    category: 'combat',
+    inputs: [{ id: 'iron_ingot', qty: 2 }, { id: 'wood', qty: 1 }],
+    output: { id: 'sword',  qty: 1 } },
+];
+
+const CATEGORIES = [
+  { id: 'all',        label: 'All'      },
+  { id: 'consumable', label: 'Healing'  },
+  { id: 'material',   label: 'Materials'},
+  { id: 'combat',     label: 'Combat'   },
+];
+
+// ── CHESTS ────────────────────────────────────────────────────────────────────
+const CHESTS = [
+  { col: 5,  row: 4,  opened: false,
+    loot: [{ id:'wood', qty:2 }, { id:'herb',  qty:1 }, { id:'coal', qty:1 }] },
+  { col: 12, row: 8,  opened: false,
+    loot: [{ id:'stone',qty:2 }, { id:'gold',  qty:1 }, { id:'iron', qty:2 }] },
+  { col: 21, row: 2,  opened: false,
+    loot: [{ id:'herb', qty:3 }, { id:'gold',  qty:2 }, { id:'coal', qty:2 }] },
+  { col: 20, row: 17, opened: false,
+    loot: [{ id:'wood', qty:3 }, { id:'stone', qty:2 }, { id:'iron', qty:3 }] },
+];
+
+// ── CANVAS ────────────────────────────────────────────────────────────────────
+const canvas = document.getElementById('game');
+const ctx    = canvas.getContext('2d');
+
+canvas.width  = COLS * TILE;
+canvas.height = ROWS * TILE;
+
+(function scaleCanvas() {
+  const scaleX = (window.innerWidth  - 20) / canvas.width;
+  const scaleY = (window.innerHeight - 20) / canvas.height;
+  const scale  = Math.min(scaleX, scaleY, 2);
+  canvas.style.width  = canvas.width  * scale + 'px';
+  canvas.style.height = canvas.height * scale + 'px';
+})();
+
+// ── PLAYER ────────────────────────────────────────────────────────────────────
+const player = {
+  x: 3.5 * TILE, y: 8.5 * TILE,
+  w: 18, h: 22, dir: 'down',
+  hp: 10, maxHp: 10,
+  inventory: [],
+};
+
+// ── UI STATE ──────────────────────────────────────────────────────────────────
+const ui = {
+  inventoryOpen: false,
+  craftOpen:     false,
+  chestOpen:     false,
+  invSlot:       0,         // inventory panel slot
+  invSlot2:      0,         // inventory slot inside chest UI
+  craftSlot:     0,         // index within filtered recipe list
+  craftCategory: 'all',
+  chestSlot:     0,         // selected slot in chest loot grid
+  chestPane:     'chest',   // 'chest' | 'inventory'
+  activeChest:   null,
+};
+
+let notification = { text: '', timer: 0 };
+let waterAnim    = 0;
+
+// ── ITEM HELPERS ──────────────────────────────────────────────────────────────
+function addItem(id, qty) {
+  const s = player.inventory.find(s => s.id === id);
+  if (s) s.qty += qty;
+  else player.inventory.push({ id, qty });
+}
+function removeItem(id, qty) {
+  const s = player.inventory.find(s => s.id === id);
+  if (!s) return false;
+  s.qty -= qty;
+  if (s.qty <= 0) player.inventory = player.inventory.filter(s => s.id !== id);
+  return true;
+}
+function countItem(id) {
+  const s = player.inventory.find(s => s.id === id);
+  return s ? s.qty : 0;
+}
+function canCraft(recipe) {
+  return recipe.inputs.every(inp => countItem(inp.id) >= inp.qty);
+}
+function doCraft(recipe) {
+  if (!canCraft(recipe)) return false;
+  recipe.inputs.forEach(inp => removeItem(inp.id, inp.qty));
+  addItem(recipe.output.id, recipe.output.qty);
+  return true;
+}
+function filteredRecipes() {
+  if (ui.craftCategory === 'all') return RECIPES;
+  return RECIPES.filter(r => r.category === ui.craftCategory);
+}
+function notify(text) { notification = { text, timer: 200 }; }
+
+// ── INPUT ─────────────────────────────────────────────────────────────────────
+const keys = {};
+
+document.addEventListener('keydown', e => {
+  keys[e.key] = true;
+
+  // ── Chest UI ──
+  if (ui.chestOpen) {
+    if (e.key === 'Tab') {
+      ui.chestPane = ui.chestPane === 'chest' ? 'inventory' : 'chest';
+    } else if (e.key === 'e' || e.key === 'E' || e.key === 'Escape') {
+      ui.chestOpen = false; ui.activeChest = null;
+    } else if (ui.chestPane === 'chest') {
+      const max = Math.max(0, ui.activeChest.loot.length - 1);
+      if (e.key === 'ArrowRight' && ui.chestSlot % 3 < 2) ui.chestSlot = Math.min(ui.chestSlot + 1, max);
+      if (e.key === 'ArrowLeft'  && ui.chestSlot % 3 > 0) ui.chestSlot = Math.max(ui.chestSlot - 1, 0);
+      if (e.key === 'ArrowDown')  ui.chestSlot = Math.min(ui.chestSlot + 3, max);
+      if (e.key === 'ArrowUp')    ui.chestSlot = Math.max(ui.chestSlot - 3, 0);
+      if (e.key === 'Enter' || e.key === ' ') takeChestItem();
+      if (e.key === 't' || e.key === 'T') takeAllChestItems();
+    } else {
+      if (e.key === 'ArrowRight' && ui.invSlot2 % 5 < 4) ui.invSlot2 = Math.min(ui.invSlot2 + 1, 19);
+      if (e.key === 'ArrowLeft'  && ui.invSlot2 % 5 > 0) ui.invSlot2 = Math.max(ui.invSlot2 - 1, 0);
+      if (e.key === 'ArrowDown')  ui.invSlot2 = Math.min(ui.invSlot2 + 5, 19);
+      if (e.key === 'ArrowUp')    ui.invSlot2 = Math.max(ui.invSlot2 - 5, 0);
+    }
+    e.preventDefault(); return;
+  }
+
+  // ── Toggles ──
+  if (e.key === 'i' || e.key === 'I') {
+    ui.inventoryOpen = !ui.inventoryOpen;
+    if (ui.inventoryOpen) ui.craftOpen = false;
+    e.preventDefault(); return;
+  }
+  if (e.key === 'c' || e.key === 'C') {
+    ui.craftOpen = !ui.craftOpen;
+    if (ui.craftOpen) ui.inventoryOpen = false;
+    e.preventDefault(); return;
+  }
+  if (e.key === 'e' || e.key === 'E') {
+    if (!ui.inventoryOpen && !ui.craftOpen) handleInteract();
+    e.preventDefault(); return;
+  }
+
+  // ── Inventory ──
+  if (ui.inventoryOpen) {
+    if (e.key === 'ArrowRight' && ui.invSlot % 5 < 4) ui.invSlot = Math.min(ui.invSlot + 1, 19);
+    if (e.key === 'ArrowLeft'  && ui.invSlot % 5 > 0) ui.invSlot = Math.max(ui.invSlot - 1, 0);
+    if (e.key === 'ArrowDown')  ui.invSlot = Math.min(ui.invSlot + 5, 19);
+    if (e.key === 'ArrowUp')    ui.invSlot = Math.max(ui.invSlot - 5, 0);
+    if (e.key === 'Enter' || e.key === ' ') useSelectedItem();
+    e.preventDefault(); return;
+  }
+
+  // ── Crafting ──
+  if (ui.craftOpen) {
+    if (e.key === 'Tab') {
+      const idx = CATEGORIES.findIndex(c => c.id === ui.craftCategory);
+      ui.craftCategory = CATEGORIES[(idx + 1) % CATEGORIES.length].id;
+      ui.craftSlot = 0;
+    }
+    const fr = filteredRecipes();
+    if (e.key === 'ArrowDown') ui.craftSlot = Math.min(ui.craftSlot + 1, fr.length - 1);
+    if (e.key === 'ArrowUp')   ui.craftSlot = Math.max(ui.craftSlot - 1, 0);
+    if (e.key === 'Enter') {
+      const r = fr[ui.craftSlot];
+      if (!r) { e.preventDefault(); return; }
+      if (e.shiftKey) {
+        // craft as many as possible, up to 5
+        const maxTimes = r.inputs.length
+          ? Math.min(5, Math.floor(Math.min(...r.inputs.map(inp => Math.floor(countItem(inp.id) / inp.qty)))))
+          : 5;
+        let crafted = 0;
+        for (let i = 0; i < maxTimes; i++) { if (doCraft(r)) crafted++; else break; }
+        if (crafted > 0) notify(`Crafted ${crafted}× ${r.name}!`);
+        else notify('Not enough materials.');
+      } else {
+        if (doCraft(r)) notify('Crafted: ' + r.name + '!');
+        else            notify('Not enough materials.');
+      }
+    }
+    e.preventDefault(); return;
+  }
+
+  if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))
+    e.preventDefault();
+});
+
+document.addEventListener('keyup', e => { keys[e.key] = false; });
+
+// ── INTERACTION ───────────────────────────────────────────────────────────────
+function handleInteract() {
+  const pc = Math.floor(player.x / TILE);
+  const pr = Math.floor(player.y / TILE);
+  for (const chest of CHESTS) {
+    if (Math.abs(chest.col - pc) <= 1 && Math.abs(chest.row - pr) <= 1) {
+      chest.opened  = true;
+      ui.chestOpen  = true;
+      ui.activeChest = chest;
+      ui.chestSlot  = 0;
+      ui.chestPane  = 'chest';
+      return;
+    }
+  }
+}
+
+function takeChestItem() {
+  const chest = ui.activeChest;
+  if (!chest || chest.loot.length === 0) return;
+  const item = chest.loot[ui.chestSlot];
+  if (!item) return;
+  addItem(item.id, item.qty);
+  chest.loot.splice(ui.chestSlot, 1);
+  ui.chestSlot = Math.min(ui.chestSlot, chest.loot.length - 1);
+  if (ui.chestSlot < 0) ui.chestSlot = 0;
+  notify(`Took: ${ITEMS[item.id].name} ×${item.qty}`);
+}
+
+function takeAllChestItems() {
+  const chest = ui.activeChest;
+  if (!chest || chest.loot.length === 0) { notify('Chest is empty.'); return; }
+  const names = chest.loot.map(l => `${ITEMS[l.id].name} ×${l.qty}`).join(', ');
+  chest.loot.forEach(l => addItem(l.id, l.qty));
+  chest.loot = [];
+  ui.chestSlot = 0;
+  notify('Took all: ' + names);
+}
+
+function useSelectedItem() {
+  const item = player.inventory[ui.invSlot];
+  if (!item) return;
+  const heals = { potion: 3, bandage: 2 };
+  const h = heals[item.id];
+  if (h !== undefined) {
+    if (player.hp >= player.maxHp) { notify('HP is already full!'); return; }
+    const heal = Math.min(h, player.maxHp - player.hp);
+    player.hp += heal;
+    removeItem(item.id, 1);
+    notify(`+${heal} HP restored!`);
+    ui.invSlot = Math.max(0, Math.min(ui.invSlot, player.inventory.length - 1));
+  }
+}
+
+// ── COLLISION ─────────────────────────────────────────────────────────────────
+function tileAt(wx, wy) {
+  const col = Math.floor(wx / TILE);
+  const row = Math.floor(wy / TILE);
+  if (row < 0 || row >= ROWS || col < 0 || col >= COLS) return T.WALL;
+  return MAP[row][col];
+}
+function walkable(wx, wy) {
+  const col = Math.floor(wx / TILE);
+  const row = Math.floor(wy / TILE);
+  if (CHESTS.some(c => c.col === col && c.row === row)) return false;
+  return TILE_DEF[tileAt(wx, wy)]?.walkable ?? false;
+}
+function canOccupy(cx, cy) {
+  const hw = player.w / 2 - 1, hh = player.h / 2 - 1;
+  return walkable(cx-hw,cy-hh) && walkable(cx+hw,cy-hh) &&
+         walkable(cx-hw,cy+hh) && walkable(cx+hw,cy+hh);
+}
+
+// ── UPDATE ────────────────────────────────────────────────────────────────────
+function update() {
+  if (ui.inventoryOpen || ui.craftOpen || ui.chestOpen) return;
+  let dx = 0, dy = 0;
+  if (keys['ArrowUp']    || keys['w'] || keys['W']) { dy -= 1; player.dir = 'up';    }
+  if (keys['ArrowDown']  || keys['s'] || keys['S']) { dy += 1; player.dir = 'down';  }
+  if (keys['ArrowLeft']  || keys['a'] || keys['A']) { dx -= 1; player.dir = 'left';  }
+  if (keys['ArrowRight'] || keys['d'] || keys['D']) { dx += 1; player.dir = 'right'; }
+  if (dx !== 0 && dy !== 0) { dx *= 0.707; dy *= 0.707; }
+  dx *= SPEED; dy *= SPEED;
+  const nx = player.x + dx, ny = player.y + dy;
+  if      (canOccupy(nx, ny))       { player.x = nx; player.y = ny; }
+  else if (canOccupy(nx, player.y)) { player.x = nx; }
+  else if (canOccupy(player.x, ny)) { player.y = ny; }
+}
+
+// ── DRAW TILE ─────────────────────────────────────────────────────────────────
+function drawTile(c, r, tile) {
+  const x = c * TILE, y = r * TILE;
+  ctx.fillStyle = TILE_DEF[tile].base;
+  ctx.fillRect(x, y, TILE, TILE);
+  switch (tile) {
+    case T.GRASS:
+      ctx.fillStyle = 'rgba(0,0,0,0.06)';
+      ctx.fillRect(x+2,y+2,TILE-4,TILE-4);
+      ctx.fillStyle = 'rgba(80,160,80,0.25)';
+      ctx.fillRect(x+6,y+8,2,2); ctx.fillRect(x+18,y+20,2,2); ctx.fillRect(x+24,y+10,2,2);
+      break;
+    case T.WATER: {
+      const w = Math.sin(waterAnim + c*0.5 + r*0.3) * 2;
+      ctx.fillStyle = 'rgba(80,160,255,0.15)';
+      ctx.fillRect(x+4,y+6+w,TILE-8,4); ctx.fillRect(x+6,y+18+w,TILE-12,3);
+      break;
+    }
+    case T.TREE:
+      ctx.fillStyle = '#3d2b1f'; ctx.fillRect(x+13,y+20,6,10);
+      ctx.fillStyle = '#2a5c30'; ctx.beginPath(); ctx.arc(x+TILE/2,y+18,12,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#3a7a40'; ctx.beginPath(); ctx.arc(x+TILE/2,y+12, 9,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#4a9050'; ctx.beginPath(); ctx.arc(x+TILE/2,y+8,  5,0,Math.PI*2); ctx.fill();
+      break;
+    case T.PATH:
+      ctx.fillStyle='rgba(0,0,0,0.07)'; ctx.fillRect(x+4,y+4,TILE-8,TILE-8);
+      ctx.fillStyle='rgba(255,255,255,0.04)'; ctx.fillRect(x+8,y+8,TILE-16,TILE-16);
+      break;
+    case T.SAND:
+      ctx.fillStyle='rgba(255,255,255,0.08)'; ctx.fillRect(x+3,y+3,TILE-6,TILE-6);
+      break;
+    case T.WALL:
+      ctx.fillStyle='rgba(0,0,0,0.25)'; ctx.fillRect(x+2,y+2,TILE-4,TILE-4);
+      ctx.fillStyle='rgba(255,255,255,0.06)'; ctx.fillRect(x+2,y+2,TILE-4,5);
+      ctx.fillStyle='rgba(0,0,0,0.18)'; ctx.fillRect(x,y+15,TILE,2); ctx.fillRect(x+16,y,2,15);
+      break;
+  }
+}
+
+// ── DRAW ITEM ICON ────────────────────────────────────────────────────────────
+function drawItemIcon(id, x, y, s) {
+  const cx = x+s/2, cy = y+s/2;
+  ctx.save();
+  switch (id) {
+    case 'wood':
+      ctx.fillStyle='#6B4423'; ctx.fillRect(x+s*.15,y+s*.35,s*.7,s*.35);
+      ctx.fillStyle='#8B5E3C'; ctx.fillRect(x+s*.15,y+s*.30,s*.7,s*.15);
+      ctx.fillStyle='#A0724F'; ctx.fillRect(x+s*.15,y+s*.30,s*.7,s*.05);
+      break;
+    case 'stone':
+      ctx.fillStyle='#555'; ctx.beginPath(); ctx.arc(cx,cy+s*.05,s*.38,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#888'; ctx.beginPath(); ctx.arc(cx-s*.08,cy-s*.05,s*.2,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#aaa'; ctx.beginPath(); ctx.arc(cx-s*.12,cy-s*.1,s*.08,0,Math.PI*2); ctx.fill();
+      break;
+    case 'herb':
+      ctx.fillStyle='#2d7a30'; ctx.fillRect(cx-s*.06,y+s*.25,s*.12,s*.55);
+      ctx.fillStyle='#4caf50';
+      ctx.beginPath(); ctx.ellipse(cx-s*.2,cy,s*.22,s*.12,-0.4,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(cx+s*.2,cy,s*.22,s*.12, 0.4,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(cx,cy-s*.15,s*.18,s*.10,0,0,Math.PI*2); ctx.fill();
+      break;
+    case 'potion':
+      ctx.fillStyle='#777'; ctx.fillRect(cx-s*.12,y+s*.10,s*.24,s*.20);
+      ctx.fillStyle='#c0392b'; ctx.beginPath(); ctx.arc(cx,cy+s*.10,s*.30,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#e74c3c'; ctx.beginPath(); ctx.arc(cx,cy+s*.05,s*.22,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='rgba(255,255,255,0.25)'; ctx.beginPath(); ctx.arc(cx-s*.08,cy-s*.04,s*.08,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#aaa'; ctx.fillRect(cx-s*.08,y+s*.08,s*.16,s*.06);
+      break;
+    case 'sword':
+      ctx.fillStyle='#bbb'; ctx.fillRect(cx-s*.08,y+s*.05,s*.16,s*.65);
+      ctx.fillStyle='#c8a84c'; ctx.fillRect(x+s*.08,cy-s*.08,s*.84,s*.16);
+      ctx.fillStyle='#999'; ctx.beginPath(); ctx.arc(cx,y+s*.05,s*.10,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#c8a84c'; ctx.fillRect(cx-s*.06,y+s*.62,s*.12,s*.18);
+      break;
+    case 'gold':
+      ctx.fillStyle='#c8930a'; ctx.beginPath(); ctx.arc(cx,cy,s*.38,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#f1c40f'; ctx.beginPath(); ctx.arc(cx,cy,s*.30,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#e67e22'; ctx.font=`bold ${Math.round(s*.36)}px Verdana`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('G',cx,cy+1);
+      break;
+    case 'iron':
+      ctx.fillStyle='#4a4040'; ctx.beginPath(); ctx.arc(cx,cy+s*.05,s*.36,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#6a5858'; ctx.beginPath(); ctx.arc(cx-s*.1,cy-s*.07,s*.18,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#907070'; ctx.beginPath(); ctx.arc(cx-s*.14,cy-s*.1,s*.07,0,Math.PI*2); ctx.fill();
+      break;
+    case 'iron_ingot':
+      ctx.fillStyle='#5a6060'; ctx.fillRect(x+s*.10,y+s*.30,s*.80,s*.40);
+      ctx.fillStyle='#7a9090'; ctx.fillRect(x+s*.10,y+s*.30,s*.80,s*.14);
+      ctx.fillStyle='#9ab0b0'; ctx.fillRect(x+s*.10,y+s*.30,s*.80,s*.05);
+      ctx.fillStyle='#4a5050'; ctx.fillRect(x+s*.10,y+s*.30,s*.07,s*.40);
+      break;
+    case 'coal':
+      ctx.fillStyle='#1c1c1c'; ctx.beginPath(); ctx.arc(cx,cy+s*.04,s*.36,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#2e2e2e'; ctx.beginPath(); ctx.arc(cx-s*.1,cy-s*.08,s*.14,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#404040'; ctx.beginPath(); ctx.arc(cx-s*.14,cy-s*.12,s*.06,0,Math.PI*2); ctx.fill();
+      break;
+    case 'rope':
+      ctx.strokeStyle='#8B6914';
+      ctx.lineWidth=Math.max(2,s*.09); ctx.beginPath(); ctx.arc(cx,cy,s*.32,0,Math.PI*2); ctx.stroke();
+      ctx.lineWidth=Math.max(1.5,s*.07); ctx.beginPath(); ctx.arc(cx,cy,s*.18,0,Math.PI*2); ctx.stroke();
+      ctx.fillStyle='#8B6914'; ctx.beginPath(); ctx.arc(cx,cy,s*.07,0,Math.PI*2); ctx.fill();
+      break;
+    case 'bandage':
+      ctx.fillStyle='#d8d8c0'; ctx.beginPath(); ctx.arc(cx,cy,s*.34,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#c0c0a8'; ctx.beginPath(); ctx.arc(cx,cy,s*.20,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#a8a890'; ctx.beginPath(); ctx.arc(cx,cy,s*.10,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#e74c3c';
+      ctx.fillRect(cx-s*.04,cy-s*.14,s*.08,s*.28);
+      ctx.fillRect(cx-s*.14,cy-s*.04,s*.28,s*.08);
+      break;
+    case 'shield': {
+      ctx.fillStyle='#5a3010';
+      ctx.beginPath();
+      ctx.moveTo(cx,y+s*.05); ctx.lineTo(x+s*.92,y+s*.05); ctx.lineTo(x+s*.92,y+s*.58);
+      ctx.lineTo(cx,y+s*.94); ctx.lineTo(x+s*.08,y+s*.58); ctx.lineTo(x+s*.08,y+s*.05);
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle='#c8a84c'; ctx.lineWidth=Math.max(1,s*.05); ctx.stroke();
+      ctx.fillStyle='#c8a84c'; ctx.beginPath(); ctx.arc(cx,cy-s*.05,s*.13,0,Math.PI*2); ctx.fill();
+      break;
+    }
+    case 'arrows':
+      for (let ai=0;ai<3;ai++) {
+        const aox=(ai-1)*s*.22;
+        ctx.fillStyle='#7a4820'; ctx.fillRect(cx+aox-s*.04,y+s*.20,s*.08,s*.62);
+        ctx.fillStyle='#aaa';
+        ctx.beginPath(); ctx.moveTo(cx+aox,y+s*.12); ctx.lineTo(cx+aox-s*.09,y+s*.24); ctx.lineTo(cx+aox+s*.09,y+s*.24); ctx.closePath(); ctx.fill();
+        ctx.fillStyle='#c0392b';
+        ctx.fillRect(cx+aox-s*.10,y+s*.76,s*.08,s*.08);
+        ctx.fillRect(cx+aox+s*.02,y+s*.76,s*.08,s*.08);
+      }
+      break;
+    case 'bow': {
+      const bA=Math.PI*.62;
+      ctx.strokeStyle='#7a4820'; ctx.lineWidth=Math.max(2,s*.11); ctx.lineCap='round';
+      ctx.beginPath(); ctx.arc(cx-s*.08,cy,s*.38,-bA,bA); ctx.stroke();
+      const bpx=cx-s*.08+s*.38*Math.cos(-bA);
+      ctx.strokeStyle='#d4c070'; ctx.lineWidth=Math.max(1,s*.03);
+      ctx.beginPath(); ctx.moveTo(bpx,cy+s*.38*Math.sin(-bA)); ctx.lineTo(bpx,cy+s*.38*Math.sin(bA)); ctx.stroke();
+      break;
+    }
+    case 'torch':
+      ctx.fillStyle='#6B4423'; ctx.fillRect(cx-s*.09,cy,s*.18,s*.45);
+      ctx.fillStyle='#e67e22'; ctx.beginPath(); ctx.ellipse(cx,cy+s*.06,s*.16,s*.22,0,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#f1c40f'; ctx.beginPath(); ctx.ellipse(cx,cy+s*.02,s*.10,s*.16,0,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='rgba(255,255,200,0.6)'; ctx.beginPath(); ctx.ellipse(cx,cy-s*.08,s*.05,s*.08,0,0,Math.PI*2); ctx.fill();
+      break;
+  }
+  ctx.restore();
+}
+
+// ── DRAW CHESTS ───────────────────────────────────────────────────────────────
+function drawChests() {
+  for (const chest of CHESTS) {
+    const x = chest.col * TILE, y = chest.row * TILE;
+    const empty = chest.loot.length === 0;
+    if (!chest.opened) {
+      ctx.fillStyle='#7a4a20'; ctx.fillRect(x+4,y+14,TILE-8,TILE-18);
+      ctx.fillStyle='#6a3c18'; ctx.fillRect(x+4,y+8,TILE-8,7);
+      ctx.fillStyle='#c8a84c';
+      ctx.fillRect(x+4,y+14,TILE-8,2);
+      ctx.fillRect(x+TILE/2-1,y+8,2,TILE-12);
+      ctx.fillRect(x+TILE/2-4,y+12,8,5);
+      ctx.fillStyle='#5a3a18'; ctx.fillRect(x+TILE/2-2,y+14,4,3);
+      ctx.fillStyle='#c8a84c'; ctx.fillRect(x+TILE/2-1,y+15,2,1);
+    } else {
+      ctx.fillStyle = empty ? '#2a1808' : '#3a2010';
+      ctx.fillRect(x+4,y+15,TILE-8,TILE-19);
+      ctx.fillStyle = empty ? '#1a0e04' : '#1e1008';
+      ctx.fillRect(x+6,y+17,TILE-12,TILE-23);
+      ctx.fillStyle='#5a3a18'; ctx.fillRect(x+4,y+5,TILE-8,10);
+      ctx.fillStyle='#c8a84c'; ctx.fillRect(x+4,y+14,TILE-8,2);
+      if (!empty) {
+        ctx.fillStyle='rgba(255,200,80,0.18)';
+        ctx.fillRect(x+4,y+5,TILE-8,10);
+      }
+    }
+    ctx.fillStyle='rgba(0,0,0,0.22)'; ctx.fillRect(x+5,y+TILE-5,TILE-7,4);
+  }
+}
+
+// ── DRAW PLAYER ───────────────────────────────────────────────────────────────
+function drawPlayer() {
+  const x=Math.round(player.x), y=Math.round(player.y), w=player.w, h=player.h;
+  ctx.fillStyle='rgba(0,0,0,0.3)';
+  ctx.beginPath(); ctx.ellipse(x,y+h/2-1,w/2-2,4,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#2e6bc4'; ctx.fillRect(x-w/2,y-h/2+6,w,h-6);
+  ctx.fillStyle='#f0c88a'; ctx.fillRect(x-w/2+2,y-h/2,w-4,13);
+  ctx.fillStyle='#4a2e10'; ctx.fillRect(x-w/2+2,y-h/2,w-4,4);
+  ctx.fillStyle='#1a1a2e';
+  if (player.dir==='down')  { ctx.fillRect(x-4,y-h/2+6,3,3); ctx.fillRect(x+1,y-h/2+6,3,3); }
+  else if (player.dir==='up') { ctx.fillStyle='#3a2010'; ctx.fillRect(x-w/2+2,y-h/2,w-4,6); }
+  else if (player.dir==='left') { ctx.fillRect(x-4,y-h/2+6,3,3); }
+  else { ctx.fillRect(x+1,y-h/2+6,3,3); }
+  ctx.fillStyle='#888'; ctx.fillRect(x+w/2-1,y-h/2+8,2,12);
+  ctx.fillStyle='#c8a84c'; ctx.fillRect(x+w/2-3,y-h/2+8,6,3);
+}
+
+// ── DRAW HUD ──────────────────────────────────────────────────────────────────
+function drawHUD() {
+  const bx=8,by=8,bw=110,bh=14;
+  ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(bx-3,by-3,bw+6,bh+6);
+  ctx.fillStyle='#3a0000'; ctx.fillRect(bx,by,bw,bh);
+  ctx.fillStyle=player.hp>4?'#c0392b':'#e74c3c';
+  ctx.fillRect(bx,by,Math.round(bw*player.hp/player.maxHp),bh);
+  ctx.fillStyle='#fff'; ctx.font='bold 8px Verdana'; ctx.textAlign='left'; ctx.textBaseline='middle';
+  ctx.fillText(`HP  ${player.hp} / ${player.maxHp}`,bx+4,by+bh/2+1);
+
+  ctx.fillStyle='rgba(0,0,0,0.45)'; ctx.fillRect(0,canvas.height-16,canvas.width,16);
+  ctx.fillStyle='rgba(255,255,255,0.28)'; ctx.font='7px Verdana'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('WASD/Arrows: Move   E: Interact   I: Inventory   C: Craft',canvas.width/2,canvas.height-8);
+
+  if (notification.timer>0) {
+    const alpha=Math.min(1,notification.timer/30);
+    ctx.font='10px Verdana'; ctx.textAlign='center';
+    const tw=ctx.measureText(notification.text).width+20;
+    ctx.fillStyle=`rgba(0,0,0,${alpha*.65})`;
+    ctx.fillRect(canvas.width/2-tw/2,canvas.height-50,tw,18);
+    ctx.fillStyle=`rgba(255,225,90,${alpha})`; ctx.textBaseline='middle';
+    ctx.fillText(notification.text,canvas.width/2,canvas.height-41);
+    notification.timer--;
+  }
+}
+
+// ── DRAW INVENTORY ────────────────────────────────────────────────────────────
+function drawInventory() {
+  ctx.fillStyle='rgba(0,0,0,0.80)'; ctx.fillRect(0,0,canvas.width,canvas.height);
+  const PW=390,PH=360,PX=(canvas.width-390)/2,PY=(canvas.height-360)/2;
+  const SLOT=54,GAP=6,IC=5;
+  ctx.fillStyle='#0e0e1e'; ctx.fillRect(PX,PY,PW,PH);
+  ctx.strokeStyle='#3a3a6a'; ctx.lineWidth=2; ctx.strokeRect(PX,PY,PW,PH);
+  ctx.fillStyle='#e8d48c'; ctx.font='bold 12px Verdana'; ctx.textAlign='center'; ctx.textBaseline='alphabetic';
+  ctx.fillText('INVENTORY',PX+PW/2,PY+22);
+  ctx.strokeStyle='#222240'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(PX+12,PY+28); ctx.lineTo(PX+PW-12,PY+28); ctx.stroke();
+
+  const gW=IC*SLOT+(IC-1)*GAP, GX=PX+(PW-gW)/2, GY=PY+38;
+  for (let i=0;i<20;i++) {
+    const c=i%IC, r=Math.floor(i/IC), sx=GX+c*(SLOT+GAP), sy=GY+r*(SLOT+GAP), sel=i===ui.invSlot;
+    ctx.fillStyle=sel?'#1a1a3e':'#0a0a18'; ctx.fillRect(sx,sy,SLOT,SLOT);
+    ctx.strokeStyle=sel?'#7777ff':'#1e1e36'; ctx.lineWidth=sel?2:1; ctx.strokeRect(sx,sy,SLOT,SLOT);
+    const item=player.inventory[i];
+    if (item) {
+      drawItemIcon(item.id,sx+4,sy+4,SLOT-8);
+      ctx.fillStyle='#ddd'; ctx.font='bold 8px Verdana'; ctx.textAlign='right'; ctx.textBaseline='alphabetic';
+      ctx.fillText(item.qty,sx+SLOT-3,sy+SLOT-3);
+    }
+  }
+
+  const selItem=player.inventory[ui.invSlot], descY=GY+4*(SLOT+GAP)+12;
+  ctx.strokeStyle='#222240'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(PX+12,descY-4); ctx.lineTo(PX+PW-12,descY-4); ctx.stroke();
+  if (selItem) {
+    ctx.fillStyle='#e8d48c'; ctx.font='bold 10px Verdana'; ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+    ctx.fillText(ITEMS[selItem.id].name,PX+16,descY+12);
+    ctx.fillStyle='#778'; ctx.font='9px Verdana';
+    ctx.fillText(ITEMS[selItem.id].desc,PX+16,descY+26);
+    if (selItem.id==='potion'||selItem.id==='bandage') {
+      ctx.fillStyle='#4caf50'; ctx.fillText('[Enter] Use',PX+16,descY+40);
+    }
+  } else {
+    ctx.fillStyle='#333'; ctx.font='9px Verdana'; ctx.textAlign='center';
+    ctx.fillText('Empty slot',PX+PW/2,descY+12);
+  }
+  ctx.fillStyle='#2a2a4a'; ctx.font='7px Verdana'; ctx.textAlign='center'; ctx.textBaseline='alphabetic';
+  ctx.fillText('[I] Close   Arrows: Navigate   Enter: Use item',PX+PW/2,PY+PH-7);
+}
+
+// ── DRAW CHEST UI ─────────────────────────────────────────────────────────────
+function drawChestUI() {
+  const chest = ui.activeChest;
+  ctx.fillStyle='rgba(0,0,0,0.80)'; ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  const PW=640, PH=300, PX=(canvas.width-640)/2, PY=(canvas.height-300)/2;
+  const LW=240; // left section width
+  const RX=PX+LW+20; // right section start
+  const RW=PW-LW-20; // right section width
+
+  ctx.fillStyle='#0e0e1a'; ctx.fillRect(PX,PY,PW,PH);
+  ctx.strokeStyle='#3a3a5a'; ctx.lineWidth=2; ctx.strokeRect(PX,PY,PW,PH);
+
+  // Section divider
+  ctx.strokeStyle='#222236'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(PX+LW+10,PY+10); ctx.lineTo(PX+LW+10,PY+PH-28); ctx.stroke();
+
+  // Active pane highlights
+  const lA=(ui.chestPane==='chest'), rA=(ui.chestPane==='inventory');
+  ctx.strokeStyle=lA?'#5555aa':'#1e1e36'; ctx.lineWidth=lA?2:1;
+  ctx.strokeRect(PX+4,PY+4,LW-8,PH-32);
+  ctx.strokeStyle=rA?'#5555aa':'#1e1e36'; ctx.lineWidth=rA?2:1;
+  ctx.strokeRect(RX+4,PY+4,RW-8,PH-32);
+
+  // Section titles
+  ctx.font='bold 10px Verdana'; ctx.textAlign='center'; ctx.textBaseline='alphabetic';
+  ctx.fillStyle=lA?'#e8d48c':'#555';
+  ctx.fillText('CHEST CONTENTS',PX+LW/2,PY+20);
+  ctx.fillStyle=rA?'#e8d48c':'#555';
+  ctx.fillText('INVENTORY',RX+RW/2,PY+20);
+
+  // ── Chest grid (3×3, slot 52px, gap 6px) ──
+  const CS=52,CG=6,CCOLS=3;
+  const cgW=CCOLS*CS+(CCOLS-1)*CG, CGX=PX+(LW-cgW)/2, CGY=PY+30;
+
+  if (chest.loot.length === 0) {
+    ctx.fillStyle='#383838'; ctx.font='10px Verdana'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('Chest is empty',PX+LW/2, CGY+90);
+  } else {
+    for (let i=0;i<9;i++) {
+      const cc=i%CCOLS,cr=Math.floor(i/CCOLS),sx=CGX+cc*(CS+CG),sy=CGY+cr*(CS+CG);
+      const selC=lA&&i===ui.chestSlot, item=chest.loot[i];
+      ctx.fillStyle=selC?'#1a1a3e':'#080814'; ctx.fillRect(sx,sy,CS,CS);
+      ctx.strokeStyle=selC?'#7777ff':'#1a1a2e'; ctx.lineWidth=selC?2:1; ctx.strokeRect(sx,sy,CS,CS);
+      if (item) {
+        drawItemIcon(item.id,sx+4,sy+4,CS-8);
+        ctx.fillStyle='#ddd'; ctx.font='bold 8px Verdana'; ctx.textAlign='right'; ctx.textBaseline='alphabetic';
+        ctx.fillText(item.qty,sx+CS-3,sy+CS-3);
+      }
+    }
+  }
+
+  // Selected chest item description
+  const selC=chest.loot[ui.chestSlot];
+  if (selC && lA) {
+    ctx.fillStyle='#bbb'; ctx.font='bold 9px Verdana'; ctx.textAlign='center'; ctx.textBaseline='alphabetic';
+    ctx.fillText(`${ITEMS[selC.id].name}  ×${selC.qty}`,PX+LW/2,CGY+3*(CS+CG)+14);
+    ctx.fillStyle='#4caf50'; ctx.font='8px Verdana';
+    ctx.fillText('[Enter] Take',PX+LW/2,CGY+3*(CS+CG)+26);
+  }
+
+  // ── Inventory grid (5×3, slot 48px, gap 5px) ──
+  const IS=48,IG=5,ICOLS=5;
+  const igW=ICOLS*IS+(ICOLS-1)*IG, IGX=RX+(RW-igW)/2, IGY=PY+30;
+
+  for (let i=0;i<15;i++) {
+    const ic=i%ICOLS,ir=Math.floor(i/ICOLS),sx=IGX+ic*(IS+IG),sy=IGY+ir*(IS+IG);
+    const selI=rA&&i===ui.invSlot2, item=player.inventory[i];
+    ctx.fillStyle=selI?'#1a1a3e':'#080814'; ctx.fillRect(sx,sy,IS,IS);
+    ctx.strokeStyle=selI?'#7777ff':'#1a1a2e'; ctx.lineWidth=selI?2:1; ctx.strokeRect(sx,sy,IS,IS);
+    if (item) {
+      drawItemIcon(item.id,sx+3,sy+3,IS-6);
+      ctx.fillStyle='#ddd'; ctx.font='bold 7px Verdana'; ctx.textAlign='right'; ctx.textBaseline='alphabetic';
+      ctx.fillText(item.qty,sx+IS-2,sy+IS-2);
+    }
+  }
+
+  // Selected inventory item name
+  const selI=player.inventory[ui.invSlot2];
+  if (selI && rA) {
+    ctx.fillStyle='#888'; ctx.font='9px Verdana'; ctx.textAlign='center'; ctx.textBaseline='alphabetic';
+    ctx.fillText(`${ITEMS[selI.id].name}  ×${selI.qty}`,RX+RW/2,IGY+3*(IS+IG)+14);
+  }
+
+  // Footer
+  ctx.fillStyle='rgba(0,0,0,0.5)'; ctx.fillRect(PX,PY+PH-24,PW,24);
+  ctx.fillStyle='#3a3a5a'; ctx.font='7px Verdana'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('[Tab] Switch pane   [Enter] Take   [T] Take All   [E] Close',PX+PW/2,PY+PH-12);
+}
+
+// ── DRAW CRAFTING ─────────────────────────────────────────────────────────────
+function drawCrafting() {
+  ctx.fillStyle='rgba(0,0,0,0.80)'; ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  const PW=620, PH=420, PX=(canvas.width-620)/2, PY=(canvas.height-420)/2;
+  const LW=210; // left panel (recipe list)
+  const DX=PX+LW+18; // detail panel start
+  const DW=PW-LW-18; // detail panel width
+
+  ctx.fillStyle='#080f08'; ctx.fillRect(PX,PY,PW,PH);
+  ctx.strokeStyle='#1a3a1a'; ctx.lineWidth=2; ctx.strokeRect(PX,PY,PW,PH);
+
+  // Title
+  ctx.fillStyle='#7de87c'; ctx.font='bold 12px Verdana'; ctx.textAlign='center'; ctx.textBaseline='alphabetic';
+  ctx.fillText('CRAFTING',PX+PW/2,PY+22);
+  ctx.strokeStyle='#142814'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(PX+12,PY+28); ctx.lineTo(PX+PW-12,PY+28); ctx.stroke();
+
+  // Divider between panels
+  ctx.strokeStyle='#142814'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(DX-4,PY+30); ctx.lineTo(DX-4,PY+PH-28); ctx.stroke();
+
+  // ── Category tabs ──
+  const tabW=Math.floor((LW-16)/CATEGORIES.length);
+  CATEGORIES.forEach((cat,i) => {
+    const tx=PX+8+i*tabW, ty=PY+32, tw=tabW-2, th=18;
+    const active=(cat.id===ui.craftCategory);
+    ctx.fillStyle=active?'#1a4a1a':'#0a180a';
+    ctx.fillRect(tx,ty,tw,th);
+    ctx.strokeStyle=active?'#4caf50':'#1a2a1a';
+    ctx.lineWidth=active?1.5:1; ctx.strokeRect(tx,ty,tw,th);
+    ctx.fillStyle=active?'#7de87c':'#2a4a2a';
+    ctx.font=`${active?'bold ':''  }8px Verdana`; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(cat.label,tx+tw/2,ty+th/2);
+  });
+
+  // ── Recipe list ──
+  const fr=filteredRecipes();
+  const rowH=28, listY=PY+56;
+
+  if (fr.length===0) {
+    ctx.fillStyle='#2a4a2a'; ctx.font='9px Verdana'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('No recipes',PX+LW/2,listY+40);
+  } else {
+    fr.forEach((recipe,i) => {
+      const ry=listY+i*rowH, sel=(i===ui.craftSlot), ok=canCraft(recipe);
+      ctx.fillStyle=sel?'#0d220d':'#060e06'; ctx.fillRect(PX+6,ry,LW-12,rowH-2);
+      ctx.strokeStyle=sel?'#4caf50':'#0e1e0e'; ctx.lineWidth=sel?1.5:1; ctx.strokeRect(PX+6,ry,LW-12,rowH-2);
+      drawItemIcon(recipe.output.id,PX+10,ry+3,20);
+      ctx.fillStyle=ok?'#6de86c':'#2a4a2a'; ctx.font=`${sel?'bold ':''  }9px Verdana`;
+      ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+      ctx.fillText(recipe.name,PX+34,ry+18);
+    });
+  }
+
+  // ── Recipe detail (right panel) ──
+  const selRecipe=fr[ui.craftSlot];
+  if (!selRecipe) {
+    ctx.fillStyle='#1a2a1a'; ctx.font='9px Verdana'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('Select a recipe',DX+DW/2,PY+PH/2);
+  } else {
+    const ok=canCraft(selRecipe);
+    // Big output icon
+    drawItemIcon(selRecipe.output.id, DX+12, PY+40, 60);
+    // Name & output qty
+    ctx.fillStyle=ok?'#7de87c':'#4a6a4a'; ctx.font='bold 11px Verdana'; ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+    ctx.fillText(selRecipe.name, DX+80, PY+58);
+    ctx.fillStyle='#888'; ctx.font='9px Verdana';
+    ctx.fillText(`Creates: ×${selRecipe.output.qty}`, DX+80, PY+72);
+    // Category badge
+    ctx.fillStyle='#1a3a1a'; ctx.fillRect(DX+80,PY+78,60,14);
+    ctx.strokeStyle='#2a5a2a'; ctx.lineWidth=1; ctx.strokeRect(DX+80,PY+78,60,14);
+    ctx.fillStyle='#4a8a4a'; ctx.font='7px Verdana'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    const catLabel=CATEGORIES.find(c=>c.id===selRecipe.category)?.label||'';
+    ctx.fillText(catLabel,DX+110,PY+85);
+
+    // Item description
+    ctx.fillStyle='#4a5a4a'; ctx.font='9px Verdana'; ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+    ctx.fillText(ITEMS[selRecipe.output.id].desc, DX+12, PY+114);
+
+    // Divider
+    ctx.strokeStyle='#142814'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(DX+8,PY+124); ctx.lineTo(DX+DW-12,PY+124); ctx.stroke();
+
+    // Ingredients
+    ctx.fillStyle='#3a5a3a'; ctx.font='bold 8px Verdana'; ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+    ctx.fillText('INGREDIENTS',DX+12,PY+138);
+
+    selRecipe.inputs.forEach((inp,i) => {
+      const iy=PY+152+i*36;
+      const have=countItem(inp.id), enough=(have>=inp.qty);
+      drawItemIcon(inp.id, DX+12, iy, 28);
+      ctx.fillStyle=enough?'#4caf50':'#c0392b';
+      ctx.font='bold 9px Verdana'; ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+      ctx.fillText(ITEMS[inp.id].name, DX+46, iy+12);
+      ctx.font='9px Verdana';
+      ctx.fillText(`${have} / ${inp.qty}`, DX+46, iy+26);
+      // status icon
+      ctx.font='11px Verdana'; ctx.textAlign='right';
+      ctx.fillText(enough?'✓':'✗', DX+DW-14, iy+20);
+    });
+
+    const afterIngr=PY+152+selRecipe.inputs.length*36+8;
+
+    // Divider
+    ctx.strokeStyle='#142814'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(DX+8,afterIngr); ctx.lineTo(DX+DW-12,afterIngr); ctx.stroke();
+
+    // Craft status & hints
+    ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+    if (ok) {
+      ctx.fillStyle='#4caf50'; ctx.font='bold 9px Verdana';
+      ctx.fillText('✓ Ready to craft!', DX+12, afterIngr+16);
+    } else {
+      ctx.fillStyle='#c0392b'; ctx.font='9px Verdana';
+      ctx.fillText('✗ Missing materials', DX+12, afterIngr+16);
+    }
+    ctx.fillStyle=ok?'#7de87c':'#2a4a2a'; ctx.font='8px Verdana';
+    ctx.fillText('[Enter] Craft ×1', DX+12, afterIngr+32);
+    ctx.fillStyle=ok?'#5ab85a':'#1a3a1a';
+    ctx.fillText('[Shift+Enter] Craft ×5', DX+12, afterIngr+46);
+  }
+
+  // Footer
+  ctx.fillStyle='rgba(0,0,0,0.5)'; ctx.fillRect(PX,PY+PH-24,PW,24);
+  ctx.fillStyle='#1a3a1a'; ctx.font='7px Verdana'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('[C] Close   ↑↓ Navigate   Tab: Category',PX+PW/2,PY+PH-12);
+}
+
+// ── DRAW MAP ──────────────────────────────────────────────────────────────────
+function drawMap() {
+  for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++) drawTile(c,r,MAP[r][c]);
+}
+
+// ── MAIN LOOP ─────────────────────────────────────────────────────────────────
+function loop(ts) {
+  waterAnim=ts*.002;
+  update();
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  drawMap();
+  drawChests();
+  drawPlayer();
+  drawHUD();
+  if (ui.inventoryOpen) drawInventory();
+  if (ui.chestOpen)     drawChestUI();
+  if (ui.craftOpen)     drawCrafting();
+  requestAnimationFrame(loop);
+}
+
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
