@@ -8,7 +8,7 @@ Tools I build because I needed them and couldn't find a good free version. Every
 
 | Project | What it does | Built with |
 |---|---|---|
-| [**AudioSend**](https://lukeda.me/audiosend/) | VST3 / AU plugin that sends your DAW mix to your phone over local Wi-Fi, so you can check it on another speaker without bouncing or cables. Windows and macOS. | Plugin + Node.js / Express backend with Stripe |
+| [**AudioSend**](https://github.com/LucasRuizGomez/Audiosend) | Free VST3 plugin for Windows that sends your exports to your phone over local Wi-Fi. Scan a QR code, listen in the browser and check loudness (LUFS, true peak). Source code in [its own repo](https://github.com/LucasRuizGomez/Audiosend). | C++, JUCE |
 | [**Portfolio**](https://lukeda.me/stockview/) | Stock portfolio tracker. Add your positions and see live prices, P&L, daily change and total value. | JavaScript, Finnhub API, `localStorage` |
 | [**Filekit**](https://lukeda.me/filekit/) | File tools that run in the browser: merge PDFs, convert images and Word documents to PDF, and edit PDF pages, without uploading anything. | JavaScript, pdf-lib, PDF.js |
 | [**NoteRead**](https://lukeda.me/noteread/) | Sight-reading trainer. A note appears on the staff and you name it as fast as you can. Tracks accuracy, streaks and reaction time. | JavaScript, SVG, Web Audio API |
