@@ -12,10 +12,6 @@ audiosend/
   index.html            ← AudioSend product page
   style.css
   main.js
-  server.js
-  download.html
-  success.html
-  resend-key.html
   hero-illustration.html
 positwebsite/
   index.html            ← "My Little Board" interactive sticky-note app
@@ -110,10 +106,10 @@ Dark teal terminal / retro OS interface. Looks like a CRT monitor or old-school 
 ## Projects
 
 ### AudioSend
-- **Location**: `audiosend/index.html`
+- **Location**: `audiosend/index.html`. Every AudioSend link opens the GitHub repo: https://github.com/LucasRuizGomez/Audiosend
 - **Status**: Live
-- **Category**: audio · DAW utility
-- **Description**: Sends DAW mix to phone over local WiFi. VST3 + AU for Windows & macOS. No cables, no bounce files.
+- **Category**: audio · DAW plugin
+- **Description**: Sends audio exports to your phone over local WiFi (QR code, plays in the phone's browser) with loudness analysis. Free and open source (AGPLv3). VST3 for Windows only.
 
 ### My Little Board (positwebsite)
 - **Location**: `positwebsite/index.html`
