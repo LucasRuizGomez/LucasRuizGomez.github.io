@@ -4,659 +4,619 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Filekit — File Tools by Lukeda</title>
+  <meta name="description" content="Merge PDFs, turn images and Word files into PDFs, and reorder or delete pages. Runs in your browser; files are never uploaded.">
   <style>
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+  /* ───────────────────────── Design tokens ───────────────────────── */
+  :root {
+    /* Warm neutrals — amber is kept for the accent only */
+    --bg:         #0c0a07;
+    --surface:    #16130e;
+    --surface-hi: #1e1a13;
+    --field:      #0f0d09;
+    --border:     rgba(255, 236, 200, 0.10);
+    --border-hi:  rgba(255, 236, 200, 0.22);
+
+    --text:       #f4ede1;
+    --text-muted: #c2b6a2;
+    --text-faint: #9a8f7c;
+
+    --accent:     #f0b13c;
+    --accent-hi:  #ffc65e;
+    --accent-soft: rgba(240, 177, 60, 0.12);
+    --on-accent:  #1d1302;
+    --ok:         #7bd88f;
+    --err:        #ff8a70;
+
+    --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-mono: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, monospace;
+    --fs-xs: 0.8125rem; --fs-sm: 0.875rem; --fs-base: 1rem; --fs-lg: 1.125rem; --fs-xl: 1.375rem;
+    --fs-hero: clamp(1.75rem, 4.2vw, 2.75rem);
+
+    --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-5: 24px; --s-6: 32px; --s-7: 48px; --s-8: 72px;
+
+    --r-card:  16px;
+    --pad-card: 24px;
+    --r-inner: calc(var(--r-card) - var(--s-2));   /* elements inset 8px */
+    --r-ctl:   10px;
+    --r-tab-outer: 12px;
+    --pad-tabs: 4px;
+    --r-tab:   calc(var(--r-tab-outer) - var(--pad-tabs));
+
+    --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+    --dur:  180ms;
+  }
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
   body {
-    font-family: Verdana, Tahoma, Arial, sans-serif;
-    font-size: 11px;
-    background-color: #0a0702;
-    background-image:
-      radial-gradient(circle at 50%  4%, rgba(230,175,50,0.55) 0%, transparent 1.2%),
-      radial-gradient(circle at 54%  6%, rgba(230,175,50,0.40) 0%, transparent 0.9%),
-      radial-gradient(circle at 47%  5%, rgba(230,175,50,0.35) 0%, transparent 0.8%),
-      radial-gradient(ellipse 22%  65% at 50%  0%, rgba(200,140,20,0.50) 0%, transparent 55%),
-      radial-gradient(ellipse 75%  55% at 50%  0%, rgba(190,120,10,0.22) 0%, transparent 55%),
-      radial-gradient(ellipse 170% 16% at 20% 44%, rgba(180,115,8,0.12) 0%, transparent 52%),
-      radial-gradient(ellipse 190% 12% at 40% 64%, rgba(170,105,5,0.08) 0%, transparent 50%),
-      radial-gradient(ellipse  80% 55% at 100% 100%, rgba(2,1,0,0.6) 0%, transparent 58%),
-      radial-gradient(ellipse  60% 45% at   0% 100%, rgba(2,1,0,0.4) 0%, transparent 50%),
-      repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.04) 3px, rgba(0,0,0,0.04) 4px),
-      linear-gradient(155deg, #1c1204 0%, #140e03 20%, #0e0a02 42%, #090602 64%, #060401 84%, #030200 100%);
+    font-family: var(--font-sans);
+    font-size: var(--fs-base);
+    line-height: 1.55;
+    color: var(--text);
+    background: var(--bg);
+    background-image: radial-gradient(ellipse 70% 40% at 50% -5%, rgba(240, 177, 60, 0.10), transparent 70%);
     background-attachment: fixed;
     min-height: 100vh;
-    padding: 22px 16px 48px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    color: #a88c5a;
+    -webkit-font-smoothing: antialiased;
+    font-variant-numeric: tabular-nums;
   }
+  a { color: inherit; }
+  button { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+  [hidden] { display: none !important; }
 
-  .page { width: 100%; max-width: 860px; }
+  .icon {
+    width: 16px; height: 16px; flex: none;
+    stroke: currentColor; fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round;
+  }
+  .icon-lg { width: 28px; height: 28px; stroke-width: 1.5; }
 
-  /* ─ SYSBAR ─ */
-  .sysbar {
-    display: flex; align-items: center; justify-content: space-between;
-    background: linear-gradient(180deg, rgba(18,12,2,0.95) 0%, rgba(12,8,1,0.97) 100%);
-    border: 1px solid rgba(200,148,42,0.22);
-    border-bottom: 1px solid rgba(180,128,30,0.14);
-    padding: 5px 12px;
-    font-size: 9px; font-family: 'Courier New', monospace; letter-spacing: 0.06em;
-    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
-  }
-  .sysbar-left  { color: #8a6a22; font-weight: bold; text-transform: uppercase; }
-  .sysbar-right { display: flex; gap: 16px; align-items: center; color: #4a3810; text-transform: uppercase; }
-  .online-badge { display: flex; align-items: center; gap: 4px; color: #c89030; }
-  .led {
-    display: inline-block; width: 5px; height: 5px; border-radius: 50%;
-    background: radial-gradient(circle at 38% 32%, #ffe090, #d4920a);
-    box-shadow: 0 0 6px rgba(212,146,10,0.9);
-    animation: ledPulse 2.4s ease-in-out infinite;
-  }
-  @keyframes ledPulse {
-    0%,100% { box-shadow: 0 0 6px rgba(212,146,10,0.9); opacity: 1; }
-    50%      { box-shadow: 0 0 2px rgba(212,146,10,0.3); opacity: 0.5; }
-  }
+  .page { max-width: 920px; margin: 0 auto; padding: 0 var(--s-4) var(--s-7); }
+  @media (min-width: 640px) { .page { padding: 0 var(--s-6) var(--s-8); } }
 
-  /* ─ HEADER ─ */
-  .header-panel {
-    background: linear-gradient(180deg, rgba(20,13,3,0.93) 0%, rgba(14,9,2,0.95) 100%);
-    border: 1px solid rgba(200,148,42,0.22); border-top: none;
-    border-bottom: 2px solid rgba(190,130,25,0.16);
-    padding: 30px 28px 26px; position: relative; overflow: hidden;
-    margin-top: -1px; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  /* ── Header ── */
+  .site-header { display: flex; align-items: center; justify-content: space-between; padding: var(--s-5) 0; }
+  .back {
+    display: inline-flex; align-items: center; gap: var(--s-2);
+    font-size: var(--fs-sm); color: var(--text-muted); text-decoration: none;
+    transition: color var(--dur) var(--ease);
   }
-  .header-panel::before {
-    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(212,155,40,0.55), transparent);
-  }
-  .header-panel::after {
-    content: ''; position: absolute; top: -55px; right: -40px;
-    width: 280px; height: 180px;
-    background: radial-gradient(ellipse, rgba(200,140,25,0.08) 0%, transparent 65%);
-    pointer-events: none;
-  }
-  .brand {
-    font-family: 'Trebuchet MS', Impact, Arial, sans-serif;
-    font-size: clamp(28px, 6vw, 44px); font-weight: bold; color: #e8c870;
-    text-transform: uppercase; letter-spacing: 0.05em; line-height: 1; margin-bottom: 5px;
-    text-shadow: 0 0 30px rgba(212,160,40,0.45), 0 2px 6px rgba(0,0,0,0.6);
-    position: relative; z-index: 1;
-  }
-  .brand-ver {
-    font-family: 'Courier New', monospace; font-size: 9px; color: #4a3610;
-    letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 16px;
-    position: relative; z-index: 1;
-  }
-  .brand-tagline { font-size: 11px; color: #6a5222; line-height: 1.8; max-width: 540px; position: relative; z-index: 1; }
-  .brand-tagline strong { color: #c89840; font-weight: bold; }
+  .back:hover { color: var(--text); }
+  .back .icon { transition: transform var(--dur) var(--ease); }
+  .back:hover .icon { transform: translateX(-2px); }
+  .app-name { font-weight: 700; letter-spacing: -0.01em; }
 
-  /* ─ NAVBAR ─ */
-  .navbar {
-    display: flex; align-items: stretch;
-    background: linear-gradient(180deg, rgba(16,10,2,0.95) 0%, rgba(10,6,1,0.97) 100%);
-    border: 1px solid rgba(200,148,42,0.22); border-top: none; margin-top: -1px;
-    overflow: hidden; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
-    flex-wrap: wrap;
+  .intro { padding: var(--s-6) 0 var(--s-6); }
+  .intro h1 {
+    font-size: var(--fs-hero); line-height: 1.1; letter-spacing: -0.025em;
+    max-width: 22ch; text-wrap: balance; margin-left: -0.03em;
   }
-  .nav-prefix {
-    padding: 0 12px; font-family: 'Courier New', monospace; font-size: 9px;
-    font-weight: bold; color: #3a2c0e; border-right: 1px solid rgba(180,128,30,0.14);
-    display: flex; align-items: center; background: rgba(10,6,1,0.5); white-space: nowrap;
-  }
-  .nav-items { display: flex; flex-wrap: wrap; flex: 1; }
-  .nav-lnk {
-    display: flex; align-items: center; padding: 9px 14px;
-    font-size: 9px; font-family: Verdana, Tahoma, sans-serif; font-weight: bold;
-    color: #5a4418; text-decoration: none; text-transform: uppercase;
-    letter-spacing: 0.08em; border-right: 1px solid rgba(180,128,30,0.12);
-    position: relative; transition: background 0.1s, color 0.1s; cursor: pointer;
-  }
-  .nav-lnk:hover  { background: rgba(200,148,42,0.08); color: #d4a038; }
-  .nav-lnk.active { color: #d4a038; background: rgba(200,148,42,0.07); }
-  .nav-lnk.active::after {
-    content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px;
-    background: linear-gradient(90deg, transparent, #c89030 40%, transparent);
-  }
-  .nav-back {
-    margin-left: auto; font-family: 'Courier New', monospace; font-size: 9px;
-    color: #2e2208; padding: 0 14px; display: flex; align-items: center;
-    text-decoration: none; border-left: 1px solid rgba(180,128,30,0.12);
-    transition: color 0.1s; white-space: nowrap;
-  }
-  .nav-back:hover { color: #8a6a22; }
+  .intro p { margin-top: var(--s-3); color: var(--text-muted); max-width: 56ch; text-wrap: pretty; }
 
-  /* ─ PANEL ─ */
-  .panel {
-    border: 1px solid rgba(200,148,42,0.18); border-top: none;
-    background: rgba(10,7,2,0.90); margin-top: -1px;
-    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  /* ── Tool tabs (segmented control) ── */
+  .tabs {
+    display: flex; gap: 2px; flex-wrap: wrap;
+    padding: var(--pad-tabs);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-tab-outer);
+    width: fit-content; max-width: 100%;
+    margin-bottom: var(--s-4);
   }
-  .panel-head {
-    display: flex; align-items: center; gap: 8px; padding: 6px 14px;
-    background: rgba(18,12,3,0.65); border-bottom: 1px solid rgba(180,128,30,0.12);
-    font-size: 8px; font-family: 'Courier New', monospace; font-weight: bold;
-    color: #6a5225; text-transform: uppercase; letter-spacing: 0.14em;
+  .tab {
+    display: inline-flex; align-items: center; gap: var(--s-2);
+    padding: 8px 14px; border: 0; border-radius: var(--r-tab);
+    background: transparent; color: var(--text-muted);
+    font-size: var(--fs-sm); font-weight: 550; cursor: pointer;
+    transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
   }
-  .panel-head::before { content: '++ '; color: #3a2c0e; }
-  .panel-body { padding: 20px 22px; }
+  .tab:hover { color: var(--text); background: rgba(255, 236, 200, 0.05); }
+  .tab.active { background: var(--surface-hi); color: var(--text); box-shadow: inset 0 0 0 1px var(--border-hi); }
+  .tab.active .icon { color: var(--accent); }
 
-  /* ─ TOOL PANELS ─ */
-  .tool-panel { display: none; }
-  .tool-panel.active { display: block; }
+  /* ── Tool card ── */
+  .tool-panel {
+    display: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-card);
+    padding: var(--pad-card);
+  }
+  .tool-panel.active { display: block; animation: panelIn 240ms var(--ease); }
+  @keyframes panelIn { from { opacity: 0; transform: translateY(4px); } }
+  @media (max-width: 560px) { .tool-panel { --pad-card: 16px; } }
 
-  /* ─ INTRO ─ */
-  .intro-text { font-size: 11px; color: #5a4420; line-height: 1.8; max-width: 620px; }
-  .intro-quote {
-    font-family: 'Courier New', monospace; font-size: 10px; color: #3a2c0e;
-    padding: 8px 14px; border-left: 2px solid #7a5e18; background: rgba(180,128,20,0.06);
-    line-height: 1.6; letter-spacing: 0.02em; margin-top: 10px;
-  }
+  .tool-head { margin-bottom: var(--s-5); }
+  .tool-head h2 { font-size: var(--fs-xl); letter-spacing: -0.015em; text-wrap: balance; }
+  .tool-head p { margin-top: var(--s-1); color: var(--text-muted); font-size: var(--fs-sm); max-width: 62ch; text-wrap: pretty; }
+  .tool-head strong { color: var(--text); font-weight: 600; }
 
-  /* ─ FILE SLOT (shared) ─ */
-  .file-slot {
-    border: 1.5px dashed rgba(200,148,42,0.25); background: rgba(16,11,3,0.55);
-    position: relative; display: flex; flex-direction: column;
-    min-height: 160px; cursor: pointer;
-    transition: border-color 0.15s, background 0.15s; overflow: hidden;
-  }
-  .file-slot:hover      { border-color: rgba(200,148,42,0.52); background: rgba(22,15,4,0.70); }
-  .file-slot.drag-over  { border-color: rgba(200,148,42,0.75); background: rgba(26,18,5,0.80); border-style: solid; }
-  .file-slot.loaded     { border-style: solid; border-color: rgba(200,148,42,0.38); }
-  .file-slot.err-state  { border-style: solid; border-color: rgba(180,60,35,0.50); }
+  /* ── Drop slots ── */
+  .merge-grid { display: grid; grid-template-columns: 1fr auto 1fr; gap: var(--s-3); align-items: stretch; }
+  @media (max-width: 620px) { .merge-grid { grid-template-columns: 1fr; } .merge-divider { justify-self: center; } }
+  .merge-divider { display: grid; place-items: center; color: var(--text-faint); }
 
-  .slot-head {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 5px 10px; background: rgba(14,9,2,0.70);
-    border-bottom: 1px solid rgba(180,128,20,0.12);
-    font-family: 'Courier New', monospace; font-size: 8px; color: #3a2c0e;
-    text-transform: uppercase; letter-spacing: 0.1em; gap: 6px;
+  .file-slot, .img-drop-zone {
+    position: relative;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--s-2);
+    min-height: 200px; padding: var(--s-5) var(--s-4);
+    border: 1.5px dashed var(--border-hi);
+    border-radius: var(--r-inner);
+    background: var(--field);
+    text-align: center; cursor: pointer;
+    transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease), transform var(--dur) var(--ease);
   }
-  .slot-fname   { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .slot-ind {
-    width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
-    background: rgba(180,128,20,0.15); border: 1px solid rgba(180,128,20,0.25);
-    transition: background 0.2s, box-shadow 0.2s;
+  .file-slot.compact { min-height: 150px; }
+  .file-slot:hover, .img-drop-zone:hover { border-color: rgba(240, 177, 60, 0.5); }
+  .file-slot.drag-over, .img-drop-zone.drag-over {
+    border-color: var(--accent); border-style: solid; background: var(--accent-soft); transform: scale(1.01);
   }
-  .slot-ind.on  { background: rgba(210,148,10,0.75); box-shadow: 0 0 5px rgba(212,155,20,0.55); }
-  .slot-ind.bad { background: rgba(180,55,30,0.75); }
+  .slot-glyph { color: var(--text-faint); transition: color var(--dur) var(--ease), transform var(--dur) var(--ease); }
+  .file-slot:hover .slot-glyph, .img-drop-zone:hover .slot-glyph { color: var(--accent); transform: translateY(-2px); }
+  .slot-fname { font-weight: 600; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .slot-hint { font-size: var(--fs-sm); color: var(--text-muted); }
+  .slot-hint u { text-decoration-color: var(--accent); text-underline-offset: 3px; }
+  .slot-meta { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--s-1) var(--s-3); font-size: var(--fs-sm); color: var(--text-muted); }
+  .meta-line { display: inline-flex; gap: 6px; }
+  .meta-k { color: var(--text-faint); }
+  .meta-err { color: var(--err); }
+  .slot-ind { display: none; }
 
-  .slot-body {
-    flex: 1; display: flex; flex-direction: column; align-items: center;
-    justify-content: center; padding: 18px 16px; text-align: center; gap: 9px;
-    pointer-events: none;
-  }
-  .slot-glyph    { font-size: 28px; line-height: 1; opacity: 0.20; transition: opacity 0.2s; font-style: normal; }
-  .file-slot.loaded .slot-glyph { opacity: 0.50; }
-  .slot-hint     { font-family: 'Courier New', monospace; font-size: 9px; color: #2e2208; text-transform: uppercase; letter-spacing: 0.08em; line-height: 1.7; }
-  .file-slot.loaded .slot-hint  { display: none; }
-  .slot-meta     { display: none; width: 100%; }
-  .file-slot.loaded .slot-meta,
-  .file-slot.err-state .slot-meta { display: block; }
-  .meta-line     { display: flex; justify-content: space-between; font-family: 'Courier New', monospace; font-size: 8px; padding: 1.5px 0; }
-  .meta-k        { color: #3a2c0e; }
-  .meta-v        { color: #b88c2e; }
-  .meta-err      { color: #a04422; }
+  .file-slot.loaded { border-style: solid; border-color: rgba(123, 216, 143, 0.35); background: rgba(123, 216, 143, 0.04); cursor: default; }
+  .file-slot.loaded .slot-hint, .file-slot.err-state .slot-hint { display: none; }
+  .file-slot.loaded .slot-glyph { color: var(--ok); animation: pop 360ms var(--ease); }
+  .file-slot.err-state { border-style: solid; border-color: rgba(255, 138, 112, 0.45); }
+  .file-slot.err-state .slot-glyph { color: var(--err); animation: shake 300ms var(--ease); }
+  .file-slot.is-reading .slot-glyph { animation: pulse 1s ease-in-out infinite; color: var(--accent); }
+  @keyframes pop   { 40% { transform: scale(1.18); } }
+  @keyframes shake { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+  @keyframes pulse { 50% { opacity: 0.4; } }
 
   .slot-clear-btn {
-    display: none; position: absolute; bottom: 8px; right: 10px;
-    background: none; border: none; font-family: 'Courier New', monospace;
-    font-size: 8px; color: #3a2c0e; cursor: pointer; text-transform: uppercase;
-    letter-spacing: 0.06em; transition: color 0.1s; pointer-events: all; z-index: 2; padding: 2px 4px;
+    position: absolute; top: var(--s-2); right: var(--s-2);
+    display: none; align-items: center; gap: 4px;
+    padding: 4px 8px; border: 0; border-radius: calc(var(--r-inner) - var(--s-2));
+    background: transparent; color: var(--text-muted); font-size: var(--fs-xs); cursor: pointer;
+    transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
   }
-  .file-slot.loaded .slot-clear-btn,
-  .file-slot.err-state .slot-clear-btn { display: block; }
-  .slot-clear-btn:hover { color: #c05535; }
+  .slot-clear-btn:hover { background: rgba(255, 236, 200, 0.07); color: var(--text); }
+  .file-slot.loaded .slot-clear-btn, .file-slot.err-state .slot-clear-btn { display: inline-flex; }
 
-  /* ─ PDF MERGE LAYOUT ─ */
-  .merge-grid { display: grid; grid-template-columns: 1fr 24px 1fr; gap: 0 10px; align-items: start; margin-bottom: 18px; }
-  .merge-divider { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 160px; }
-  .div-line { flex: 1; width: 1px; background: linear-gradient(180deg, transparent, rgba(200,148,42,0.18), transparent); min-height: 30px; }
-  .div-sym  { font-family: 'Courier New', monospace; font-size: 11px; color: #3a2c0e; padding: 4px 0; }
-
-  /* ─ CONTROLS ROW ─ */
-  .controls-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 14px; }
-  .ctrl-label   { font-family: 'Courier New', monospace; font-size: 9px; color: #3a2c0e; text-transform: uppercase; letter-spacing: 0.1em; white-space: nowrap; }
-  .toggle-group { display: flex; border: 1px solid rgba(200,148,42,0.20); overflow: hidden; }
+  /* ── Option rows ── */
+  .controls-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3) var(--s-5); margin-top: var(--s-5); }
+  .ctrl { display: flex; align-items: center; gap: var(--s-3); flex-wrap: wrap; }
+  .ctrl-label { font-size: var(--fs-sm); color: var(--text-muted); }
+  .ctrl-desc { font-size: var(--fs-sm); color: var(--text-faint); }
+  .toggle-group {
+    display: inline-flex; padding: 3px; gap: 2px;
+    background: var(--field); border: 1px solid var(--border); border-radius: var(--r-ctl);
+    transition: opacity var(--dur) var(--ease);
+  }
   .tog-opt {
-    padding: 5px 13px; font-family: 'Courier New', monospace; font-size: 9px;
-    text-transform: uppercase; letter-spacing: 0.08em; color: #3a2c0e;
-    background: rgba(16,10,2,0.5); border: none; cursor: pointer;
-    transition: background 0.1s, color 0.1s;
+    padding: 5px 12px; border: 0; border-radius: calc(var(--r-ctl) - 3px);
+    background: transparent; color: var(--text-muted); font-size: var(--fs-sm); cursor: pointer;
+    transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
   }
-  .tog-opt + .tog-opt { border-left: 1px solid rgba(200,148,42,0.20); }
-  .tog-opt.sel        { background: rgba(200,148,42,0.12); color: #d4a038; }
-  .tog-opt:not(.sel):hover { color: #8a6a22; background: rgba(200,148,42,0.06); }
-  .ctrl-desc { font-family: 'Courier New', monospace; font-size: 9px; color: #2e2208; }
+  .tog-opt:hover { color: var(--text); }
+  .tog-opt.sel { background: var(--surface-hi); color: var(--text); box-shadow: inset 0 0 0 1px var(--border-hi); }
 
-  /* ─ RUN BUTTON ─ */
+  /* ── Run area ── */
+  .run-area { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3) var(--s-4); margin-top: var(--s-6); }
   .run-btn {
-    width: 100%; padding: 13px 20px;
-    background: rgba(170,118,8,0.10); border: 1px solid rgba(200,148,42,0.32);
-    color: #b88c28; font-family: 'Courier New', monospace; font-size: 11px;
-    font-weight: bold; text-transform: uppercase; letter-spacing: 0.18em;
-    cursor: pointer; position: relative; overflow: hidden;
-    transition: background 0.15s, border-color 0.15s, color 0.15s; margin-bottom: 18px;
+    display: inline-flex; align-items: center; justify-content: center; gap: var(--s-2);
+    min-height: 48px; padding: 0 26px; border: 0; border-radius: var(--r-ctl);
+    background: var(--accent); color: var(--on-accent);
+    font-size: var(--fs-base); font-weight: 650; cursor: pointer;
+    box-shadow: 0 8px 22px -10px rgba(240, 177, 60, 0.6);
+    transition: background var(--dur) var(--ease), transform var(--dur) var(--ease), opacity var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
   }
-  .run-btn::before {
-    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(212,160,40,0.55), transparent);
-  }
-  .run-btn:hover:not(:disabled) { background: rgba(200,148,42,0.18); border-color: rgba(200,148,42,0.55); color: #f0c050; }
-  .run-btn:disabled { opacity: 0.28; cursor: not-allowed; }
-  .run-btn.running  { animation: btnAmber 0.85s ease-in-out infinite; }
-  @keyframes btnAmber {
-    0%,100% { border-color: rgba(200,148,42,0.32); box-shadow: none; }
-    50%      { border-color: rgba(200,148,42,0.70); box-shadow: 0 0 14px rgba(200,148,42,0.14); }
-  }
+  .run-btn:hover:not(:disabled) { background: var(--accent-hi); }
+  .run-btn:active:not(:disabled) { transform: scale(0.97); }
+  .run-btn:disabled { background: var(--surface-hi); color: var(--text-faint); box-shadow: inset 0 0 0 1px var(--border); cursor: not-allowed; }
+  .run-btn .spinner { display: none; }
+  .run-btn.running { background: var(--accent); color: var(--on-accent); opacity: 0.85; cursor: progress; }
+  .run-btn.running .spinner { display: block; animation: spin 0.8s linear infinite; }
+  .run-btn.running .run-icon { display: none; }
+  @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* ─ LOG ─ */
-  .log-wrap { border: 1px solid rgba(200,148,42,0.14); background: rgba(6,4,1,0.65); }
-  .log-head {
-    padding: 4px 12px; font-family: 'Courier New', monospace; font-size: 8px; color: #2e2208;
-    text-transform: uppercase; letter-spacing: 0.1em;
-    border-bottom: 1px solid rgba(200,148,42,0.10); background: rgba(12,8,2,0.60);
-  }
-  .log-head::before { content: '++ '; }
-  .log-body {
-    padding: 10px 14px; font-family: 'Courier New', monospace; font-size: 9px;
-    line-height: 1.95; min-height: 58px; max-height: 140px; overflow-y: auto;
-  }
-  .log-body::-webkit-scrollbar { width: 4px; }
-  .log-body::-webkit-scrollbar-thumb { background: rgba(200,148,42,0.18); }
-  .ll      { display: block; }
-  .ll-dim  { color: #221a08; }
-  .ll-info { color: #4a3812; }
-  .ll-ok   { color: #7a5e1a; }
-  .ll-done { color: #c49028; }
-  .ll-err  { color: #a04422; }
-  .ll-warn { color: #8a6010; }
+  .status { font-size: var(--fs-sm); color: var(--text-muted); min-height: 1.4em; transition: color var(--dur) var(--ease); }
+  .status.ok   { color: var(--ok); }
+  .status.err  { color: var(--err); }
+  .status.warn { color: var(--accent); }
 
-  /* ─ OUTPUT ROW ─ */
+  /* Output (download) */
   .output-row {
-    display: none; align-items: center; gap: 14px;
-    margin-top: 16px; padding: 13px 16px;
-    border: 1px solid rgba(200,148,42,0.30); background: rgba(18,12,3,0.55);
-    position: relative; overflow: hidden;
+    display: none; align-items: center; gap: var(--s-4);
+    margin-top: var(--s-5); padding: var(--s-3) var(--s-3) var(--s-3) var(--s-4);
+    border-radius: var(--r-inner);
+    background: rgba(123, 216, 143, 0.06); border: 1px solid rgba(123, 216, 143, 0.28);
   }
-  .output-row::before {
-    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(212,160,40,0.50), transparent);
-  }
-  .output-row.show { display: flex; }
-  .out-icon   { font-size: 22px; opacity: 0.65; flex-shrink: 0; }
-  .out-info   { flex: 1; min-width: 0; }
-  .out-name   { font-family: 'Courier New', monospace; font-size: 10px; color: #c49028; margin-bottom: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .out-meta   { font-family: 'Courier New', monospace; font-size: 8px; color: #3a2c0e; }
+  .output-row.show { display: flex; animation: slideIn 320ms var(--ease); }
+  @keyframes slideIn { from { opacity: 0; transform: translateY(6px); } }
+  .out-icon { color: var(--ok); }
+  .out-info { flex: 1; min-width: 0; }
+  .out-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .out-meta { font-size: var(--fs-sm); color: var(--text-muted); }
   .dl-btn {
-    flex-shrink: 0; padding: 9px 18px;
-    background: rgba(170,118,8,0.14); border: 1px solid rgba(200,148,42,0.42);
-    color: #d4a038; font-family: 'Courier New', monospace; font-size: 9px;
-    font-weight: bold; text-transform: uppercase; letter-spacing: 0.12em;
-    cursor: pointer; text-decoration: none; display: inline-flex; align-items: center;
-    gap: 6px; transition: background 0.12s, color 0.12s, border-color 0.12s; white-space: nowrap;
+    display: inline-flex; align-items: center; gap: var(--s-2);
+    padding: 10px 16px; border-radius: calc(var(--r-inner) - var(--s-3) + 4px);
+    background: var(--ok); color: #06210d; font-weight: 650; font-size: var(--fs-sm); text-decoration: none;
+    transition: transform var(--dur) var(--ease), filter var(--dur) var(--ease);
   }
-  .dl-btn:hover { background: rgba(200,148,42,0.22); color: #f0c050; border-color: rgba(200,148,42,0.60); }
+  .dl-btn:hover { filter: brightness(1.08); }
+  .dl-btn:active { transform: scale(0.97); }
 
-  /* ─ IMG → PDF ─ */
-  .img-drop-zone {
-    border: 1.5px dashed rgba(200,148,42,0.25); background: rgba(16,11,3,0.55);
-    padding: 28px 20px; text-align: center; cursor: pointer; margin-bottom: 16px;
-    transition: border-color 0.15s, background 0.15s;
+  /* Activity log (secondary) */
+  .log-wrap { margin-top: var(--s-4); }
+  .log-wrap summary {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: var(--fs-xs); color: var(--text-faint); cursor: pointer; list-style: none;
   }
-  .img-drop-zone:hover, .img-drop-zone.drag-over {
-    border-color: rgba(200,148,42,0.60); background: rgba(22,15,4,0.75); border-style: solid;
+  .log-wrap summary::-webkit-details-marker { display: none; }
+  .log-wrap summary .icon { width: 12px; height: 12px; transition: transform var(--dur) var(--ease); }
+  .log-wrap[open] summary .icon { transform: rotate(90deg); }
+  .log-wrap summary:hover { color: var(--text-muted); }
+  .log-body {
+    margin-top: var(--s-2); max-height: 180px; overflow-y: auto;
+    padding: var(--s-3) var(--s-4); border-radius: var(--r-ctl);
+    background: var(--field); border: 1px solid var(--border);
+    font-family: var(--font-mono); font-size: var(--fs-xs); line-height: 1.7;
   }
-  .img-drop-zone .dz-glyph { font-size: 26px; opacity: 0.22; margin-bottom: 8px; }
-  .img-drop-zone .dz-label { font-family: 'Courier New', monospace; font-size: 9px; color: #2e2208; text-transform: uppercase; letter-spacing: 0.1em; line-height: 1.8; }
+  .ll { display: block; color: var(--text-muted); }
+  .ll-dim  { color: var(--text-faint); }
+  .ll-ok, .ll-done { color: var(--ok); }
+  .ll-err  { color: var(--err); }
+  .ll-warn { color: var(--accent); }
 
-  .img-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+  /* ── IMG → PDF ── */
+  .img-list { display: grid; gap: var(--s-2); margin-top: var(--s-4); }
+  .img-list:empty { display: none; }
   .img-item {
-    display: flex; align-items: center; gap: 10px;
-    padding: 7px 10px; border: 1px solid rgba(200,148,42,0.18);
-    background: rgba(16,11,3,0.55); cursor: grab;
-    transition: border-color 0.12s, background 0.12s;
+    display: flex; align-items: center; gap: var(--s-3);
+    padding: var(--s-2); padding-right: var(--s-3);
+    border: 1px solid var(--border); border-radius: var(--r-inner);
+    background: var(--field); cursor: grab;
+    transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease), opacity var(--dur) var(--ease);
+    animation: slideIn 260ms var(--ease);
   }
-  .img-item:hover        { border-color: rgba(200,148,42,0.35); }
-  .img-item.is-dragging  { opacity: 0.35; }
-  .img-item.drop-target  { border-color: rgba(200,148,42,0.75); background: rgba(24,17,5,0.80); }
+  .img-item:hover       { border-color: var(--border-hi); }
+  .img-item.is-dragging { opacity: 0.35; }
+  .img-item.drop-target { border-color: var(--accent); background: var(--accent-soft); }
+  .img-grip { color: var(--text-faint); }
   .img-thumb {
-    width: 44px; height: 44px; object-fit: cover; flex-shrink: 0;
-    border: 1px solid rgba(200,148,42,0.20); background: rgba(10,7,2,0.6);
+    width: 48px; height: 48px; object-fit: cover; flex-shrink: 0;
+    border-radius: calc(var(--r-inner) - var(--s-2)); background: var(--surface-hi);
   }
   .img-info      { flex: 1; min-width: 0; }
-  .img-info-name { font-family: 'Courier New', monospace; font-size: 9px; color: #7a5e1a; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .img-info-size { font-family: 'Courier New', monospace; font-size: 8px; color: #3a2c0e; margin-top: 2px; }
-  .img-order     { font-family: 'Courier New', monospace; font-size: 9px; color: #2e2208; flex-shrink: 0; padding: 0 4px; }
-  .img-del-btn   { background: none; border: none; font-family: 'Courier New', monospace; font-size: 9px; color: #2e2208; cursor: pointer; flex-shrink: 0; padding: 2px 4px; transition: color 0.1s; }
-  .img-del-btn:hover { color: #c05535; }
+  .img-info-name { font-size: var(--fs-sm); font-weight: 550; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .img-info-size { font-size: var(--fs-xs); color: var(--text-faint); }
+  .img-order     { font-size: var(--fs-sm); color: var(--text-faint); min-width: 2ch; text-align: right; }
+  .img-del-btn, .thumb-del {
+    display: inline-grid; place-items: center; width: 30px; height: 30px;
+    border: 0; border-radius: 8px; background: transparent; color: var(--text-faint); cursor: pointer;
+    transition: color var(--dur) var(--ease), background var(--dur) var(--ease);
+  }
+  .img-del-btn:hover, .thumb-del:hover { color: var(--err); background: rgba(255, 138, 112, 0.1); }
 
-  /* ─ WORD → PDF ─ */
-  .word-preview-wrap {
-    border: 1px solid rgba(200,148,42,0.18); margin-bottom: 14px; display: none;
-  }
-  .word-preview-wrap.show { display: block; }
-  .word-preview-head {
-    padding: 4px 12px; font-family: 'Courier New', monospace; font-size: 8px; color: #2e2208;
-    text-transform: uppercase; letter-spacing: 0.1em;
-    border-bottom: 1px solid rgba(200,148,42,0.10); background: rgba(12,8,2,0.60);
-  }
-  .word-preview-head::before { content: '++ '; }
+  /* ── Word preview ── */
+  .word-preview-wrap { display: none; margin-top: var(--s-4); }
+  .word-preview-wrap.show { display: block; animation: slideIn 320ms var(--ease); }
+  .word-preview-head { font-size: var(--fs-sm); color: var(--text-muted); margin-bottom: var(--s-2); }
   .word-preview-body {
     background: #faf8f4; color: #1a1410; padding: 28px 32px;
-    font-family: Georgia, 'Times New Roman', serif; font-size: 12px; line-height: 1.65;
-    max-height: 360px; overflow-y: auto;
+    border-radius: var(--r-inner);
+    font-family: Georgia, 'Times New Roman', serif; font-size: 13px; line-height: 1.65;
+    max-height: 380px; overflow-y: auto;
   }
-  .word-preview-body h1,.word-preview-body h2,.word-preview-body h3 { font-family: Arial, sans-serif; margin: 12px 0 6px; }
-  .word-preview-body p   { margin-bottom: 8px; }
+  .word-preview-body h1, .word-preview-body h2, .word-preview-body h3 { font-family: Arial, sans-serif; margin: 12px 0 6px; }
+  .word-preview-body p { margin-bottom: 8px; }
   .word-preview-body table { border-collapse: collapse; width: 100%; margin-bottom: 10px; }
-  .word-preview-body td, .word-preview-body th { border: 1px solid #ccc; padding: 5px 8px; font-size: 11px; }
+  .word-preview-body td, .word-preview-body th { border: 1px solid #ccc; padding: 5px 8px; font-size: 12px; }
   .word-preview-body img { max-width: 100%; }
   .word-preview-body ul, .word-preview-body ol { margin: 6px 0 6px 20px; }
 
-  .word-note {
-    font-family: 'Courier New', monospace; font-size: 9px; color: #4a3812;
-    padding: 8px 12px; border-left: 2px solid rgba(200,148,42,0.30);
-    background: rgba(180,128,20,0.06); line-height: 1.7; margin-bottom: 14px;
-  }
-
-  /* ─ PAGE EDITOR ─ */
+  /* ── Page editor ── */
   .thumb-toolbar {
-    display: flex; align-items: center; gap: 12px; margin-bottom: 14px;
-    padding: 8px 12px; background: rgba(14,9,2,0.60);
-    border: 1px solid rgba(200,148,42,0.14);
-    font-family: 'Courier New', monospace; font-size: 9px; color: #3a2c0e;
-    flex-wrap: wrap;
+    display: flex; align-items: center; gap: var(--s-3); flex-wrap: wrap;
+    margin-top: var(--s-5); margin-bottom: var(--s-3);
+    font-size: var(--fs-sm); color: var(--text-muted);
   }
-  .thumb-count { color: #8a6a22; font-weight: bold; }
-  .thumb-hint  { color: #2e2208; font-style: italic; margin-left: auto; }
+  .thumb-count { color: var(--text); font-weight: 600; }
+  .thumb-hint  { margin-left: auto; color: var(--text-faint); }
+  .ghost-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 10px; border: 1px solid var(--border); border-radius: 8px;
+    background: transparent; color: var(--text-muted); font-size: var(--fs-sm); cursor: pointer;
+    transition: border-color var(--dur) var(--ease), color var(--dur) var(--ease);
+  }
+  .ghost-btn:hover { border-color: var(--border-hi); color: var(--text); }
 
   .thumb-grid {
-    display: flex; flex-wrap: wrap; gap: 10px;
-    margin-bottom: 18px; min-height: 60px;
+    display: grid; gap: var(--s-3);
+    grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+    min-height: 40px;
   }
-  .thumb-empty {
-    font-family: 'Courier New', monospace; font-size: 9px; color: #2e2208;
-    padding: 10px; text-transform: uppercase; letter-spacing: 0.08em;
-  }
+  .thumb-empty { grid-column: 1 / -1; font-size: var(--fs-sm); color: var(--text-faint); }
   .thumb-card {
-    position: relative; width: 110px; flex-shrink: 0;
-    border: 1px solid rgba(200,148,42,0.20); background: rgba(14,9,2,0.65);
-    cursor: grab; transition: border-color 0.12s, box-shadow 0.12s;
-    user-select: none;
+    position: relative; padding: 6px;
+    border: 1px solid var(--border); border-radius: var(--r-ctl);
+    background: var(--field); cursor: grab; user-select: none;
+    transition: border-color var(--dur) var(--ease), transform var(--dur) var(--ease), opacity var(--dur) var(--ease);
   }
-  .thumb-card:hover        { border-color: rgba(200,148,42,0.45); }
-  .thumb-card.is-dragging  { opacity: 0.30; cursor: grabbing; }
-  .thumb-card.drop-target  { border-color: rgba(200,148,42,0.80); box-shadow: 0 0 10px rgba(200,148,42,0.18); }
-  .thumb-card.deleted-mark { opacity: 0.15; pointer-events: none; }
-  .thumb-canvas { display: block; width: 100%; background: #fff; }
-  .thumb-loading { width: 100%; height: 140px; display: flex; align-items: center; justify-content: center; font-family: 'Courier New', monospace; font-size: 8px; color: #2e2208; }
+  .thumb-card:hover       { border-color: var(--border-hi); transform: translateY(-2px); }
+  .thumb-card.is-dragging { opacity: 0.3; cursor: grabbing; }
+  .thumb-card.drop-target { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .thumb-canvas { display: block; width: 100%; height: auto; background: #fff; border-radius: calc(var(--r-ctl) - 6px); animation: fadeIn 260ms var(--ease); }
+  @keyframes fadeIn { from { opacity: 0; } }
+  .thumb-loading {
+    width: 100%; aspect-ratio: 1 / 1.414;
+    border-radius: calc(var(--r-ctl) - 6px);
+    background: linear-gradient(100deg, transparent 20%, rgba(255, 236, 200, 0.07) 50%, transparent 80%) var(--surface-hi);
+    background-size: 200% 100%;
+    animation: shimmer 1.3s linear infinite;
+    color: transparent; font-size: 0;
+  }
+  @keyframes shimmer { from { background-position: 150% 0; } to { background-position: -50% 0; } }
   .thumb-foot {
     display: flex; justify-content: space-between; align-items: center;
-    padding: 4px 6px; background: rgba(14,9,2,0.75);
-    border-top: 1px solid rgba(180,128,20,0.12);
-    font-family: 'Courier New', monospace; font-size: 8px; color: #3a2c0e;
+    padding: 6px 0 0 4px; font-size: var(--fs-xs); color: var(--text-muted);
   }
-  .thumb-del {
-    background: none; border: none; color: #3a2c0e; cursor: pointer;
-    font-family: 'Courier New', monospace; font-size: 9px;
-    transition: color 0.1s; line-height: 1; padding: 0 1px; pointer-events: all;
+  .thumb-del { width: 26px; height: 26px; }
+
+  /* ── Footer ── */
+  .site-footer {
+    margin-top: var(--s-8); padding-top: var(--s-5); border-top: 1px solid var(--border);
+    display: flex; flex-wrap: wrap; gap: var(--s-3); justify-content: space-between;
+    font-size: var(--fs-sm); color: var(--text-faint);
   }
-  .thumb-del:hover { color: #c05535; }
+  .site-footer a { text-decoration: none; }
+  .site-footer a:hover { color: var(--text); }
 
-  /* ─ H-RULE ─ */
-  .h-rule { height: 1px; background: linear-gradient(90deg, transparent, rgba(200,138,22,0.18), transparent); margin: 14px 0; }
-
-  /* ─ FOOTER ─ */
-  .footbar {
-    border: 1px solid rgba(200,148,42,0.16); border-top: 1px solid rgba(180,128,20,0.10);
-    margin-top: -1px; background: rgba(6,4,1,0.96); padding: 7px 14px;
-    display: flex; align-items: center; justify-content: space-between;
-    font-family: 'Courier New', monospace; font-size: 9px; color: #2e2208;
-    text-transform: uppercase; letter-spacing: 0.06em;
-  }
-  .foot-left { display: flex; align-items: center; gap: 8px; }
-
-  /* ─ RESPONSIVE ─ */
-  @media (max-width: 580px) {
-    body { padding: 10px 10px 32px; background-attachment: scroll; }
-    .header-panel { padding: 20px 16px; }
-    .brand { font-size: 26px; }
-    .nav-lnk { padding: 8px 10px; font-size: 8px; }
-    .merge-grid { grid-template-columns: 1fr; }
-    .merge-divider { flex-direction: row; min-height: unset; padding: 6px 0; }
-    .div-line { flex: 1; width: unset; height: 1px; min-height: unset; background: linear-gradient(90deg, transparent, rgba(200,148,42,0.18), transparent); }
-    .controls-row { flex-direction: column; align-items: flex-start; }
-    .thumb-card { width: 90px; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
   }
 
   </style>
 </head>
 <body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-arrow-left" viewBox="0 0 16 16"><path d="M13 8H3M7 4L3 8l4 4"/></symbol>
+  <symbol id="i-file" viewBox="0 0 16 16"><path d="M9.5 1.75H4.25a1 1 0 0 0-1 1v10.5a1 1 0 0 0 1 1h7.5a1 1 0 0 0 1-1V5L9.5 1.75z"/><path d="M9.5 1.75V5h3.25"/></symbol>
+  <symbol id="i-image" viewBox="0 0 16 16"><rect x="2" y="2.75" width="12" height="10.5" rx="1.5"/><circle cx="5.75" cy="6.25" r="1.1"/><path d="M14 10.5l-3.25-3.25L4 13.25"/></symbol>
+  <symbol id="i-doc" viewBox="0 0 16 16"><path d="M9.5 1.75H4.25a1 1 0 0 0-1 1v10.5a1 1 0 0 0 1 1h7.5a1 1 0 0 0 1-1V5L9.5 1.75z"/><path d="M5.75 8h4.5M5.75 10.5h4.5"/></symbol>
+  <symbol id="i-pages" viewBox="0 0 16 16"><rect x="1.75" y="2.75" width="5.25" height="7" rx="1"/><rect x="9" y="2.75" width="5.25" height="7" rx="1"/><path d="M3 13.25h10"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></symbol>
+  <symbol id="i-x" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></symbol>
+  <symbol id="i-download" viewBox="0 0 16 16"><path d="M8 2.5v8M4.5 7L8 10.5 11.5 7M3 13.5h10"/></symbol>
+  <symbol id="i-check" viewBox="0 0 16 16"><path d="M3.5 8.5l3 3 6-7"/></symbol>
+  <symbol id="i-grip" viewBox="0 0 16 16"><path d="M6 4h.01M10 4h.01M6 8h.01M10 8h.01M6 12h.01M10 12h.01" stroke-width="2.5"/></symbol>
+  <symbol id="i-reset" viewBox="0 0 16 16"><path d="M2.5 8a5.5 5.5 0 1 0 1.6-3.9M2.5 2.5v3h3"/></symbol>
+  <symbol id="i-chevron" viewBox="0 0 16 16"><path d="M6 3.5L10.5 8 6 12.5"/></symbol>
+  <symbol id="i-spinner" viewBox="0 0 16 16"><path d="M8 2a6 6 0 1 1-6 6"/></symbol>
+  <symbol id="i-printer" viewBox="0 0 16 16"><path d="M4.5 6V2h7v4M4.5 11.5H3a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v3.5a1 1 0 0 1-1 1h-1.5"/><path d="M4.5 9.5h7V14h-7z"/></symbol>
+</svg>
+
 <div class="page">
 
-  <!-- Sysbar -->
-  <div class="sysbar">
-    <span class="sysbar-left">++ Filekit // File Tools · Lukeda</span>
-    <div class="sysbar-right">
-      <span>lukeda.me</span>
-      <span class="online-badge"><span class="led"></span> Online</span>
-    </div>
-  </div>
+  <header class="site-header">
+    <a href="../index.html" class="back"><svg class="icon" aria-hidden="true"><use href="#i-arrow-left"/></svg>Lukeda</a>
+    <span class="app-name">Filekit</span>
+  </header>
 
-  <!-- Header -->
-  <div class="header-panel">
-    <div class="brand">Filekit</div>
-    <div class="brand-ver">// file utilities · lukeda.me · by lucas ruiz</div>
-    <div class="brand-tagline">
-      Browser-based file tools. <strong>No uploads, no servers, no accounts.</strong>
-      Every operation runs locally — your files never leave your machine.
-    </div>
-  </div>
+  <section class="intro">
+    <h1>Merge, convert and edit PDFs without uploading them.</h1>
+    <p>Everything runs in this tab. Your files never leave your computer, and there's no account and no size limit beyond your browser's memory.</p>
+  </section>
 
-  <!-- Nav -->
-  <div class="navbar">
-    <span class="nav-prefix">++ tools ::</span>
-    <div class="nav-items">
-      <a class="nav-lnk active" data-tool="pdf-merge"  onclick="activateTool('pdf-merge');  return false;" href="#pdf-merge">PDF Merge</a>
-      <a class="nav-lnk"        data-tool="img-pdf"    onclick="activateTool('img-pdf');    return false;" href="#img-pdf">IMG → PDF</a>
-      <a class="nav-lnk"        data-tool="word-pdf"   onclick="activateTool('word-pdf');   return false;" href="#word-pdf">Word → PDF</a>
-      <a class="nav-lnk"        data-tool="page-edit"  onclick="activateTool('page-edit');  return false;" href="#page-edit">PDF Editor</a>
-    </div>
-    <a href="../index.html" class="nav-back">&lt;&lt; lukeda</a>
-  </div>
+  <main>
 
-  <!-- About -->
-  <div class="panel">
-    <div class="panel-head">About Filekit</div>
-    <div class="panel-body">
-      <p class="intro-text">A growing toolkit for common file operations. No cloud processing, no waiting, no privacy concerns. Your browser does all the work.</p>
-      <p class="intro-quote">// everything runs in-browser · your files stay on your machine · always</p>
+    <div class="tabs" role="tablist" aria-label="Tools">
+      <button class="tab active" role="tab" data-tool="pdf-merge" onclick="activateTool('pdf-merge')"><svg class="icon" aria-hidden="true"><use href="#i-file"/></svg>Merge PDFs</button>
+      <button class="tab"        role="tab" data-tool="img-pdf"   onclick="activateTool('img-pdf')"><svg class="icon" aria-hidden="true"><use href="#i-image"/></svg>Images to PDF</button>
+      <button class="tab"        role="tab" data-tool="word-pdf"  onclick="activateTool('word-pdf')"><svg class="icon" aria-hidden="true"><use href="#i-doc"/></svg>Word to PDF</button>
+      <button class="tab"        role="tab" data-tool="page-edit" onclick="activateTool('page-edit')"><svg class="icon" aria-hidden="true"><use href="#i-pages"/></svg>Edit pages</button>
     </div>
-  </div>
 
-  <!-- ══════════════════════════════════════
-       TOOL: PDF MERGE
-  ══════════════════════════════════════ -->
-  <div class="panel tool-panel active" id="panel-pdf-merge">
-    <div class="panel-head">PDF / Merge Two Files</div>
-    <div class="panel-body">
+    <!-- ═════════ PDF MERGE ═════════ -->
+    <section class="tool-panel active" id="panel-pdf-merge" role="tabpanel">
+      <div class="tool-head">
+        <h2>Combine two PDFs into one file</h2>
+        <p>Add both files, pick which goes first, and download the result.</p>
+      </div>
 
       <div class="merge-grid">
-        <div class="file-slot" id="slotA" onclick="slotClick('A')"
+        <div class="file-slot" id="slotA" onclick="slotClick('A')" tabindex="0" role="button" aria-label="Choose first PDF"
              ondragover="slotDragOver(event,'A')" ondragleave="slotDragLeave(event,'A')" ondrop="slotDrop(event,'A')">
-          <div class="slot-head"><span class="slot-fname" id="fnameA">file_a.pdf</span><span class="slot-ind" id="indA"></span></div>
-          <div class="slot-body">
-            <div class="slot-glyph">▤</div>
-            <div class="slot-hint">Drop PDF here<br>or click to browse</div>
-            <div class="slot-meta" id="metaA"></div>
-          </div>
-          <button class="slot-clear-btn" onclick="event.stopPropagation(); clearSlot('A')">[ clear ]</button>
+          <svg class="icon icon-lg slot-glyph" aria-hidden="true"><use href="#i-file"/></svg>
+          <span class="slot-fname" id="fnameA">First PDF</span>
+          <span class="slot-hint">Drop here or <u>browse</u></span>
+          <div class="slot-meta" id="metaA"></div>
+          <span class="slot-ind" id="indA"></span>
+          <button class="slot-clear-btn" onclick="event.stopPropagation(); clearSlot('A')"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg>Clear</button>
         </div>
-        <div class="merge-divider"><div class="div-line"></div><div class="div-sym">+</div><div class="div-line"></div></div>
-        <div class="file-slot" id="slotB" onclick="slotClick('B')"
+        <div class="merge-divider" aria-hidden="true"><svg class="icon"><use href="#i-plus"/></svg></div>
+        <div class="file-slot" id="slotB" onclick="slotClick('B')" tabindex="0" role="button" aria-label="Choose second PDF"
              ondragover="slotDragOver(event,'B')" ondragleave="slotDragLeave(event,'B')" ondrop="slotDrop(event,'B')">
-          <div class="slot-head"><span class="slot-fname" id="fnameB">file_b.pdf</span><span class="slot-ind" id="indB"></span></div>
-          <div class="slot-body">
-            <div class="slot-glyph">▤</div>
-            <div class="slot-hint">Drop PDF here<br>or click to browse</div>
-            <div class="slot-meta" id="metaB"></div>
-          </div>
-          <button class="slot-clear-btn" onclick="event.stopPropagation(); clearSlot('B')">[ clear ]</button>
+          <svg class="icon icon-lg slot-glyph" aria-hidden="true"><use href="#i-file"/></svg>
+          <span class="slot-fname" id="fnameB">Second PDF</span>
+          <span class="slot-hint">Drop here or <u>browse</u></span>
+          <div class="slot-meta" id="metaB"></div>
+          <span class="slot-ind" id="indB"></span>
+          <button class="slot-clear-btn" onclick="event.stopPropagation(); clearSlot('B')"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg>Clear</button>
         </div>
       </div>
 
-      <input type="file" id="inputA" accept=".pdf,application/pdf" style="display:none" onchange="onSlotFileInput(event,'A')">
-      <input type="file" id="inputB" accept=".pdf,application/pdf" style="display:none" onchange="onSlotFileInput(event,'B')">
+      <input type="file" id="inputA" accept=".pdf,application/pdf" hidden onchange="onSlotFileInput(event,'A')">
+      <input type="file" id="inputB" accept=".pdf,application/pdf" hidden onchange="onSlotFileInput(event,'B')">
 
       <div class="controls-row">
-        <span class="ctrl-label">order ::</span>
-        <div class="toggle-group">
-          <button class="tog-opt sel" id="optAB" onclick="setMergeOrder('AB')">A → B</button>
-          <button class="tog-opt"     id="optBA" onclick="setMergeOrder('BA')">B → A</button>
+        <div class="ctrl">
+          <span class="ctrl-label">Order</span>
+          <div class="toggle-group">
+            <button class="tog-opt sel" id="optAB" onclick="setMergeOrder('AB')">First, then second</button>
+            <button class="tog-opt"     id="optBA" onclick="setMergeOrder('BA')">Second, then first</button>
+          </div>
         </div>
-        <span class="ctrl-desc" id="mergeOrderDesc">file A pages first, then B</span>
+        <span class="ctrl-desc" id="mergeOrderDesc" hidden></span>
       </div>
 
-      <button class="run-btn" id="mergeRunBtn" disabled onclick="runMerge()">&gt;&gt;&nbsp; RUN MERGE</button>
-
-      <div class="log-wrap"><div class="log-head">process log</div><div class="log-body" id="mergeLog"><span class="ll ll-dim">// waiting for input files…</span></div></div>
+      <div class="run-area">
+        <button class="run-btn" id="mergeRunBtn" disabled onclick="runMerge()">
+          <svg class="icon spinner" aria-hidden="true"><use href="#i-spinner"/></svg>
+          <span class="btn-label">Merge PDFs</span>
+        </button>
+        <p class="status" id="mergeStatus" aria-live="polite">Add two PDFs to start.</p>
+      </div>
 
       <div class="output-row" id="mergeOutput">
-        <div class="out-icon">▤</div>
+        <svg class="icon icon-lg out-icon" aria-hidden="true"><use href="#i-check"/></svg>
         <div class="out-info"><div class="out-name" id="mergeOutName">merged.pdf</div><div class="out-meta" id="mergeOutMeta"></div></div>
-        <a class="dl-btn" id="mergeDlBtn" href="#" download="merged.pdf">&gt;&gt;&nbsp; download</a>
+        <a class="dl-btn" id="mergeDlBtn" href="#" download="merged.pdf"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>Download</a>
       </div>
-    </div>
-  </div>
 
-  <!-- ══════════════════════════════════════
-       TOOL: IMG → PDF
-  ══════════════════════════════════════ -->
-  <div class="panel tool-panel" id="panel-img-pdf">
-    <div class="panel-head">IMG → PDF / Images to PDF Document</div>
-    <div class="panel-body">
+      <details class="log-wrap"><summary><svg class="icon" aria-hidden="true"><use href="#i-chevron"/></svg>Details</summary><div class="log-body" id="mergeLog"><span class="ll ll-dim">Nothing yet.</span></div></details>
+    </section>
 
-      <div class="img-drop-zone" id="imgDropZone" onclick="document.getElementById('imgInput').click()"
+    <!-- ═════════ IMG → PDF ═════════ -->
+    <section class="tool-panel" id="panel-img-pdf" role="tabpanel">
+      <div class="tool-head">
+        <h2>Turn images into a PDF, one per page</h2>
+        <p>JPG, PNG, WebP, GIF and BMP. Drag the list to change the page order.</p>
+      </div>
+
+      <div class="img-drop-zone" id="imgDropZone" onclick="document.getElementById('imgInput').click()" tabindex="0" role="button" aria-label="Choose images"
            ondragover="imgDragOver(event)" ondragleave="imgDragLeave(event)" ondrop="imgDrop(event)">
-        <div class="dz-glyph">🖼</div>
-        <div class="dz-label">Drop JPG / PNG / WebP images here<br>or click to browse · multiple files supported</div>
+        <svg class="icon icon-lg slot-glyph" aria-hidden="true"><use href="#i-image"/></svg>
+        <span class="slot-fname">Add images</span>
+        <span class="slot-hint">Drop several at once or <u>browse</u></span>
       </div>
-      <input type="file" id="imgInput" accept="image/jpeg,image/png,image/webp,image/gif,image/bmp" multiple style="display:none" onchange="onImgInput(event)">
+      <input type="file" id="imgInput" accept="image/jpeg,image/png,image/webp,image/gif,image/bmp" multiple hidden onchange="onImgInput(event)">
 
       <div class="img-list" id="imgList"></div>
 
       <div class="controls-row" id="imgControls" style="display:none">
-        <span class="ctrl-label">page size ::</span>
-        <div class="toggle-group">
-          <button class="tog-opt sel" id="psA4"     onclick="setPageSize('a4')">A4</button>
-          <button class="tog-opt"     id="psLetter" onclick="setPageSize('letter')">Letter</button>
-          <button class="tog-opt"     id="psFit"    onclick="setPageSize('fit')">Fit Image</button>
+        <div class="ctrl">
+          <span class="ctrl-label">Page size</span>
+          <div class="toggle-group">
+            <button class="tog-opt sel" id="psA4"     onclick="setPageSize('a4')">A4</button>
+            <button class="tog-opt"     id="psLetter" onclick="setPageSize('letter')">Letter</button>
+            <button class="tog-opt"     id="psFit"    onclick="setPageSize('fit')">Match image</button>
+          </div>
         </div>
-        <span class="ctrl-label" style="margin-left:8px;">orientation ::</span>
-        <div class="toggle-group" id="orientGroup">
-          <button class="tog-opt sel" id="orPort" onclick="setOrientation('portrait')">Portrait</button>
-          <button class="tog-opt"     id="orLand" onclick="setOrientation('landscape')">Landscape</button>
+        <div class="ctrl">
+          <span class="ctrl-label">Orientation</span>
+          <div class="toggle-group" id="orientGroup">
+            <button class="tog-opt sel" id="orPort" onclick="setOrientation('portrait')">Portrait</button>
+            <button class="tog-opt"     id="orLand" onclick="setOrientation('landscape')">Landscape</button>
+          </div>
         </div>
       </div>
 
-      <button class="run-btn" id="imgRunBtn" disabled onclick="runImgPdf()" style="display:none">&gt;&gt;&nbsp; BUILD PDF</button>
-
-      <div class="log-wrap"><div class="log-head">process log</div><div class="log-body" id="imgLog"><span class="ll ll-dim">// add images to begin…</span></div></div>
+      <div class="run-area">
+        <button class="run-btn" id="imgRunBtn" disabled onclick="runImgPdf()" style="display:none">
+          <svg class="icon spinner" aria-hidden="true"><use href="#i-spinner"/></svg>
+          <span class="btn-label">Create PDF</span>
+        </button>
+        <p class="status" id="imgStatus" aria-live="polite">Add images to start.</p>
+      </div>
 
       <div class="output-row" id="imgOutput">
-        <div class="out-icon">▤</div>
+        <svg class="icon icon-lg out-icon" aria-hidden="true"><use href="#i-check"/></svg>
         <div class="out-info"><div class="out-name" id="imgOutName">images.pdf</div><div class="out-meta" id="imgOutMeta"></div></div>
-        <a class="dl-btn" id="imgDlBtn" href="#" download="images.pdf">&gt;&gt;&nbsp; download</a>
+        <a class="dl-btn" id="imgDlBtn" href="#" download="images.pdf"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>Download</a>
       </div>
-    </div>
-  </div>
 
-  <!-- ══════════════════════════════════════
-       TOOL: WORD → PDF
-  ══════════════════════════════════════ -->
-  <div class="panel tool-panel" id="panel-word-pdf">
-    <div class="panel-head">Word → PDF / DOCX to PDF</div>
-    <div class="panel-body">
+      <details class="log-wrap"><summary><svg class="icon" aria-hidden="true"><use href="#i-chevron"/></svg>Details</summary><div class="log-body" id="imgLog"><span class="ll ll-dim">Nothing yet.</span></div></details>
+    </section>
 
-      <p class="word-note">
-        Converts .docx files to PDF using the browser's built-in print engine. Complex formatting (tracked changes, custom fonts, macros) may not render perfectly — this works best for standard documents. When the print dialog opens, set destination to <strong style="color:#c49028;">Save as PDF</strong>.
-      </p>
+    <!-- ═════════ WORD → PDF ═════════ -->
+    <section class="tool-panel" id="panel-word-pdf" role="tabpanel">
+      <div class="tool-head">
+        <h2>Save a Word document as a PDF</h2>
+        <p>The document opens in your browser's print dialog. Choose <strong>Save as PDF</strong> as the destination. Simple documents work best; tracked changes, custom fonts and macros may not come through.</p>
+      </div>
 
-      <div class="file-slot" id="slotW" onclick="slotClick('W')" style="min-height:120px; margin-bottom:16px;"
+      <div class="file-slot compact" id="slotW" onclick="slotClick('W')" tabindex="0" role="button" aria-label="Choose a .docx file"
            ondragover="slotDragOver(event,'W')" ondragleave="slotDragLeave(event,'W')" ondrop="slotDrop(event,'W')">
-        <div class="slot-head"><span class="slot-fname" id="fnameW">document.docx</span><span class="slot-ind" id="indW"></span></div>
-        <div class="slot-body">
-          <div class="slot-glyph">W</div>
-          <div class="slot-hint">Drop .docx here<br>or click to browse</div>
-          <div class="slot-meta" id="metaW"></div>
-        </div>
-        <button class="slot-clear-btn" onclick="event.stopPropagation(); clearWordSlot()">[ clear ]</button>
+        <svg class="icon icon-lg slot-glyph" aria-hidden="true"><use href="#i-doc"/></svg>
+        <span class="slot-fname" id="fnameW">Word document (.docx)</span>
+        <span class="slot-hint">Drop here or <u>browse</u></span>
+        <div class="slot-meta" id="metaW"></div>
+        <span class="slot-ind" id="indW"></span>
+        <button class="slot-clear-btn" onclick="event.stopPropagation(); clearWordSlot()"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg>Clear</button>
       </div>
-      <input type="file" id="inputW" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" style="display:none" onchange="onWordFileInput(event)">
+      <input type="file" id="inputW" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden onchange="onWordFileInput(event)">
 
       <div class="word-preview-wrap" id="wordPreviewWrap">
-        <div class="word-preview-head">document preview</div>
+        <div class="word-preview-head">Preview</div>
         <div class="word-preview-body" id="wordPreviewBody"></div>
       </div>
 
-      <button class="run-btn" id="wordRunBtn" disabled onclick="runWordPdf()">&gt;&gt;&nbsp; OPEN PRINT DIALOG</button>
-
-      <div class="log-wrap"><div class="log-head">process log</div><div class="log-body" id="wordLog"><span class="ll ll-dim">// waiting for .docx file…</span></div></div>
-    </div>
-  </div>
-
-  <!-- ══════════════════════════════════════
-       TOOL: PAGE EDITOR
-  ══════════════════════════════════════ -->
-  <div class="panel tool-panel" id="panel-page-edit">
-    <div class="panel-head">PDF Editor / Reorder &amp; Delete Pages</div>
-    <div class="panel-body">
-
-      <div class="file-slot" id="slotP" onclick="slotClick('P')" style="min-height:120px; margin-bottom:16px;"
-           ondragover="slotDragOver(event,'P')" ondragleave="slotDragLeave(event,'P')" ondrop="slotDrop(event,'P')">
-        <div class="slot-head"><span class="slot-fname" id="fnameP">document.pdf</span><span class="slot-ind" id="indP"></span></div>
-        <div class="slot-body">
-          <div class="slot-glyph">▤</div>
-          <div class="slot-hint">Drop PDF here<br>or click to browse</div>
-          <div class="slot-meta" id="metaP"></div>
-        </div>
-        <button class="slot-clear-btn" onclick="event.stopPropagation(); clearPageEditor()">[ clear ]</button>
+      <div class="run-area">
+        <button class="run-btn" id="wordRunBtn" disabled onclick="runWordPdf()">
+          <svg class="icon run-icon" aria-hidden="true"><use href="#i-printer"/></svg>
+          <span class="btn-label">Open print dialog</span>
+        </button>
+        <p class="status" id="wordStatus" aria-live="polite">Add a .docx file to start.</p>
       </div>
-      <input type="file" id="inputP" accept=".pdf,application/pdf" style="display:none" onchange="onPageFileInput(event)">
+
+      <details class="log-wrap"><summary><svg class="icon" aria-hidden="true"><use href="#i-chevron"/></svg>Details</summary><div class="log-body" id="wordLog"><span class="ll ll-dim">Nothing yet.</span></div></details>
+    </section>
+
+    <!-- ═════════ PAGE EDITOR ═════════ -->
+    <section class="tool-panel" id="panel-page-edit" role="tabpanel">
+      <div class="tool-head">
+        <h2>Reorder or delete pages in a PDF</h2>
+        <p>Drag pages into a new order, remove the ones you don't need, then export.</p>
+      </div>
+
+      <div class="file-slot compact" id="slotP" onclick="slotClick('P')" tabindex="0" role="button" aria-label="Choose a PDF to edit"
+           ondragover="slotDragOver(event,'P')" ondragleave="slotDragLeave(event,'P')" ondrop="slotDrop(event,'P')">
+        <svg class="icon icon-lg slot-glyph" aria-hidden="true"><use href="#i-file"/></svg>
+        <span class="slot-fname" id="fnameP">PDF to edit</span>
+        <span class="slot-hint">Drop here or <u>browse</u></span>
+        <div class="slot-meta" id="metaP"></div>
+        <span class="slot-ind" id="indP"></span>
+        <button class="slot-clear-btn" onclick="event.stopPropagation(); clearPageEditor()"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg>Clear</button>
+      </div>
+      <input type="file" id="inputP" accept=".pdf,application/pdf" hidden onchange="onPageFileInput(event)">
 
       <div class="thumb-toolbar" id="thumbToolbar" style="display:none">
         <span class="thumb-count" id="thumbCount">0 pages</span>
-        <span style="color:#2e2208;">·</span>
-        <span id="deletedCount" style="font-family:'Courier New',monospace;font-size:9px;color:#2e2208;">0 deleted</span>
-        <button class="tog-opt" style="margin-left:8px;" onclick="resetPageOrder()">[ reset ]</button>
-        <span class="thumb-hint">drag to reorder · ✕ to delete</span>
+        <span id="deletedCount">0 deleted</span>
+        <button class="ghost-btn" onclick="resetPageOrder()"><svg class="icon" aria-hidden="true"><use href="#i-reset"/></svg>Reset</button>
+        <span class="thumb-hint">Drag to reorder</span>
       </div>
 
-      <div class="thumb-grid" id="thumbGrid">
-        <span class="thumb-empty">// load a PDF to edit its pages</span>
+      <div class="thumb-grid" id="thumbGrid"></div>
+
+      <div class="run-area">
+        <button class="run-btn" id="pageRunBtn" disabled onclick="runPageEdit()">
+          <svg class="icon spinner" aria-hidden="true"><use href="#i-spinner"/></svg>
+          <span class="btn-label">Export PDF</span>
+        </button>
+        <p class="status" id="pageStatus" aria-live="polite">Add a PDF to start.</p>
       </div>
-
-      <button class="run-btn" id="pageRunBtn" disabled onclick="runPageEdit()">&gt;&gt;&nbsp; EXPORT PDF</button>
-
-      <div class="log-wrap"><div class="log-head">process log</div><div class="log-body" id="pageLog"><span class="ll ll-dim">// load a PDF to begin…</span></div></div>
 
       <div class="output-row" id="pageOutput">
-        <div class="out-icon">▤</div>
+        <svg class="icon icon-lg out-icon" aria-hidden="true"><use href="#i-check"/></svg>
         <div class="out-info"><div class="out-name" id="pageOutName">edited.pdf</div><div class="out-meta" id="pageOutMeta"></div></div>
-        <a class="dl-btn" id="pageDlBtn" href="#" download="edited.pdf">&gt;&gt;&nbsp; download</a>
+        <a class="dl-btn" id="pageDlBtn" href="#" download="edited.pdf"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>Download</a>
       </div>
-    </div>
-  </div>
 
-  <!-- Footer -->
-  <div class="footbar">
-    <div class="foot-left"><span class="led"></span><span>Filekit // File Tools by Lukeda</span></div>
-    <span>© 2025 &nbsp;·&nbsp; lukeda.me &nbsp;·&nbsp; All rights reserved</span>
-  </div>
+      <details class="log-wrap"><summary><svg class="icon" aria-hidden="true"><use href="#i-chevron"/></svg>Details</summary><div class="log-body" id="pageLog"><span class="ll ll-dim">Nothing yet.</span></div></details>
+    </section>
 
-</div><!-- /page -->
+  </main>
+
+  <footer class="site-footer">
+    <span>Files are processed in your browser and never uploaded.</span>
+    <a href="../index.html">© 2025–2026 Lukeda</a>
+  </footer>
+
+</div>
 
 <!-- Libraries -->
 <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
@@ -675,17 +635,24 @@ pdfjsLib.GlobalWorkerOptions.workerSrc =
 ══════════════════════════════════════════════════════════ */
 function activateTool(id) {
   document.querySelectorAll('.tool-panel').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('[data-tool]').forEach(l => l.classList.remove('active'));
+  document.querySelectorAll('[data-tool]').forEach(l => { l.classList.remove('active'); l.setAttribute('aria-selected', 'false'); });
   const panel = document.getElementById('panel-' + id);
   const link  = document.querySelector(`[data-tool="${id}"]`);
   if (panel) panel.classList.add('active');
-  if (link)  link.classList.add('active');
+  if (link)  { link.classList.add('active'); link.setAttribute('aria-selected', 'true'); }
   history.replaceState(null, '', '#' + id);
 }
 
 window.addEventListener('DOMContentLoaded', () => {
   const h = location.hash.replace('#', '');
   if (h && document.getElementById('panel-' + h)) activateTool(h);
+});
+
+/* Keyboard: Enter/Space opens the file picker on drop zones */
+document.querySelectorAll('.file-slot, .img-drop-zone').forEach(el => {
+  el.addEventListener('keydown', e => {
+    if ((e.key === 'Enter' || e.key === ' ') && e.target === el) { e.preventDefault(); el.click(); }
+  });
 });
 
 /* ══════════════════════════════════════════════════════════
@@ -702,9 +669,11 @@ function esc(s) {
 function trunc(s, max) { return s.length > max ? s.slice(0, max - 1) + '…' : s; }
 function stripExt(n)   { return n.replace(/\.[^.]+$/, ''); }
 function safeFilename(n) { return n.replace(/[^a-zA-Z0-9_\-. ]/g, '_'); }
+function plural(n, word) { return `${n} ${word}${n !== 1 ? 's' : ''}`; }
 
-/* Log helpers — each tool has its own log element */
-const logFirstMsg = {}; // track whether we've shown the initial dim message
+/* Log helpers — each tool has a status line (latest message) and a detail log */
+const STATUS_FOR = { mergeLog: 'mergeStatus', imgLog: 'imgStatus', wordLog: 'wordStatus', pageLog: 'pageStatus' };
+const logFirstMsg = {};
 function logTo(logId, type, msg) {
   const el = document.getElementById(logId);
   if (!logFirstMsg[logId]) { el.innerHTML = ''; logFirstMsg[logId] = true; }
@@ -713,6 +682,18 @@ function logTo(logId, type, msg) {
   s.textContent = msg;
   el.appendChild(s);
   el.scrollTop = el.scrollHeight;
+  setStatus(logId, type, msg);
+}
+function setStatus(logId, type, msg) {
+  const st = document.getElementById(STATUS_FOR[logId]);
+  if (!st) return;
+  st.textContent = msg;
+  st.className = 'status' + ({ ok: ' ok', done: ' ok', err: ' err', warn: ' warn' }[type] || '');
+}
+function setBusy(btn, busy, label) {
+  btn.classList.toggle('running', busy);
+  btn.setAttribute('aria-busy', busy ? 'true' : 'false');
+  btn.querySelector('.btn-label').textContent = label;
 }
 
 /* Revoke old blob URL and set new one */
@@ -725,7 +706,11 @@ function setBlobDownload(anchorId, bytes, mime, filename) {
   a.download = filename;
 }
 
-function slotClick(slot) { document.getElementById('input' + slot).click(); }
+function slotClick(slot) {
+  const el = document.getElementById('slot' + slot);
+  if (el.classList.contains('loaded')) return;
+  document.getElementById('input' + slot).click();
+}
 
 function slotDragOver(e, slot)  { e.preventDefault(); document.getElementById('slot' + slot).classList.add('drag-over'); }
 function slotDragLeave(e, slot) { document.getElementById('slot' + slot).classList.remove('drag-over'); }
@@ -748,29 +733,36 @@ function dispatchSlotFile(slot, file) {
   loadPdfSlot(slot, file);
 }
 
+function setSlotReading(slot, name) {
+  const el = document.getElementById('slot' + slot);
+  el.classList.remove('loaded', 'err-state'); el.classList.add('is-reading');
+  document.getElementById('fname' + slot).textContent = trunc(name, 32);
+  document.getElementById('meta'  + slot).innerHTML   = '<span class="meta-line">Reading…</span>';
+}
 function setSlotLoaded(slot, name, extraLines) {
   const el = document.getElementById('slot' + slot);
-  el.classList.remove('err-state'); el.classList.add('loaded');
-  document.getElementById('fname' + slot).textContent = trunc(name, 26);
+  el.classList.remove('err-state', 'is-reading'); el.classList.add('loaded');
+  el.querySelector('.slot-glyph use').setAttribute('href', '#i-check');
+  document.getElementById('fname' + slot).textContent = trunc(name, 32);
   document.getElementById('ind'   + slot).className   = 'slot-ind on';
   document.getElementById('meta'  + slot).innerHTML   = extraLines;
 }
 function setSlotErr(slot, name, msg) {
   const el = document.getElementById('slot' + slot);
-  el.classList.remove('loaded'); el.classList.add('err-state');
-  document.getElementById('fname' + slot).textContent = trunc(name, 26);
+  el.classList.remove('loaded', 'is-reading'); el.classList.add('err-state');
+  document.getElementById('fname' + slot).textContent = trunc(name, 32);
   document.getElementById('ind'   + slot).className   = 'slot-ind bad';
   document.getElementById('meta'  + slot).innerHTML   =
     `<div class="meta-line"><span class="meta-err">${esc(msg)}</span></div>`;
 }
+const SLOT_ICON = { A: '#i-file', B: '#i-file', W: '#i-doc', P: '#i-file' };
 function setSlotReset(slot, placeholder) {
   const el = document.getElementById('slot' + slot);
-  el.classList.remove('loaded', 'err-state');
+  el.classList.remove('loaded', 'err-state', 'is-reading');
+  el.querySelector('.slot-glyph use').setAttribute('href', SLOT_ICON[slot]);
   document.getElementById('fname' + slot).textContent = placeholder;
   document.getElementById('ind'   + slot).className   = 'slot-ind';
   document.getElementById('meta'  + slot).innerHTML   = '';
-  el.querySelector('.slot-hint').style.display = '';
-  el.querySelector('.slot-glyph').style.opacity = '0.20';
 }
 function metaLine(k, v) {
   return `<div class="meta-line"><span class="meta-k">${k}</span><span class="meta-v">${esc(v)}</span></div>`;
@@ -780,37 +772,41 @@ function metaLine(k, v) {
    PDF MERGE
 ══════════════════════════════════════════════════════════ */
 const MS = { A: null, B: null, order: 'AB', busy: false };
+const SLOT_NAME = { A: 'First PDF', B: 'Second PDF' };
 
 async function loadPdfSlot(slot, file) {
   if (!file.name.toLowerCase().endsWith('.pdf') && file.type !== 'application/pdf') {
-    setSlotErr(slot, file.name, '[ not a pdf ]');
-    logTo('mergeLog','err', `[${slot}] rejected · ${esc(file.name)}`);
+    setSlotErr(slot, file.name, 'This isn\'t a PDF');
+    logTo('mergeLog','err', `${file.name} isn't a PDF.`);
     return;
   }
-  logTo('mergeLog','info', `[${slot}] reading · ${esc(trunc(file.name,40))} · ${fmtBytes(file.size)}`);
+  setSlotReading(slot, file.name);
+  logTo('mergeLog','info', `Reading ${trunc(file.name,40)} (${fmtBytes(file.size)})…`);
   try {
     const bytes = await file.arrayBuffer();
     const doc   = await PDFLib.PDFDocument.load(bytes);
     const pages = doc.getPageCount();
     MS[slot] = { file, bytes, pages };
     setSlotLoaded(slot, file.name,
-      metaLine('name',  trunc(file.name,22)) +
-      metaLine('size',  fmtBytes(file.size)) +
-      metaLine('pages', String(pages)));
-    logTo('mergeLog','ok', `[${slot}] ready · ${pages} page${pages!==1?'s':''}`);
+      metaLine('Size',  fmtBytes(file.size)) +
+      metaLine('Pages', String(pages)));
+    const other = slot === 'A' ? 'B' : 'A';
+    logTo('mergeLog','ok', MS[other]
+      ? 'Both files are ready. Merge when you are.'
+      : `${SLOT_NAME[slot]} ready (${plural(pages, 'page')}). Now add the ${SLOT_NAME[other].toLowerCase()}.`);
     syncMergeBtn();
   } catch(err) {
-    setSlotErr(slot, file.name, err.message.includes('ncrypt') ? '[ encrypted pdf ]' : '[ could not read ]');
-    logTo('mergeLog','err', `[${slot}] error · ${esc(err.message)}`);
+    setSlotErr(slot, file.name, err.message.includes('ncrypt') ? 'This PDF is password-protected' : 'Couldn\'t read this file');
+    logTo('mergeLog','err', `Couldn't read ${file.name}: ${err.message}`);
     MS[slot] = null; syncMergeBtn();
   }
 }
 
 function clearSlot(slot) {
   MS[slot] = null;
-  setSlotReset(slot, `file_${slot.toLowerCase()}.pdf`);
+  setSlotReset(slot, SLOT_NAME[slot]);
   hideOutput('mergeOutput'); syncMergeBtn();
-  logTo('mergeLog','dim', `[${slot}] cleared`);
+  logTo('mergeLog','dim', `${SLOT_NAME[slot]} removed.`);
 }
 
 function setMergeOrder(o) {
@@ -829,38 +825,32 @@ async function runMerge() {
   if (!MS.A || !MS.B || MS.busy) return;
   MS.busy = true;
   const btn = document.getElementById('mergeRunBtn');
-  btn.disabled = true; btn.classList.add('running'); btn.textContent = '>>  PROCESSING…';
+  btn.disabled = true; setBusy(btn, true, 'Merging…');
   hideOutput('mergeOutput');
 
   const [first, second] = MS.order==='AB' ? [MS.A,MS.B] : [MS.B,MS.A];
-  logTo('mergeLog','dim',  '────────────────────────────');
-  logTo('mergeLog','info', `>> merge · order: ${MS.order}`);
-  logTo('mergeLog','info', `   [1] ${esc(trunc(first.file.name,34))}  (${first.pages}pp)`);
-  logTo('mergeLog','info', `   [2] ${esc(trunc(second.file.name,34))}  (${second.pages}pp)`);
+  logTo('mergeLog','info', `Merging ${first.file.name} (${first.pages} pp) + ${second.file.name} (${second.pages} pp)…`);
   try {
     const [docA, docB, out] = await Promise.all([
       PDFLib.PDFDocument.load(first.bytes),
       PDFLib.PDFDocument.load(second.bytes),
       PDFLib.PDFDocument.create(),
     ]);
-    logTo('mergeLog','info', `   copying ${first.pages}pp from [1]…`);
     (await out.copyPages(docA, docA.getPageIndices())).forEach(p => out.addPage(p));
-    logTo('mergeLog','info', `   copying ${second.pages}pp from [2]…`);
     (await out.copyPages(docB, docB.getPageIndices())).forEach(p => out.addPage(p));
-    logTo('mergeLog','info', '   saving…');
     const bytes    = await out.save();
     const total    = first.pages + second.pages;
     const outName  = `${safeFilename(stripExt(MS.A.file.name))}_+_${safeFilename(stripExt(MS.B.file.name))}_merged.pdf`;
-    logTo('mergeLog','done', `>> done · ${total} pages · ${fmtBytes(bytes.byteLength)}`);
+    logTo('mergeLog','done', `Done: ${plural(total, 'page')}, ${fmtBytes(bytes.byteLength)}.`);
     setBlobDownload('mergeDlBtn', bytes, 'application/pdf', outName);
     document.getElementById('mergeOutName').textContent = outName;
-    document.getElementById('mergeOutMeta').textContent = `${total} pages · ${fmtBytes(bytes.byteLength)}`;
+    document.getElementById('mergeOutMeta').textContent = `${plural(total, 'page')} · ${fmtBytes(bytes.byteLength)}`;
     document.getElementById('mergeOutput').classList.add('show');
   } catch(err) {
-    logTo('mergeLog','err', `>> error · ${esc(err.message)}`);
+    logTo('mergeLog','err', `Merge failed: ${err.message}`);
   }
   MS.busy = false;
-  btn.classList.remove('running'); btn.textContent = '>>  RUN MERGE';
+  setBusy(btn, false, 'Merge PDFs');
   syncMergeBtn();
 }
 
@@ -883,11 +873,12 @@ function onImgInput(e) { addImages([...e.target.files]); e.target.value = ''; }
 const ACCEPTED_IMG = ['image/jpeg','image/jpg','image/png','image/webp','image/gif','image/bmp'];
 function addImages(files) {
   const valid = files.filter(f => ACCEPTED_IMG.includes(f.type) || /\.(jpe?g|png|webp|gif|bmp)$/i.test(f.name));
-  if (!valid.length) { logTo('imgLog','err','no supported image files found (JPG, PNG, WebP, GIF, BMP)'); return; }
+  if (!valid.length) { logTo('imgLog','err','None of those are supported images (JPG, PNG, WebP, GIF, BMP).'); return; }
   valid.forEach(f => {
     IS.items.push({ file: f, url: URL.createObjectURL(f) });
-    logTo('imgLog','info', `+ ${esc(trunc(f.name,40))} · ${fmtBytes(f.size)}`);
+    document.getElementById('imgLog').appendChild(Object.assign(document.createElement('span'), { className: 'll ll-info', textContent: `Added ${trunc(f.name,40)} (${fmtBytes(f.size)})` }));
   });
+  logTo('imgLog','ok', `${plural(IS.items.length, 'image')} ready. Drag to reorder, then create the PDF.`);
   renderImgList();
 }
 
@@ -899,18 +890,20 @@ function renderImgList() {
     div.className = 'img-item';
     div.draggable = true;
     div.innerHTML = `
+      <svg class="icon img-grip" aria-hidden="true"><use href="#i-grip"/></svg>
       <img class="img-thumb" src="${item.url}" alt="">
       <div class="img-info">
-        <div class="img-info-name">${esc(trunc(item.file.name, 38))}</div>
+        <div class="img-info-name">${esc(trunc(item.file.name, 48))}</div>
         <div class="img-info-size">${fmtBytes(item.file.size)}</div>
       </div>
       <span class="img-order">${idx+1}</span>
-      <button class="img-del-btn" data-idx="${idx}">[ remove ]</button>`;
+      <button class="img-del-btn" data-idx="${idx}" aria-label="Remove ${esc(item.file.name)}"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button>`;
     div.querySelector('.img-del-btn').addEventListener('click', e => {
       e.stopPropagation();
       URL.revokeObjectURL(IS.items[idx].url);
       IS.items.splice(idx, 1);
       renderImgList();
+      setStatus('imgLog', IS.items.length ? 'info' : 'dim', IS.items.length ? `${plural(IS.items.length, 'image')} ready.` : 'Add images to start.');
     });
     div.addEventListener('dragstart', e => {
       imgDragSrcIdx = idx;
@@ -935,8 +928,8 @@ function renderImgList() {
   });
 
   const hasItems = IS.items.length > 0;
-  document.getElementById('imgControls').style.display  = hasItems ? 'flex'  : 'none';
-  document.getElementById('imgRunBtn').style.display    = hasItems ? 'block' : 'none';
+  document.getElementById('imgControls').style.display  = hasItems ? 'flex' : 'none';
+  document.getElementById('imgRunBtn').style.display    = hasItems ? '' : 'none';
   document.getElementById('imgRunBtn').disabled         = !hasItems || IS.busy;
   if (!hasItems) hideOutput('imgOutput');
 }
@@ -948,8 +941,8 @@ function setPageSize(s) {
   Object.entries(PAGE_SIZE_IDS).forEach(([v, id]) => {
     document.getElementById(id).className = 'tog-opt' + (v === s ? ' sel' : '');
   });
-  // Hide orientation toggle when "Fit" is selected
-  document.getElementById('orientGroup').style.opacity = s === 'fit' ? '0.3' : '1';
+  // Orientation doesn't apply when pages match the image
+  document.getElementById('orientGroup').style.opacity = s === 'fit' ? '0.4' : '1';
   document.getElementById('orientGroup').style.pointerEvents = s === 'fit' ? 'none' : '';
 }
 function setOrientation(o) {
@@ -988,17 +981,14 @@ async function runImgPdf() {
   if (!IS.items.length || IS.busy) return;
   IS.busy = true;
   const btn = document.getElementById('imgRunBtn');
-  btn.disabled = true; btn.classList.add('running'); btn.textContent = '>>  BUILDING…';
+  btn.disabled = true; setBusy(btn, true, 'Creating…');
   hideOutput('imgOutput');
-
-  logTo('imgLog','dim',  '────────────────────────────');
-  logTo('imgLog','info', `>> building PDF · ${IS.items.length} image${IS.items.length!==1?'s':''} · ${IS.pageSize} · ${IS.orientation}`);
 
   try {
     const pdfDoc = await PDFLib.PDFDocument.create();
     for (let i = 0; i < IS.items.length; i++) {
       const item = IS.items[i];
-      logTo('imgLog','info', `   [${i+1}/${IS.items.length}] ${esc(trunc(item.file.name,38))}…`);
+      logTo('imgLog','info', `Adding image ${i+1} of ${IS.items.length}…`);
       const embedded = await imgToEmbeddable(item.file, pdfDoc);
       const imgW = embedded.width, imgH = embedded.height;
 
@@ -1016,22 +1006,22 @@ async function runImgPdf() {
       page.drawImage(embedded, { x: (pw - dw) / 2, y: (ph - dh) / 2, width: dw, height: dh });
     }
 
-    logTo('imgLog','info', '   saving…');
+    logTo('imgLog','info', 'Saving…');
     const bytes   = await pdfDoc.save();
     const outName = IS.items.length === 1
       ? `${safeFilename(stripExt(IS.items[0].file.name))}.pdf`
       : 'images.pdf';
-    logTo('imgLog','done', `>> done · ${IS.items.length} pages · ${fmtBytes(bytes.byteLength)}`);
+    logTo('imgLog','done', `Done: ${plural(IS.items.length, 'page')}, ${fmtBytes(bytes.byteLength)}.`);
     setBlobDownload('imgDlBtn', bytes, 'application/pdf', outName);
     document.getElementById('imgOutName').textContent = outName;
-    document.getElementById('imgOutMeta').textContent = `${IS.items.length} pages · ${fmtBytes(bytes.byteLength)}`;
+    document.getElementById('imgOutMeta').textContent = `${plural(IS.items.length, 'page')} · ${fmtBytes(bytes.byteLength)}`;
     document.getElementById('imgOutput').classList.add('show');
   } catch(err) {
-    logTo('imgLog','err', `>> error · ${esc(err.message)}`);
+    logTo('imgLog','err', `Couldn't create the PDF: ${err.message}`);
   }
 
   IS.busy = false;
-  btn.classList.remove('running'); btn.textContent = '>>  BUILD PDF';
+  setBusy(btn, false, 'Create PDF');
   btn.disabled = false;
 }
 
@@ -1042,34 +1032,33 @@ const WS = { html: null, name: null };
 
 async function loadWordFile(file) {
   if (!file.name.toLowerCase().endsWith('.docx')) {
-    setSlotErr('W', file.name, '[ .docx files only ]');
-    logTo('wordLog','err', `rejected · ${esc(file.name)} — only .docx supported`);
+    setSlotErr('W', file.name, 'Only .docx files are supported');
+    logTo('wordLog','err', `${file.name} isn't a .docx file.`);
     return;
   }
-  logTo('wordLog','info', `reading · ${esc(trunc(file.name,40))} · ${fmtBytes(file.size)}`);
+  setSlotReading('W', file.name);
+  logTo('wordLog','info', `Reading ${trunc(file.name,40)} (${fmtBytes(file.size)})…`);
   try {
     const arrayBuffer = await file.arrayBuffer();
-    logTo('wordLog','info', 'converting to HTML…');
     const result = await mammoth.convertToHtml({ arrayBuffer });
     WS.html = result.value;
     WS.name = file.name;
 
-    setSlotLoaded('W', file.name,
-      metaLine('name', trunc(file.name,22)) +
-      metaLine('size', fmtBytes(file.size)));
+    setSlotLoaded('W', file.name, metaLine('Size', fmtBytes(file.size)));
 
     document.getElementById('wordPreviewBody').innerHTML = WS.html;
     document.getElementById('wordPreviewWrap').classList.add('show');
     document.getElementById('wordRunBtn').disabled = false;
 
-    logTo('wordLog','ok', `converted successfully`);
     if (result.messages.length) {
-      result.messages.forEach(m => logTo('wordLog','warn', `! ${esc(m.message)}`));
+      result.messages.forEach(m => logTo('wordLog','warn', m.message));
+      setStatus('wordLog', 'warn', `Converted with ${plural(result.messages.length, 'warning')}. Check the preview.`);
+    } else {
+      logTo('wordLog','ok', 'Converted. Check the preview, then open the print dialog.');
     }
-    logTo('wordLog','info', `preview shown below · click RUN to open print dialog`);
   } catch(err) {
-    setSlotErr('W', file.name, '[ conversion failed ]');
-    logTo('wordLog','err', `error · ${esc(err.message)}`);
+    setSlotErr('W', file.name, 'Conversion failed');
+    logTo('wordLog','err', `Conversion failed: ${err.message}`);
   }
 }
 
@@ -1079,40 +1068,47 @@ function onWordFileInput(e) {
 
 function clearWordSlot() {
   WS.html = null; WS.name = null;
-  setSlotReset('W', 'document.docx');
+  setSlotReset('W', 'Word document (.docx)');
   document.getElementById('wordPreviewWrap').classList.remove('show');
   document.getElementById('wordPreviewBody').innerHTML = '';
   document.getElementById('wordRunBtn').disabled = true;
-  logTo('wordLog','dim', 'cleared');
+  logTo('wordLog','dim', 'Add a .docx file to start.');
 }
 
 function runWordPdf() {
   if (!WS.html) return;
-  logTo('wordLog','info', 'opening print window…');
-  logTo('wordLog','info', 'set destination to "Save as PDF" in the dialog');
   const win = window.open('about:blank', '_blank');
   if (!win) {
-    logTo('wordLog','err', 'popup blocked — please allow popups for this page, then try again');
+    logTo('wordLog','err', 'Your browser blocked the print window. Allow pop-ups for this page and try again.');
     return;
   }
-  const docName = WS.name ? esc(WS.name) : 'Document';
-  win.document.write(`<!DOCTYPE html><html><head>
-<meta charset="UTF-8"><title>${docName}</title>
-<style>
-  body{font-family:'Times New Roman',Georgia,serif;font-size:12pt;line-height:1.65;
-       max-width:750px;margin:2cm auto;color:#111;padding:0 1cm;}
-  h1,h2,h3,h4,h5,h6{font-family:Arial,sans-serif;margin:14px 0 6px;}
-  p{margin-bottom:8px;}
-  table{border-collapse:collapse;width:100%;margin-bottom:12px;}
-  td,th{border:1px solid #bbb;padding:5px 8px;font-size:11pt;}
-  img{max-width:100%;height:auto;}
-  ul,ol{margin:6px 0 6px 22px;}
-  @media print{body{margin:0;padding:0;}@page{margin:2cm;}}
-</style></head><body>${WS.html}
-<script>window.onload=function(){window.print();};<\/script>
-</body></html>`);
-  win.document.close();
+  logTo('wordLog','info', 'Print dialog opened. Set the destination to "Save as PDF".');
+
+  // Build the print page with DOM calls. Writing a whole HTML document (with its own
+  // script/body/html tags) as a string inside this inline script can make some parsers
+  // close this script early and dump the rest of the code onto the page.
+  const d = win.document;
+  d.title = WS.name || 'Document';
+  const style = d.createElement('style');
+  style.textContent = PRINT_CSS;
+  d.head.appendChild(style);
+  d.body.innerHTML = WS.html;
+
+  const imgs = [...d.images].filter(i => !i.complete);
+  Promise.all(imgs.map(i => new Promise(r => { i.onload = i.onerror = r; })))
+    .then(() => { win.focus(); win.print(); });
 }
+
+const PRINT_CSS = [
+  "body{font-family:'Times New Roman',Georgia,serif;font-size:12pt;line-height:1.65;max-width:750px;margin:2cm auto;color:#111;padding:0 1cm;}",
+  'h1,h2,h3,h4,h5,h6{font-family:Arial,sans-serif;margin:14px 0 6px;}',
+  'p{margin-bottom:8px;}',
+  'table{border-collapse:collapse;width:100%;margin-bottom:12px;}',
+  'td,th{border:1px solid #bbb;padding:5px 8px;font-size:11pt;}',
+  'img{max-width:100%;height:auto;}',
+  'ul,ol{margin:6px 0 6px 22px;}',
+  '@media print{body{margin:0;padding:0;}@page{margin:2cm;}}',
+].join('\n');
 
 /* ══════════════════════════════════════════════════════════
    PAGE EDITOR
@@ -1124,26 +1120,24 @@ let peDropTarget = null;
 
 async function loadPageEditorFile(file) {
   if (!file.name.toLowerCase().endsWith('.pdf') && file.type !== 'application/pdf') {
-    setSlotErr('P', file.name, '[ not a pdf ]');
-    logTo('pageLog','err', `rejected · ${esc(file.name)}`);
+    setSlotErr('P', file.name, 'This isn\'t a PDF');
+    logTo('pageLog','err', `${file.name} isn't a PDF.`);
     return;
   }
   PE.srcBytes = null; PE.srcName = null; PE.pages = [];
   clearPageEditor(true /* keepSlotLoading */);
 
-  logTo('pageLog','info', `reading · ${esc(trunc(file.name,40))} · ${fmtBytes(file.size)}`);
+  setSlotReading('P', file.name);
+  logTo('pageLog','info', `Reading ${trunc(file.name,40)} (${fmtBytes(file.size)})…`);
   try {
     const bytes = await file.arrayBuffer();
     const typedArray = new Uint8Array(bytes);
-    logTo('pageLog','info', 'parsing with pdf.js…');
     const pdfJsDoc = await pdfjsLib.getDocument({ data: typedArray }).promise;
     const pageCount = pdfJsDoc.numPages;
 
     setSlotLoaded('P', file.name,
-      metaLine('name',  trunc(file.name,22)) +
-      metaLine('size',  fmtBytes(file.size)) +
-      metaLine('pages', String(pageCount)));
-    logTo('pageLog','ok', `loaded · ${pageCount} page${pageCount!==1?'s':''}`);
+      metaLine('Size',  fmtBytes(file.size)) +
+      metaLine('Pages', String(pageCount)));
 
     PE.srcBytes = bytes;
     PE.srcName  = file.name;
@@ -1156,8 +1150,8 @@ async function loadPageEditorFile(file) {
     renderThumbGrid();
     await renderAllThumbnails(pdfJsDoc);
   } catch(err) {
-    setSlotErr('P', file.name, err.message.includes('ncrypt') ? '[ encrypted pdf ]' : '[ could not read ]');
-    logTo('pageLog','err', `error · ${esc(err.message)}`);
+    setSlotErr('P', file.name, err.message.includes('ncrypt') ? 'This PDF is password-protected' : 'Couldn\'t read this file');
+    logTo('pageLog','err', `Couldn't read ${file.name}: ${err.message}`);
   }
 }
 
@@ -1167,25 +1161,26 @@ function onPageFileInput(e) {
 
 function clearPageEditor(keepSlotLoading) {
   if (!keepSlotLoading) {
-    setSlotReset('P', 'document.pdf');
+    setSlotReset('P', 'PDF to edit');
     document.getElementById('thumbToolbar').style.display = 'none';
     document.getElementById('pageRunBtn').disabled = true;
-    logTo('pageLog','dim', 'cleared');
+    logTo('pageLog','dim', 'Add a PDF to start.');
   }
   PE.srcBytes = null; PE.srcName = null; PE.pages = []; peJsDoc = null;
-  document.getElementById('thumbGrid').innerHTML = '<span class="thumb-empty">// load a PDF to edit its pages</span>';
+  document.getElementById('thumbGrid').innerHTML = '';
   hideOutput('pageOutput');
 }
 
 async function renderAllThumbnails(pdfJsDoc) {
   const toRender = PE.pages.filter(p => !p.canvas);
   if (!toRender.length) return;
-  logTo('pageLog','info', `rendering ${toRender.length} thumbnail${toRender.length!==1?'s':''}…`);
+  let done = 0;
   for (let i = 0; i < PE.pages.length; i++) {
     const pg = PE.pages[i];
     if (pg.canvas) continue;
+    setStatus('pageLog', 'info', `Rendering previews… ${++done} of ${toRender.length}`);
     const page   = await pdfJsDoc.getPage(pg.origIdx + 1);
-    const vp     = page.getViewport({ scale: 0.22 });
+    const vp     = page.getViewport({ scale: 0.3 });
     const canvas = document.createElement('canvas');
     canvas.width = vp.width; canvas.height = vp.height;
     await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
@@ -1196,14 +1191,14 @@ async function renderAllThumbnails(pdfJsDoc) {
       if (loadingEl) { loadingEl.replaceWith(canvas); canvas.className = 'thumb-canvas'; }
     }
   }
-  logTo('pageLog','ok', 'thumbnails ready · drag to reorder · ✕ to delete');
+  logTo('pageLog','ok', `${plural(PE.pages.length, 'page')} ready. Drag to reorder or remove pages.`);
 }
 
 function renderThumbGrid() {
   const grid = document.getElementById('thumbGrid');
   grid.innerHTML = '';
   if (!PE.pages.length) {
-    grid.innerHTML = '<span class="thumb-empty">// all pages deleted</span>';
+    grid.innerHTML = '<span class="thumb-empty">All pages removed. Use Reset to bring them back.</span>';
     return;
   }
   PE.pages.forEach((pg, idx) => {
@@ -1214,11 +1209,11 @@ function renderThumbGrid() {
 
     const thumbArea = pg.canvas
       ? (() => { const c = pg.canvas.cloneNode(); c.getContext('2d').drawImage(pg.canvas, 0, 0); c.className='thumb-canvas'; return c; })()
-      : Object.assign(document.createElement('div'), { className: 'thumb-loading', textContent: '…' });
+      : Object.assign(document.createElement('div'), { className: 'thumb-loading' });
 
     const foot = document.createElement('div');
     foot.className = 'thumb-foot';
-    foot.innerHTML = `<span>p.${pg.origIdx + 1}</span><button class="thumb-del" title="delete page">✕</button>`;
+    foot.innerHTML = `<span>Page ${pg.origIdx + 1}</span><button class="thumb-del" aria-label="Remove page ${pg.origIdx + 1}"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button>`;
 
     card.appendChild(thumbArea);
     card.appendChild(foot);
@@ -1228,7 +1223,7 @@ function renderThumbGrid() {
       PE.pages.splice(idx, 1);
       updateThumbCount();
       renderThumbGrid();
-      logTo('pageLog','info', `deleted page ${pg.origIdx + 1} · ${PE.pages.length} remaining`);
+      logTo('pageLog','info', `Removed page ${pg.origIdx + 1}. ${plural(PE.pages.length, 'page')} left.`);
     });
 
     // Drag-and-drop reorder
@@ -1262,8 +1257,8 @@ function updateThumbCount() {
   const origCount   = peJsDoc ? peJsDoc.numPages : 0;
   const remaining   = PE.pages.length;
   const deletedCount = origCount - remaining;
-  document.getElementById('thumbCount').textContent   = `${remaining} page${remaining!==1?'s':''}`;
-  document.getElementById('deletedCount').textContent = `${deletedCount} deleted`;
+  document.getElementById('thumbCount').textContent   = plural(remaining, 'page');
+  document.getElementById('deletedCount').textContent = `${deletedCount} removed`;
   document.getElementById('pageRunBtn').disabled = remaining === 0 || PE.busy;
 }
 
@@ -1277,42 +1272,37 @@ function resetPageOrder() {
   renderThumbGrid();
   renderAllThumbnails(peJsDoc);
   updateThumbCount();
-  logTo('pageLog','info', 'order reset to original');
+  logTo('pageLog','info', 'Back to the original order.');
 }
 
 async function runPageEdit() {
   if (!PE.srcBytes || !PE.pages.length || PE.busy) return;
   PE.busy = true;
   const btn = document.getElementById('pageRunBtn');
-  btn.disabled = true; btn.classList.add('running'); btn.textContent = '>>  EXPORTING…';
+  btn.disabled = true; setBusy(btn, true, 'Exporting…');
   hideOutput('pageOutput');
 
-  const origCount = peJsDoc ? peJsDoc.numPages : '?';
-  logTo('pageLog','dim',  '────────────────────────────');
-  logTo('pageLog','info', `>> export · ${PE.pages.length}/${origCount} pages`);
   const indices = PE.pages.map(p => p.origIdx);
-  logTo('pageLog','info', `   order: [${indices.map(i=>i+1).join(', ')}]`);
+  logTo('pageLog','info', `Exporting pages ${indices.map(i=>i+1).join(', ')}…`);
 
   try {
     const src = await PDFLib.PDFDocument.load(PE.srcBytes);
     const out = await PDFLib.PDFDocument.create();
-    logTo('pageLog','info', '   copying pages…');
     const copied = await out.copyPages(src, indices);
     copied.forEach(p => out.addPage(p));
-    logTo('pageLog','info', '   saving…');
     const bytes   = await out.save();
     const outName = `${safeFilename(stripExt(PE.srcName))}_edited.pdf`;
-    logTo('pageLog','done', `>> done · ${PE.pages.length} pages · ${fmtBytes(bytes.byteLength)}`);
+    logTo('pageLog','done', `Done: ${plural(PE.pages.length, 'page')}, ${fmtBytes(bytes.byteLength)}.`);
     setBlobDownload('pageDlBtn', bytes, 'application/pdf', outName);
     document.getElementById('pageOutName').textContent = outName;
-    document.getElementById('pageOutMeta').textContent = `${PE.pages.length} pages · ${fmtBytes(bytes.byteLength)}`;
+    document.getElementById('pageOutMeta').textContent = `${plural(PE.pages.length, 'page')} · ${fmtBytes(bytes.byteLength)}`;
     document.getElementById('pageOutput').classList.add('show');
   } catch(err) {
-    logTo('pageLog','err', `>> error · ${esc(err.message)}`);
+    logTo('pageLog','err', `Export failed: ${err.message}`);
   }
 
   PE.busy = false;
-  btn.classList.remove('running'); btn.textContent = '>>  EXPORT PDF';
+  setBusy(btn, false, 'Export PDF');
   document.getElementById('pageRunBtn').disabled = PE.pages.length === 0;
 }
 

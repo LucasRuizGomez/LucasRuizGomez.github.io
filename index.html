@@ -4,542 +4,471 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Lukeda — Free Projects by Lucas Ruiz</title>
+  <meta name="description" content="Free tools by Lucas Ruiz: a DAW plugin that sends mixes to your phone, plus browser apps for notes, PDFs, stocks and sight-reading. No accounts, no uploads.">
   <style>
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+  /* ───────────────────────── Design tokens ───────────────────────── */
+  :root {
+    /* Surfaces */
+    --bg:          #031a22;
+    --bg-deep:     #021117;
+    --surface:     #072631;
+    --surface-hi:  #0a3140;
+    --border:      rgba(120, 220, 205, 0.14);
+    --border-hi:   rgba(120, 220, 205, 0.32);
+
+    /* Text (all ≥ 4.5:1 on --surface) */
+    --text:        #e8f6f3;
+    --text-muted:  #a9cec7;
+    --text-faint:  #84aca5;
+
+    /* Brand + accent */
+    --teal:        #4fd8c4;
+    --accent:      #f6b94a;
+    --accent-hi:   #ffcb6b;
+    --on-accent:   #1d1303;
+
+    /* Type */
+    --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-mono: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, monospace;
+    --fs-sm:   0.875rem;
+    --fs-base: 1rem;
+    --fs-lg:   1.125rem;
+    --fs-xl:   1.375rem;
+    --fs-2xl:  clamp(1.625rem, 3.2vw, 2.25rem);
+    --fs-3xl:  clamp(2.125rem, 5.5vw, 3.5rem);
+
+    /* Spacing scale (4px base) */
+    --s-1: 4px;  --s-2: 8px;  --s-3: 12px; --s-4: 16px;
+    --s-5: 24px; --s-6: 32px; --s-7: 48px; --s-8: 72px; --s-9: 112px;
+
+    /* Radius — inner = outer − padding */
+    --r-card:  14px;
+    --pad-media: 8px;
+    --r-media: calc(var(--r-card) - var(--pad-media));
+    --r-btn:   10px;
+
+    --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+    --dur:  180ms;
+  }
+
+  /* ───────────────────────── Base ───────────────────────── */
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
 
   body {
-    font-family: Verdana, Tahoma, Arial, sans-serif;
-    font-size: 11px;
-
-    /* ── Teal wave wallpaper (CSS recreation) ──
-       Layers: sparkle dots · light rays · ribbon waves · base gradient */
-    background-color: #005060;
+    font-family: var(--font-sans);
+    font-size: var(--fs-base);
+    line-height: 1.6;
+    color: var(--text);
+    background-color: var(--bg);
     background-image:
-      /* Sparkle cluster top-center */
-      radial-gradient(circle at 58%  7%, rgba(200,255,248,0.95) 0%, transparent 0.6%),
-      radial-gradient(circle at 62%  5%, rgba(200,255,248,0.80) 0%, transparent 0.5%),
-      radial-gradient(circle at 55%  9%, rgba(200,255,248,0.70) 0%, transparent 0.4%),
-      radial-gradient(circle at 65%  4%, rgba(200,255,248,0.65) 0%, transparent 0.45%),
-      radial-gradient(circle at 53%  6%, rgba(200,255,248,0.55) 0%, transparent 0.35%),
-      radial-gradient(circle at 67%  8%, rgba(200,255,248,0.50) 0%, transparent 0.35%),
-      radial-gradient(circle at 60% 11%, rgba(200,255,248,0.40) 0%, transparent 0.3%),
-      radial-gradient(circle at 70%  6%, rgba(200,255,248,0.35) 0%, transparent 0.3%),
-      /* Bright inner light ray (narrow beam) */
-      radial-gradient(ellipse 18%  70% at 57%  0%, rgba(160,255,240,0.55) 0%, transparent 55%),
-      /* Outer soft glow halo */
-      radial-gradient(ellipse 70%  65% at 55%  0%, rgba(0,220,195,0.32) 0%, transparent 58%),
-      radial-gradient(ellipse 45%  50% at 52%  0%, rgba(0,255,210,0.20) 0%, transparent 48%),
-      /* Ribbon wave 1 — sweeps upper-left to center-right */
-      radial-gradient(ellipse 160% 18% at 18% 42%, rgba(0,210,185,0.18) 0%, transparent 55%),
-      /* Ribbon wave 2 — lower, wider arc */
-      radial-gradient(ellipse 180% 14% at 35% 62%, rgba(0,190,170,0.13) 0%, transparent 52%),
-      /* Deep shadow corners */
-      radial-gradient(ellipse  80% 55% at 100% 100%, rgba(0,30,50,0.55) 0%, transparent 58%),
-      radial-gradient(ellipse  60% 45% at   0% 100%, rgba(0,40,55,0.35) 0%, transparent 50%),
-      /* Base teal gradient */
-      linear-gradient(155deg, #008a8e 0%, #006878 20%, #005068 42%, #003c58 64%, #002848 84%, #001c3a 100%);
+      radial-gradient(ellipse 80% 50% at 50% -10%, rgba(40, 190, 170, 0.22), transparent 70%),
+      linear-gradient(180deg, var(--bg) 0%, var(--bg-deep) 100%);
     background-attachment: fixed;
-
     min-height: 100vh;
-    padding: 22px 16px 48px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .num { font-variant-numeric: tabular-nums; }
+
+  a { color: inherit; }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  .icon {
+    width: 16px; height: 16px;
+    flex: none;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 1.75;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .wrap {
+    width: 100%;
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 0 var(--s-4);
+  }
+  @media (min-width: 640px) { .wrap { padding: 0 var(--s-6); } }
+
+  /* ───────────────────────── Header ───────────────────────── */
+  .site-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--s-5) 0;
+  }
+  .wordmark {
+    font-weight: 700;
+    font-size: var(--fs-lg);
+    letter-spacing: -0.01em;
+    text-decoration: none;
+  }
+  .wordmark span { color: var(--teal); }
+  .site-nav { display: flex; gap: var(--s-5); }
+  .site-nav a {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s-1);
+    font-size: var(--fs-sm);
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color var(--dur) var(--ease);
+  }
+  .site-nav a:hover { color: var(--text); }
+
+  /* ───────────────────────── Hero ───────────────────────── */
+  .hero { padding: var(--s-8) 0 var(--s-7); }
+  .hero h1 {
+    font-size: var(--fs-3xl);
+    line-height: 1.08;
+    letter-spacing: -0.025em;
+    font-weight: 700;
+    max-width: 20ch;
+    text-wrap: balance;
+    /* Optical alignment: large glyphs have side bearing; pull back to the text edge */
+    margin-left: -0.04em;
+  }
+  .hero h1 em { font-style: normal; color: var(--teal); }
+  .hero p {
+    margin-top: var(--s-5);
+    font-size: var(--fs-lg);
+    color: var(--text-muted);
+    max-width: 56ch;
+    text-wrap: pretty;
+  }
+
+  /* ───────────────────────── Featured ───────────────────────── */
+  .featured {
+    display: grid;
+    gap: var(--s-6);
+    align-items: center;
+    padding: var(--s-5);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: calc(var(--r-card) + 6px);
+  }
+  @media (min-width: 860px) {
+    .featured { grid-template-columns: 5fr 7fr; padding: var(--s-6); gap: var(--s-7); }
+  }
+  .eyebrow {
+    font-size: var(--fs-sm);
+    color: var(--teal);
+    font-weight: 600;
+  }
+  .featured h2 {
+    margin-top: var(--s-2);
+    font-size: var(--fs-2xl);
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+  .featured p {
+    margin-top: var(--s-4);
+    color: var(--text-muted);
+    text-wrap: pretty;
+  }
+  .featured ul {
+    list-style: none;
+    margin-top: var(--s-4);
+    display: grid;
+    gap: var(--s-2);
+    color: var(--text-muted);
+    font-size: var(--fs-sm);
+  }
+  .featured li { display: flex; gap: var(--s-2); align-items: baseline; }
+  .featured li .icon { color: var(--teal); transform: translateY(3px); }
+
+  .actions {
+    margin-top: var(--s-6);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--s-4);
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s-2);
+    padding: 12px 20px;
+    border-radius: var(--r-btn);
+    background: var(--accent);
+    color: var(--on-accent);
+    font-weight: 650;
+    font-size: var(--fs-base);
+    text-decoration: none;
+    box-shadow: 0 8px 24px -10px rgba(246, 185, 74, 0.6);
+    transition: background var(--dur) var(--ease), transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+  }
+  .btn:hover { background: var(--accent-hi); box-shadow: 0 10px 28px -8px rgba(246, 185, 74, 0.7); }
+  .btn:active { transform: scale(0.97); }
+  .btn .icon { transition: transform var(--dur) var(--ease); }
+  .btn:hover .icon { transform: translate(2px, -2px); }
+  .actions-note { font-size: var(--fs-sm); color: var(--text-faint); }
+
+  .featured .media { border-radius: var(--r-card); padding: var(--pad-media); }
+  .featured .media img { border-radius: var(--r-media); }
+
+  /* ───────────────────────── Media + loading state ───────────────────────── */
+  .media {
+    background: var(--bg-deep);
+    border: 1px solid var(--border);
+  }
+  .media-frame {
+    position: relative;
+    aspect-ratio: 16 / 10;
+    overflow: hidden;
+    border-radius: inherit;
+  }
+  .media img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top center;
+    opacity: 0;
+    transition: opacity 320ms var(--ease);
+  }
+  .media.is-loaded img { opacity: 1; }
+  .media-frame::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(100deg, transparent 20%, rgba(120, 220, 205, 0.08) 50%, transparent 80%) var(--surface-hi);
+    background-size: 200% 100%;
+    animation: shimmer 1.3s linear infinite;
+    transition: opacity 320ms var(--ease);
+  }
+  .media.is-loaded .media-frame::before { opacity: 0; animation: none; }
+  .media.is-error .media-frame::before { animation: none; }
+  @keyframes shimmer { from { background-position: 150% 0; } to { background-position: -50% 0; } }
+
+  /* ───────────────────────── Project grid ───────────────────────── */
+  .section { padding-top: var(--s-9); }
+  .section-head { margin-bottom: var(--s-5); }
+  .section-head h2 {
+    font-size: var(--fs-xl);
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+  .section-head p { margin-top: var(--s-1); color: var(--text-muted); }
+
+  .grid {
+    display: grid;
+    gap: var(--s-4);
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr));
+  }
+  .card {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    color: #9ad8d0;
-  }
-
-  /* ─ WRAPPER ─ */
-  .page { width: 100%; max-width: 760px; }
-
-  /* ─ SYSTEM BAR ─ */
-  .sysbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: linear-gradient(180deg, rgba(0,25,35,0.92) 0%, rgba(0,18,28,0.95) 100%);
-    border: 1px solid rgba(0,180,165,0.22);
-    border-bottom: 1px solid rgba(0,150,140,0.15);
-    padding: 5px 12px;
-    font-size: 9px;
-    font-family: 'Courier New', monospace;
-    letter-spacing: 0.06em;
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-  }
-  .sysbar-left {
-    color: #1a9a90;
-    font-weight: bold;
-    text-transform: uppercase;
-  }
-  .sysbar-right {
-    display: flex;
-    gap: 16px;
-    align-items: center;
-    color: #0d6a60;
-    text-transform: uppercase;
-  }
-  .online-badge {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    color: #22bb99;
-  }
-  .led {
-    display: inline-block;
-    width: 5px; height: 5px;
-    border-radius: 50%;
-    background: radial-gradient(circle at 38% 32%, #88ffee, #00cc99);
-    box-shadow: 0 0 6px rgba(0,220,180,0.9);
-    animation: ledPulse 2.2s ease-in-out infinite;
-  }
-  @keyframes ledPulse {
-    0%, 100% { box-shadow: 0 0 6px rgba(0,220,180,0.9); opacity: 1; }
-    50%       { box-shadow: 0 0 2px rgba(0,220,180,0.3); opacity: 0.5; }
-  }
-
-  /* ─ HEADER ─ */
-  .header-panel {
-    background: linear-gradient(180deg, rgba(0,25,38,0.90) 0%, rgba(0,18,30,0.93) 100%);
-    border: 1px solid rgba(0,180,165,0.22);
-    border-top: none;
-    border-bottom: 2px solid rgba(0,160,148,0.18);
-    padding: 30px 28px 26px;
-    position: relative;
-    overflow: hidden;
-    margin-top: -1px;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-  }
-  .header-panel::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0; height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(0,220,195,0.5), transparent);
-  }
-  .header-panel::after {
-    content: '';
-    position: absolute;
-    top: -60px; right: -40px;
-    width: 280px; height: 180px;
-    background: radial-gradient(ellipse, rgba(0,200,180,0.06) 0%, transparent 65%);
-    pointer-events: none;
-  }
-
-  .brand {
-    font-family: 'Trebuchet MS', Impact, Arial, sans-serif;
-    font-size: clamp(28px, 6vw, 44px);
-    font-weight: bold;
-    color: #c0f0ea;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    line-height: 1;
-    margin-bottom: 5px;
-    text-shadow: 0 0 24px rgba(0,220,195,0.4), 0 2px 6px rgba(0,0,0,0.5);
-    position: relative; z-index: 1;
-  }
-  .brand-ver {
-    font-family: 'Courier New', monospace;
-    font-size: 9px;
-    color: #0a7868;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    margin-bottom: 16px;
-    position: relative; z-index: 1;
-  }
-  .brand-tagline {
-    font-size: 11px;
-    color: #3a9888;
-    line-height: 1.75;
-    max-width: 500px;
-    position: relative; z-index: 1;
-  }
-  .brand-tagline strong {
-    color: #55ccbb;
-    font-weight: bold;
-  }
-
-  /* ─ NAVBAR ─ */
-  .navbar {
-    display: flex;
-    align-items: stretch;
-    background: linear-gradient(180deg, rgba(0,20,30,0.93) 0%, rgba(0,14,22,0.96) 100%);
-    border: 1px solid rgba(0,180,165,0.22);
-    border-top: none;
-    margin-top: -1px;
-    overflow: hidden;
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-  }
-  .nav-prefix {
-    padding: 0 12px;
-    font-family: 'Courier New', monospace;
-    font-size: 9px;
-    font-weight: bold;
-    color: #0a6858;
-    border-right: 1px solid rgba(0,150,140,0.15);
-    display: flex;
-    align-items: center;
-    background: rgba(0,15,25,0.5);
-    white-space: nowrap;
-  }
-  .nav-items { display: flex; flex-wrap: wrap; }
-  .nav-lnk {
-    display: flex;
-    align-items: center;
-    padding: 9px 15px;
-    font-size: 9px;
-    font-family: Verdana, Tahoma, sans-serif;
-    font-weight: bold;
-    color: #1a7a6a;
+    padding: var(--pad-media);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-card);
     text-decoration: none;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    border-right: 1px solid rgba(0,150,140,0.12);
-    position: relative;
-    transition: background 0.1s, color 0.1s;
+    transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease), transform var(--dur) var(--ease);
   }
-  .nav-lnk:hover {
-    background: rgba(0,180,160,0.1);
-    color: #44ddc8;
-  }
-  .nav-lnk.active {
-    color: #33ccbb;
-    background: rgba(0,180,160,0.08);
-  }
-  .nav-lnk.active::after {
-    content: '';
-    position: absolute;
-    bottom: 0; left: 0; right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, #00bbaa 40%, transparent);
-  }
+  .card .media { border-radius: var(--r-media); border: 0; }
+  .card img { transition: opacity 320ms var(--ease), transform 400ms var(--ease); }
+  .card:hover { border-color: var(--border-hi); background: var(--surface-hi); transform: translateY(-2px); }
+  .card:hover img { transform: scale(1.02); }
+  .card:active { transform: translateY(0); }
 
-  /* ─ SECTION PANEL ─ */
-  .panel {
-    border: 1px solid rgba(0,180,165,0.20);
-    border-top: none;
-    background: rgba(0,18,28,0.88);
-    margin-top: -1px;
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-  }
-  .panel-head {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 14px;
-    background: rgba(0,30,42,0.6);
-    border-bottom: 1px solid rgba(0,150,140,0.14);
-    font-size: 8px;
-    font-family: 'Courier New', monospace;
-    font-weight: bold;
-    color: #1a8878;
-    text-transform: uppercase;
-    letter-spacing: 0.14em;
-  }
-  .panel-head::before { content: '++ '; color: #0a5a50; }
-  .panel-body { padding: 18px 20px; }
+  .card-body { padding: var(--s-4) var(--s-3) var(--s-3); display: grid; gap: var(--s-2); align-content: start; }
 
-  /* ─ ABOUT ─ */
-  .about-text {
-    font-size: 11px;
-    color: #3a9888;
-    line-height: 1.8;
-    margin-bottom: 10px;
-    max-width: 600px;
+  /* An odd card left alone on the last row spans the row, image beside text */
+  @media (min-width: 820px) {
+    .grid > .card:last-child:nth-child(odd) {
+      grid-column: 1 / -1;
+      display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-2); align-items: center;
+    }
+    .grid > .card:last-child:nth-child(odd) .card-body { padding: var(--s-4) var(--s-5); }
   }
-  .about-quote {
-    font-family: 'Courier New', monospace;
-    font-size: 10px;
-    color: #1a7868;
-    padding: 8px 14px;
-    border-left: 2px solid #009988;
-    background: rgba(0,160,140,0.07);
-    line-height: 1.6;
-    letter-spacing: 0.02em;
-  }
-
-  /* ─ FREE BADGE ─ */
-  .free-badge {
-    display: inline-block;
-    margin-top: 14px;
-    padding: 5px 14px;
-    background: rgba(0,120,90,0.18);
-    border: 1px solid rgba(0,180,130,0.3);
-    font-family: 'Courier New', monospace;
-    font-size: 9px;
-    color: #33ccaa;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-  }
-
-  /* ─ PROJECT GRID ─ */
-  .project-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(215px, 1fr));
-    gap: 8px;
-  }
-  .project-card {
-    background: rgba(0,20,32,0.82);
-    border: 1px solid rgba(0,180,165,0.18);
-    padding: 14px 16px 13px;
-    display: block;
-    color: inherit;
-    text-decoration: none;
-    position: relative;
-    overflow: hidden;
-    transition: border-color 0.12s, background 0.12s;
-  }
-  .project-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0; height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(0,220,195,0.35), transparent);
-  }
-  .project-card:hover {
-    border-color: rgba(0,200,180,0.35);
-    background: rgba(0,28,42,0.88);
-  }
-  .project-card.soon { opacity: 0.3; pointer-events: none; }
-
-  .pc-row {
+  .card h3 {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 7px;
+    gap: var(--s-2);
+    font-size: var(--fs-lg);
+    letter-spacing: -0.01em;
   }
-  .pc-name {
-    font-family: 'Trebuchet MS', Arial, sans-serif;
-    font-size: 13px;
-    font-weight: bold;
-    color: #88d8cc;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    text-shadow: 0 0 10px rgba(0,200,180,0.2);
-  }
-  .pc-cat {
-    font-family: 'Courier New', monospace;
-    font-size: 8px;
-    color: #0a6858;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    margin-bottom: 4px;
-  }
-  .pc-tag {
-    font-family: 'Courier New', monospace;
-    font-size: 8px;
-    padding: 2px 7px;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    border-radius: 1px;
-  }
-  .tag-live {
-    background: rgba(0,120,90,0.25);
-    border: 1px solid #0a5a3a;
-    color: #33ccaa;
-  }
-  .tag-soon {
-    background: rgba(0,40,50,0.4);
-    border: 1px solid rgba(0,150,140,0.2);
-    color: #1a7868;
-  }
-  .pc-desc {
-    font-size: 10px;
-    color: #2a7868;
-    line-height: 1.75;
-    margin-bottom: 8px;
-  }
-  .pc-link {
-    font-family: 'Courier New', monospace;
-    font-size: 9px;
-    color: #0a5848;
-    letter-spacing: 0.04em;
-  }
+  .card h3 .icon { color: var(--text-faint); transition: transform var(--dur) var(--ease), color var(--dur) var(--ease); }
+  .card:hover h3 .icon { color: var(--accent); transform: translateX(3px); }
+  .card p { color: var(--text-muted); font-size: var(--fs-sm); text-wrap: pretty; }
+  .card .meta { font-size: var(--fs-sm); color: var(--text-faint); }
 
-  /* ─ RULE ─ */
-  .h-rule {
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(0,180,160,0.22), transparent);
-    margin: 14px 0;
-  }
-
-  /* ─ TICKER ─ */
-  .ticker-bar {
-    border: 1px solid rgba(0,180,165,0.18);
-    border-top: none;
-    margin-top: -1px;
-    background: rgba(0,12,20,0.92);
-    padding: 5px 0;
-    overflow: hidden;
-    white-space: nowrap;
-  }
-  .ticker-inner {
-    display: inline-block;
-    font-family: 'Courier New', monospace;
-    font-size: 9px;
-    color: #0a5848;
-    letter-spacing: 0.04em;
-    animation: tickerScroll 40s linear infinite;
-  }
-  @keyframes tickerScroll {
-    0%   { transform: translateX(100vw); }
-    100% { transform: translateX(-100%); }
-  }
-
-  /* ─ FOOTER ─ */
-  .footbar {
-    border: 1px solid rgba(0,180,165,0.18);
-    border-top: 1px solid rgba(0,150,140,0.12);
-    margin-top: -1px;
-    background: rgba(0,12,20,0.93);
-    padding: 7px 14px;
+  /* ───────────────────────── Footer ───────────────────────── */
+  .site-footer {
+    margin-top: var(--s-9);
+    padding: var(--s-6) 0 var(--s-7);
+    border-top: 1px solid var(--border);
     display: flex;
-    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--s-3);
     justify-content: space-between;
-    font-family: 'Courier New', monospace;
-    font-size: 9px;
-    color: #0a5848;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
+    font-size: var(--fs-sm);
+    color: var(--text-faint);
   }
-  .foot-left { display: flex; align-items: center; gap: 8px; }
+  .site-footer a { text-decoration: none; }
+  .site-footer a:hover { color: var(--text); }
+  .site-footer code { font-family: var(--font-mono); font-size: 0.95em; }
 
-  /* ─ RESPONSIVE ─ */
-  @media (max-width: 560px) {
-    body { padding: 10px 10px 32px; background-attachment: scroll; }
-    .header-panel { padding: 20px 16px; }
-    .brand { font-size: 26px; }
-    .nav-lnk { padding: 9px 10px; font-size: 8px; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 
   </style>
 </head>
 <body>
 
-<div class="page">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-arrow-right" viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4"/></symbol>
+  <symbol id="i-arrow-up-right" viewBox="0 0 16 16"><path d="M5 11l6-6M6 5h5v5"/></symbol>
+  <symbol id="i-check" viewBox="0 0 16 16"><path d="M3.5 8.5l3 3 6-7"/></symbol>
+</svg>
 
-  <!-- System bar -->
-  <div class="sysbar">
-    <span class="sysbar-left">++ Lukeda // Free Projects by Lucas Ruiz</span>
-    <div class="sysbar-right">
-      <span>lukeda.me</span>
-      <span class="online-badge"><span class="led"></span> Online</span>
-    </div>
-  </div>
+<div class="wrap">
 
-  <!-- Header -->
-  <div class="header-panel">
-    <div class="brand">Lukeda</div>
-    <div class="brand-ver">// projects by lucas ruiz · lukeda.me</div>
-    <div class="brand-tagline">
-      A collection of tools, plugins, and experiments I build and release here — <strong>completely free</strong>. Audio utilities, creative software, whatever comes next. If I made it and it works, it ends up here.
-    </div>
-  </div>
+  <header class="site-header">
+    <a href="/" class="wordmark">Luke<span>da</span></a>
+    <nav class="site-nav" aria-label="Main">
+      <a href="#projects">Projects</a>
+      <a href="https://github.com/LucasRuizGomez" target="_blank" rel="noopener">
+        GitHub <svg class="icon" aria-hidden="true"><use href="#i-arrow-up-right"/></svg>
+      </a>
+    </nav>
+  </header>
 
-  <!-- Nav -->
-  <div class="navbar">
-    <span class="nav-prefix">++ nav ::</span>
-    <div class="nav-items">
-      <a href="#about"    class="nav-lnk active">About</a>
-      <a href="#projects" class="nav-lnk">Projects</a>
-      <a href="https://github.com/LucasRuizGomez/Audiosend" class="nav-lnk" target="_blank" rel="noopener">AudioSend</a>
-      <a href="positwebsite/index.html" class="nav-lnk">My Little Board</a>
-      <a href="filekit/index.html"    class="nav-lnk">Filekit</a>
-      <a href="stockview/index.html" class="nav-lnk">Portfolio</a>
-      <a href="noteread/index.html" class="nav-lnk">NoteRead</a>
-    </div>
-  </div>
+  <main>
 
-  <!-- About -->
-  <div id="about" class="panel">
-    <div class="panel-head">About</div>
-    <div class="panel-body">
-      <p class="about-text">
-        Lukeda is where I put the things I build. Most of it starts as something I needed myself and couldn't find — or found but felt overengineered. Everything here is free. No subscriptions, no paywalls, no mailing lists. Just download and use it.
-      </p>
-      <p class="about-quote">// Built by one person. Released for free. More coming.</p>
-      <div class="free-badge">++ All projects are free to download</div>
-    </div>
-  </div>
+    <section class="hero">
+      <h1>Small tools I built because I <em>needed them</em>.</h1>
+      <p>A DAW plugin, four browser apps and a small game by Lucas Ruiz. They're free, they don't ask for an account, and your files never leave your machine.</p>
+    </section>
 
-  <!-- Projects -->
-  <div id="projects" class="panel">
-    <div class="panel-head">Projects // Live &amp; Upcoming</div>
-    <div class="panel-body">
-      <div class="project-grid">
+    <article class="featured" aria-labelledby="audiosend-title">
+      <div>
+        <div class="eyebrow">AudioSend · VST3 plugin for Windows</div>
+        <h2 id="audiosend-title">Hear your mix on your phone without leaving the session.</h2>
+        <p>Drop an export into the plugin, scan the QR code, and it plays in your phone's browser over local Wi-Fi.</p>
+        <ul>
+          <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>LUFS and true-peak readout for every file</li>
+          <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>No cable, no cloud upload, no app install</li>
+          <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>Open source under AGPLv3</li>
+        </ul>
+        <div class="actions">
+          <a class="btn" href="https://github.com/LucasRuizGomez/Audiosend" target="_blank" rel="noopener">
+            Download from GitHub <svg class="icon" aria-hidden="true"><use href="#i-arrow-up-right"/></svg>
+          </a>
+          <span class="actions-note">Free · Windows only</span>
+        </div>
+      </div>
+      <div class="media">
+        <div class="media-frame">
+          <img src="docs/audiosend.png" width="1280" height="800" alt="AudioSend plugin window next to a phone listing the exported files" fetchpriority="high">
+        </div>
+      </div>
+    </article>
 
-        <a href="https://github.com/LucasRuizGomez/Audiosend" class="project-card" target="_blank" rel="noopener">
-          <div class="pc-row">
-            <span class="pc-name">AudioSend</span>
-            <span class="pc-tag tag-live">[ Live ]</span>
+    <section id="projects" class="section" aria-labelledby="projects-title">
+      <div class="section-head">
+        <h2 id="projects-title">Browser apps, nothing to install</h2>
+        <p>Open the link and start. Everything is stored in your browser.</p>
+      </div>
+
+      <div class="grid">
+
+        <a href="positwebsite/index.html" class="card">
+          <div class="media"><div class="media-frame">
+            <img src="docs/board.png" width="1280" height="800" alt="My Little Board with sticky notes" loading="lazy">
+          </div></div>
+          <div class="card-body">
+            <h3>My Little Board <svg class="icon" aria-hidden="true"><use href="#i-arrow-right"/></svg></h3>
+            <p>A sticky-note board. Click to place a note, drag to move it, scroll to rotate it, and check off tasks on each one.</p>
+            <span class="meta">Productivity</span>
           </div>
-          <div class="pc-cat">// audio · DAW plugin</div>
-          <div class="pc-desc">Send your exports to your phone over local Wi-Fi. Scan a QR code, listen in the browser, check LUFS and true peak. Free and open source. VST3 for Windows.</div>
-          <div class="pc-link">&gt;&gt; github.com/LucasRuizGomez/Audiosend</div>
         </a>
 
-        <a href="positwebsite/index.html" class="project-card">
-          <div class="pc-row">
-            <span class="pc-name">My Little Board</span>
-            <span class="pc-tag tag-live">[ Live ]</span>
+        <a href="filekit/index.html" class="card">
+          <div class="media"><div class="media-frame">
+            <img src="docs/filekit.png" width="1280" height="800" alt="Filekit PDF merge tool" loading="lazy">
+          </div></div>
+          <div class="card-body">
+            <h3>Filekit <svg class="icon" aria-hidden="true"><use href="#i-arrow-right"/></svg></h3>
+            <p>Merge PDFs, turn images and Word files into PDFs, and edit pages. All of it runs locally, with no uploads.</p>
+            <span class="meta">File tools</span>
           </div>
-          <div class="pc-cat">// productivity · browser tool</div>
-          <div class="pc-desc">An interactive sticky-note board that lives in your browser. Click anywhere to place a note, drag to move, scroll to rotate. Add and check off tasks on each note.</div>
-          <div class="pc-link">&gt;&gt; positwebsite/index.html</div>
         </a>
 
-        <a href="filekit/index.html" class="project-card">
-          <div class="pc-row">
-            <span class="pc-name">Filekit</span>
-            <span class="pc-tag tag-live">[ Live ]</span>
+        <a href="stockview/index.html" class="card">
+          <div class="media"><div class="media-frame">
+            <img src="docs/portfolio.png" width="1280" height="800" alt="Portfolio tracker showing positions and P&amp;L" loading="lazy">
+          </div></div>
+          <div class="card-body">
+            <h3>Portfolio <svg class="icon" aria-hidden="true"><use href="#i-arrow-right"/></svg></h3>
+            <p>Log what you bought and at what price. You get live P&amp;L, day change and total value.</p>
+            <span class="meta">Finance</span>
           </div>
-          <div class="pc-cat">// file tools · browser utility</div>
-          <div class="pc-desc">Browser-based file utilities. No uploads, no servers — everything runs locally. Starting with PDF merge: drop two files, get one back. More tools coming.</div>
-          <div class="pc-link">&gt;&gt; filekit/index.html</div>
         </a>
 
-        <a href="stockview/index.html" class="project-card">
-          <div class="pc-row">
-            <span class="pc-name">Portfolio</span>
-            <span class="pc-tag tag-live">[ Live ]</span>
+        <a href="noteread/index.html" class="card">
+          <div class="media"><div class="media-frame">
+            <img src="docs/noteread.png" width="1280" height="800" alt="NoteRead showing a note on a treble staff" loading="lazy">
+          </div></div>
+          <div class="card-body">
+            <h3>NoteRead <svg class="icon" aria-hidden="true"><use href="#i-arrow-right"/></svg></h3>
+            <p>Name the note on the staff as fast as you can. It tracks your streak, accuracy and response time.</p>
+            <span class="meta">Music</span>
           </div>
-          <div class="pc-cat">// finance · portfolio tracker</div>
-          <div class="pc-desc">Track your stock positions. Add what you bought and at what price — see live P&amp;L, day change, and total portfolio value. All stored in your browser.</div>
-          <div class="pc-link">&gt;&gt; stockview/index.html</div>
         </a>
 
-        <a href="noteread/index.html" class="project-card">
-          <div class="pc-row">
-            <span class="pc-name">NoteRead</span>
-            <span class="pc-tag tag-live">[ Live ]</span>
+        <a href="rpg/index.html" class="card">
+          <div class="media"><div class="media-frame">
+            <img src="docs/rpg.png" width="1280" height="800" alt="Hollow Crypt: the hero fighting skeletons in a torch-lit crypt room" loading="lazy">
+          </div></div>
+          <div class="card-body">
+            <h3>Hollow Crypt <svg class="icon" aria-hidden="true"><use href="#i-arrow-right"/></svg></h3>
+            <p>A small dungeon game. Explore a big world, find weapons in chests or forge your own, then clear the crypt and beat the Bone King.</p>
+            <span class="meta">Game · Keyboard</span>
           </div>
-          <div class="pc-cat">// music · sight-reading trainer</div>
-          <div class="pc-desc">Train your music note recognition speed. A note appears on the staff — name it as fast as you can. Tracks your streak, accuracy, and response time.</div>
-          <div class="pc-link">&gt;&gt; noteread/index.html</div>
         </a>
 
       </div>
-    </div>
-  </div>
+    </section>
 
-  <!-- Ticker -->
-  <div class="ticker-bar">
-    <span class="ticker-inner">
-      ···· LUKEDA ···· Free projects by Lucas Ruiz ···· AudioSend — Send your exports to your phone over local WiFi ···· Free VST3 for Windows ···· My Little Board — Interactive sticky-note board in your browser ···· Filekit — Merge PDFs and more, entirely in your browser ···· Portfolio — Track your stocks, see live P&amp;L and portfolio value ···· NoteRead — Train your music sight-reading speed, one note at a time ···· No uploads, no accounts ···· Everything is free ···· lukeda.me ····
-    </span>
-  </div>
+  </main>
 
-  <!-- Footer -->
-  <div class="footbar">
-    <div class="foot-left">
-      <span class="led"></span>
-      <span>Lukeda // Free projects by Lucas Ruiz</span>
-    </div>
-    <span>© 2025 &nbsp;·&nbsp; lukeda.me &nbsp;·&nbsp; All rights reserved</span>
-  </div>
+  <footer class="site-footer">
+    <span>© <span class="num">2025–2026</span> Lucas Ruiz</span>
+    <a href="https://lukeda.me"><code>lukeda.me</code></a>
+  </footer>
 
 </div>
+
+<script>
+  // Loading state: show a shimmer until each screenshot has decoded, then fade it in.
+  document.querySelectorAll('.media img').forEach(function (img) {
+    var media = img.closest('.media');
+    function done() { media.classList.add('is-loaded'); }
+    function fail() { media.classList.add('is-error'); }
+    if (img.complete && img.naturalWidth) { done(); return; }
+    img.addEventListener('load', done, { once: true });
+    img.addEventListener('error', fail, { once: true });
+  });
+</script>
 
 </body>
 </html>

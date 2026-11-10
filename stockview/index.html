@@ -4,437 +4,416 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Portfolio — Track Your Stocks · Lukeda</title>
+  <meta name="description" content="Track your stock positions with live P&L and day change. Free, no account, stored in your browser.">
   <style>
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+  /* ───────────────────────── Design tokens ───────────────────────── */
+  :root {
+    --bg:         #050505;
+    --surface:    #101010;
+    --surface-hi: #171717;
+    --field:      #000000;
+    --border:     rgba(255, 255, 255, 0.10);
+    --border-hi:  rgba(255, 255, 255, 0.24);
+
+    --text:       #f5f5f5;
+    --text-muted: #b4b4b4;
+    --text-faint: #8f8f8f;
+
+    --up:         #4ade80;
+    --down:       #f87171;
+    --accent:     #7cc4ff;
+    --accent-hi:  #a3d6ff;
+    --on-accent:  #04131f;
+
+    --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-mono: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, monospace;
+    --fs-xs: 0.8125rem; --fs-sm: 0.875rem; --fs-base: 1rem; --fs-lg: 1.125rem;
+    --fs-xl: 1.5rem;    --fs-2xl: clamp(1.75rem, 4vw, 2.5rem);  --fs-hero: clamp(1.75rem, 4.2vw, 2.75rem);
+
+    --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-5: 24px; --s-6: 32px; --s-7: 48px; --s-8: 72px;
+
+    --r-card:  14px;
+    --pad-card: 20px;
+    --r-inner: calc(var(--r-card) - var(--s-2));   /* elements inset 8px from a card edge */
+    --r-ctl:   8px;
+
+    --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+    --dur:  180ms;
+  }
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
   body {
-    font-family: Verdana, Tahoma, Arial, sans-serif;
-    font-size: 11px;
-    background-color: #050505;
-    background-image:
-      radial-gradient(ellipse 90% 35% at 50% 0%, rgba(255,255,255,0.025) 0%, transparent 60%),
-      repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(255,255,255,0.012) 3px, rgba(255,255,255,0.012) 4px),
-      linear-gradient(180deg, #080808 0%, #050505 50%, #030303 100%);
+    font-family: var(--font-sans);
+    font-size: var(--fs-base);
+    line-height: 1.55;
+    color: var(--text);
+    background: var(--bg);
+    background-image: radial-gradient(ellipse 70% 40% at 50% -5%, rgba(124, 196, 255, 0.08), transparent 70%);
     background-attachment: fixed;
     min-height: 100vh;
-    padding: 22px 16px 48px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    color: #ffffff;
+    -webkit-font-smoothing: antialiased;
+    font-variant-numeric: tabular-nums;
+  }
+  a { color: inherit; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+  .icon {
+    width: 16px; height: 16px; flex: none;
+    stroke: currentColor; fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round;
   }
 
-  .page { width: 100%; max-width: 940px; }
+  .page { max-width: 1000px; margin: 0 auto; padding: 0 var(--s-4) var(--s-7); }
+  @media (min-width: 640px) { .page { padding: 0 var(--s-6) var(--s-8); } }
 
-  /* ─ SYSBAR ─ */
-  .sysbar {
-    display: flex; align-items: center; justify-content: space-between;
-    background: linear-gradient(180deg, #000000 0%, #080808 100%);
-    border: 1px solid rgba(255,255,255,0.10);
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-    padding: 5px 12px;
-    font-size: 9px; font-family: 'Courier New', monospace; letter-spacing: 0.06em;
+  /* ── Header ── */
+  .site-header { display: flex; align-items: center; justify-content: space-between; padding: var(--s-5) 0; }
+  .back {
+    display: inline-flex; align-items: center; gap: var(--s-2);
+    font-size: var(--fs-sm); color: var(--text-muted); text-decoration: none;
+    transition: color var(--dur) var(--ease);
   }
-  .sysbar-left  { color: #999999; font-weight: bold; text-transform: uppercase; }
-  .sysbar-right { display: flex; gap: 16px; align-items: center; color: #666666; text-transform: uppercase; }
-  .online-badge { display: flex; align-items: center; gap: 4px; color: #bbbbbb; }
-  .led {
-    display: inline-block; width: 5px; height: 5px; border-radius: 50%;
-    background: radial-gradient(circle at 38% 32%, #ffffff, #bbbbbb);
-    box-shadow: 0 0 7px rgba(255,255,255,0.85);
-    animation: ledPulse 2.2s ease-in-out infinite;
-  }
-  @keyframes ledPulse {
-    0%,100% { box-shadow: 0 0 7px rgba(255,255,255,0.85); opacity: 1; }
-    50%      { box-shadow: 0 0 2px rgba(255,255,255,0.20); opacity: 0.4; }
-  }
+  .back:hover { color: var(--text); }
+  .back .icon { transition: transform var(--dur) var(--ease); }
+  .back:hover .icon { transform: translateX(-2px); }
+  .app-name { font-weight: 700; letter-spacing: -0.01em; }
 
-  /* ─ HEADER ─ */
-  .header-panel {
-    background: linear-gradient(180deg, #0a0a0a 0%, #070707 100%);
-    border: 1px solid rgba(255,255,255,0.10); border-top: none;
-    border-bottom: 2px solid rgba(255,255,255,0.06);
-    padding: 28px 28px 22px; position: relative; overflow: hidden; margin-top: -1px;
+  .intro { padding: var(--s-6) 0 var(--s-6); }
+  .intro h1 {
+    font-size: var(--fs-hero); line-height: 1.1; letter-spacing: -0.025em;
+    max-width: 22ch; text-wrap: balance; margin-left: -0.03em;
   }
-  .header-panel::before {
-    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent);
-  }
-  .brand {
-    font-family: 'Trebuchet MS', Impact, Arial, sans-serif;
-    font-size: clamp(26px, 5.5vw, 42px); font-weight: bold; color: #ffffff;
-    text-transform: uppercase; letter-spacing: 0.05em; line-height: 1; margin-bottom: 5px;
-    text-shadow: 0 0 40px rgba(255,255,255,0.18), 0 2px 8px rgba(0,0,0,0.9);
-  }
-  .brand-ver {
-    font-family: 'Courier New', monospace; font-size: 9px; color: #555555;
-    letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 12px;
-  }
-  .brand-tagline { font-size: 11px; color: #999999; line-height: 1.75; }
-  .brand-tagline strong { color: #ffffff; }
+  .intro p { margin-top: var(--s-3); color: var(--text-muted); max-width: 58ch; text-wrap: pretty; }
 
-  /* ─ NAVBAR ─ */
-  .navbar {
-    display: flex; align-items: stretch;
-    background: linear-gradient(180deg, #080808 0%, #050505 100%);
-    border: 1px solid rgba(255,255,255,0.10); border-top: none; margin-top: -1px;
-    overflow: hidden; flex-wrap: wrap;
+  /* ── Card ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-card);
   }
-  .nav-prefix {
-    padding: 0 12px; font-family: 'Courier New', monospace; font-size: 9px;
-    font-weight: bold; color: #555555; border-right: 1px solid rgba(255,255,255,0.06);
-    display: flex; align-items: center; background: rgba(0,0,0,0.4); white-space: nowrap;
+  main > .card { margin-top: var(--s-4); }
+  .section-gap { margin-top: var(--s-7) !important; }
+  .card-head {
+    display: flex; align-items: center; justify-content: space-between; gap: var(--s-3);
+    padding: var(--s-4) var(--pad-card);
   }
-  .nav-items { display: flex; flex-wrap: wrap; flex: 1; }
-  .nav-lnk {
-    display: flex; align-items: center; padding: 9px 14px;
-    font-size: 9px; font-family: Verdana, Tahoma, sans-serif; font-weight: bold;
-    color: #888888; text-decoration: none; text-transform: uppercase;
-    letter-spacing: 0.08em; border-right: 1px solid rgba(255,255,255,0.05);
-    position: relative; transition: background 0.1s, color 0.1s;
-  }
-  .nav-lnk:hover  { background: rgba(255,255,255,0.04); color: #dddddd; }
-  .nav-lnk.active { color: #ffffff; background: rgba(255,255,255,0.04); }
-  .nav-lnk.active::after {
-    content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.65) 40%, transparent);
-  }
+  .card-head h2 { font-size: var(--fs-lg); letter-spacing: -0.01em; }
+  .card-body { padding: 0 var(--pad-card) var(--pad-card); }
+  .card-note { color: var(--text-muted); font-size: var(--fs-sm); margin-top: var(--s-1); text-wrap: pretty; }
 
-  /* ─ PANELS ─ */
-  .panel {
-    border: 1px solid rgba(255,255,255,0.09); border-top: none;
-    background: #0c0c0c; margin-top: -1px;
+  /* ── Summary ── */
+  .summary {
+    display: grid; gap: var(--s-4);
+    grid-template-columns: repeat(2, 1fr);
   }
-  .panel-head {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 6px 14px;
-    background: rgba(0,0,0,0.55); border-bottom: 1px solid rgba(255,255,255,0.06);
-    font-size: 8px; font-family: 'Courier New', monospace; font-weight: bold;
-    color: #777777; text-transform: uppercase; letter-spacing: 0.14em;
+  @media (min-width: 760px) { .summary { grid-template-columns: 1.6fr 1fr 1fr 1fr; } }
+  .stat { padding: var(--pad-card); }
+  .stat.main { grid-column: 1 / -1; }
+  @media (min-width: 760px) { .stat.main { grid-column: auto; } }
+  .s-label { font-size: var(--fs-sm); color: var(--text-muted); }
+  .s-value {
+    margin-top: var(--s-2);
+    font-size: var(--fs-xl); font-weight: 650; line-height: 1.1; letter-spacing: -0.01em;
+    transition: color var(--dur) var(--ease);
   }
-  .panel-head-left { display: flex; align-items: center; gap: 6px; }
-  .panel-head-left::before { content: '++ '; color: #444444; }
-  .panel-body { padding: 20px 22px; }
-  .panel-body-flush { padding: 0; }
+  .stat.main .s-value { font-size: var(--fs-2xl); }
+  .s-sub { margin-top: var(--s-1); font-size: var(--fs-sm); color: var(--text-faint); min-height: 1.4em; }
+  .s-value.up,   .s-sub.up   { color: var(--up); }
+  .s-value.down, .s-sub.down { color: var(--down); }
+  .s-value.dim { color: var(--text-faint); }
 
-  /* ─ NO-KEY BANNER ─ */
+  /* ── Buttons ── */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: var(--s-2);
+    font: inherit; font-size: var(--fs-sm); font-weight: 600;
+    border-radius: var(--r-ctl); cursor: pointer; white-space: nowrap;
+    transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease), color var(--dur) var(--ease), transform var(--dur) var(--ease);
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-ghost {
+    padding: 7px 12px; background: transparent; color: var(--text-muted);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover { color: var(--text); border-color: var(--border-hi); }
+  .btn-ghost:disabled { cursor: default; opacity: 0.7; transform: none; }
+  .btn-primary {
+    padding: 0 22px; min-height: 46px; background: var(--accent); color: var(--on-accent);
+    border: 0; font-size: var(--fs-base);
+    box-shadow: 0 8px 22px -10px rgba(124, 196, 255, 0.55);
+  }
+  .btn-primary:hover { background: var(--accent-hi); }
+
+  .spin { animation: spin 0.9s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .refresh-btn:not(.is-loading) .spin { animation: none; }
+
+  .head-right { display: flex; align-items: center; gap: var(--s-3); }
+  .last-updated { font-size: var(--fs-xs); color: var(--text-faint); }
+
+  /* ── No-key banner ── */
   .no-key-banner {
     display: none;
-    font-family: 'Courier New', monospace; font-size: 9px; color: #777777;
-    letter-spacing: 0.05em; padding: 8px 14px;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
-    background: rgba(255,255,255,0.02);
+    margin: 0 var(--s-2) var(--s-2);
+    padding: var(--s-3) var(--s-4);
+    border-radius: var(--r-inner);
+    background: rgba(124, 196, 255, 0.07);
+    border: 1px solid rgba(124, 196, 255, 0.18);
+    font-size: var(--fs-sm); color: var(--text-muted);
   }
-  .no-key-banner a { color: #aaaaaa; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+  .no-key-banner a { color: var(--accent); cursor: pointer; text-underline-offset: 2px; }
 
-  /* ─ SUMMARY CARDS ─ */
-  .summary-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 1px;
-    background: rgba(255,255,255,0.07);
-    border: 1px solid rgba(255,255,255,0.07);
-  }
-  .summary-card { background: #0c0c0c; padding: 18px 20px; }
-  .s-label {
-    font-family: 'Courier New', monospace; font-size: 8px; color: #777777;
-    text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 10px;
-  }
-  .s-value {
-    font-family: 'Courier New', monospace; font-size: 20px; font-weight: bold;
-    color: #ffffff; line-height: 1; margin-bottom: 4px; letter-spacing: 0.02em;
-  }
-  .s-sub { font-family: 'Courier New', monospace; font-size: 10px; letter-spacing: 0.05em; color: #555555; }
-  .s-value.up, .s-sub.up { color: #4ade80; }
-  .s-value.down, .s-sub.down { color: #f87171; }
-  .s-value.dim { color: #444444; }
-
-  /* ─ REFRESH ROW ─ */
-  .refresh-row {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 9px 14px; border-bottom: 1px solid rgba(255,255,255,0.06);
-    background: rgba(0,0,0,0.3);
-  }
-  .last-updated { font-family: 'Courier New', monospace; font-size: 9px; color: #444444; letter-spacing: 0.04em; }
-  .refresh-btn {
-    background: transparent; border: 1px solid rgba(255,255,255,0.12); color: #777777;
-    font-family: 'Courier New', monospace; font-size: 9px; letter-spacing: 0.08em;
-    padding: 4px 12px; cursor: pointer; transition: all 0.1s;
-  }
-  .refresh-btn:hover { border-color: rgba(255,255,255,0.35); color: #ffffff; }
-  .refresh-btn:disabled { opacity: 0.4; cursor: default; }
-
-  /* ─ PORTFOLIO TABLE ─ */
-  .table-wrap { overflow-x: auto; }
-  table { width: 100%; border-collapse: collapse; min-width: 680px; }
+  /* ── Table ── */
+  .table-wrap { overflow-x: auto; border-top: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; min-width: 720px; }
   thead th {
-    font-family: 'Courier New', monospace; font-size: 8px; color: #555555;
-    text-transform: uppercase; letter-spacing: 0.10em;
-    padding: 9px 14px; text-align: right;
-    border-bottom: 1px solid rgba(255,255,255,0.08);
-    background: rgba(0,0,0,0.4); white-space: nowrap; font-weight: bold;
+    font-size: var(--fs-xs); font-weight: 500; color: var(--text-faint);
+    padding: var(--s-3) var(--s-4); text-align: right; white-space: nowrap;
+    border-bottom: 1px solid var(--border);
   }
-  thead th:first-child { text-align: left; }
-  thead th:last-child { text-align: center; }
+  thead th:first-child, tbody td:first-child { text-align: left; padding-left: var(--pad-card); }
+  thead th:last-child,  tbody td:last-child  { padding-right: var(--s-3); width: 1%; }
   tbody td {
-    font-family: 'Courier New', monospace; font-size: 11px; color: #ffffff;
-    padding: 11px 14px; text-align: right;
-    border-bottom: 1px solid rgba(255,255,255,0.04); vertical-align: middle; white-space: nowrap;
+    font-size: var(--fs-sm); padding: var(--s-3) var(--s-4); text-align: right; white-space: nowrap;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05); vertical-align: middle;
+    transition: background var(--dur) var(--ease);
   }
-  tbody td:first-child { text-align: left; }
-  tbody td:last-child { text-align: center; }
-  tbody tr:hover td { background: rgba(255,255,255,0.02); }
-  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:last-child td { border-bottom: 0; }
+  tbody tr:hover td { background: rgba(255, 255, 255, 0.025); }
 
-  .td-sym { font-weight: bold; font-size: 13px; letter-spacing: 0.06em; }
-  .td-date { font-size: 8px; color: #444444; margin-top: 3px; letter-spacing: 0.04em; }
-  .td-up   { color: #4ade80; }
-  .td-down { color: #f87171; }
-  .td-dim  { color: #333333; }
+  .td-sym  { font-weight: 650; font-size: var(--fs-base); }
+  .td-date { font-size: var(--fs-xs); color: var(--text-faint); }
+  .td-up   { color: var(--up); }
+  .td-down { color: var(--down); }
+  .td-dim  { color: var(--text-faint); }
+
+  /* Feedback: new row slides in, removed row fades out, changed prices flash */
+  tr.is-new td { animation: rowIn 420ms var(--ease); }
+  @keyframes rowIn { from { opacity: 0; transform: translateY(-4px); background: rgba(124, 196, 255, 0.10); } }
+  tr.is-removing td { opacity: 0; transition: opacity 200ms var(--ease); }
+  td.flash-up   { animation: flashUp 900ms var(--ease); }
+  td.flash-down { animation: flashDown 900ms var(--ease); }
+  @keyframes flashUp   { from { background: rgba(74, 222, 128, 0.18); } }
+  @keyframes flashDown { from { background: rgba(248, 113, 113, 0.18); } }
+
+  /* Loading state: skeleton bars in live-data cells while prices are fetched */
+  .is-fetching td.live > * , .is-fetching td.live { color: transparent; }
+  .is-fetching td.live { position: relative; }
+  .is-fetching td.live::after {
+    content: ''; position: absolute; right: var(--s-4); top: 50%;
+    width: 64px; height: 10px; margin-top: -5px; border-radius: 4px;
+    background: linear-gradient(90deg, #1c1c1c 0%, #2a2a2a 50%, #1c1c1c 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.2s linear infinite;
+  }
+  .is-fetching-stats .s-value { color: transparent !important; position: relative; }
+  .is-fetching-stats .s-value::after {
+    content: ''; position: absolute; left: 0; top: 50%; width: 60%; height: 0.7em; transform: translateY(-50%);
+    border-radius: 6px;
+    background: linear-gradient(90deg, #1c1c1c 0%, #2a2a2a 50%, #1c1c1c 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.2s linear infinite;
+  }
+  @keyframes shimmer { from { background-position: 150% 0; } to { background-position: -50% 0; } }
 
   .rm-btn {
-    background: none; border: 1px solid rgba(255,255,255,0.10); color: #444444;
-    cursor: pointer; font-family: 'Courier New', monospace; font-size: 9px;
-    padding: 3px 8px; transition: all 0.12s; letter-spacing: 0.04em;
+    display: inline-grid; place-items: center;
+    width: 30px; height: 30px; border-radius: var(--r-ctl);
+    background: none; border: 1px solid transparent; color: var(--text-faint); cursor: pointer;
+    transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease), background var(--dur) var(--ease);
   }
-  .rm-btn:hover { border-color: #f87171; color: #f87171; background: rgba(248,113,113,0.05); }
+  .rm-btn:hover { color: var(--down); border-color: rgba(248, 113, 113, 0.4); background: rgba(248, 113, 113, 0.06); }
 
-  .empty-state {
-    padding: 48px 20px; text-align: center;
-    font-family: 'Courier New', monospace; font-size: 10px; color: #333333; letter-spacing: 0.06em;
-    line-height: 2;
-  }
+  .empty-state { padding: var(--s-7) var(--s-5); text-align: center; color: var(--text-muted); }
+  .empty-state strong { display: block; color: var(--text); font-size: var(--fs-lg); margin-bottom: var(--s-1); }
 
-  /* ─ ADD FORM ─ */
-  .add-row { display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap; }
-  .add-input {
-    background: #000000; border: 1px solid rgba(255,255,255,0.14); color: #ffffff;
-    font-family: 'Courier New', monospace; font-size: 13px; font-weight: bold;
-    letter-spacing: 0.12em; text-transform: uppercase;
-    padding: 12px 14px; outline: none; transition: border-color 0.15s;
-    caret-color: #ffffff;
+  /* ── Forms ── */
+  .add-row { display: grid; gap: var(--s-3); grid-template-columns: 1fr 1fr; align-items: end; }
+  @media (min-width: 760px) { .add-row { grid-template-columns: 0.8fr 1fr 1.2fr auto; } }
+  .add-row .btn-primary { grid-column: 1 / -1; }
+  @media (min-width: 760px) { .add-row .btn-primary { grid-column: auto; } }
+  .field { display: grid; gap: 6px; }
+  .field.sym-field { grid-column: 1 / -1; }
+  @media (min-width: 760px) { .field.sym-field { grid-column: auto; } }
+  .field label { font-size: var(--fs-sm); color: var(--text-muted); }
+  .add-input, .key-field {
+    width: 100%; min-height: 46px;
+    background: var(--field); border: 1px solid var(--border-hi); border-radius: var(--r-ctl);
+    color: var(--text); font: inherit; font-size: var(--fs-base);
+    padding: 0 var(--s-3); outline: none;
+    transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
   }
-  .add-input.sym  { width: 120px; }
-  .add-input.num  { width: 160px; text-transform: none; letter-spacing: 0.06em; font-size: 13px; }
-  .add-input::placeholder { color: #333333; font-size: 10px; letter-spacing: 0.06em; font-weight: normal; text-transform: none; }
-  .add-input:focus { border-color: rgba(255,255,255,0.42); }
-  .add-btn {
-    background: #ffffff; color: #000000; border: none; padding: 12px 22px;
-    font-family: 'Courier New', monospace; font-size: 10px; font-weight: bold;
-    letter-spacing: 0.14em; text-transform: uppercase; cursor: pointer;
-    transition: background 0.1s; white-space: nowrap;
-  }
-  .add-btn:hover  { background: #d8d8d8; }
-  .add-btn:active { background: #aaaaaa; }
-  .add-hint { margin-top: 10px; font-family: 'Courier New', monospace; font-size: 9px; color: #666666; letter-spacing: 0.04em; }
-  .add-err  { margin-top: 8px; font-family: 'Courier New', monospace; font-size: 9px; color: #f87171; letter-spacing: 0.04em; min-height: 14px; }
+  .add-input.sym { text-transform: uppercase; font-weight: 650; }
+  .add-input::placeholder, .key-field::placeholder { color: #6f6f6f; text-transform: none; font-weight: 400; }
+  .add-input:focus, .key-field:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(124, 196, 255, 0.18); }
+  .add-input.invalid { border-color: var(--down); animation: shake 300ms var(--ease); }
+  @keyframes shake { 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
+  .add-err { margin-top: var(--s-2); font-size: var(--fs-sm); color: var(--down); min-height: 1.4em; }
 
-  /* ─ KEY SETTINGS ─ */
-  .key-row { display: flex; gap: 8px; align-items: stretch; }
-  .key-field {
-    flex: 1; background: #000000; border: 1px solid rgba(255,255,255,0.12); color: #ffffff;
-    font-family: 'Courier New', monospace; font-size: 11px; letter-spacing: 0.06em;
-    padding: 9px 12px; outline: none; transition: border-color 0.15s;
-  }
-  .key-field::placeholder { color: #333333; }
-  .key-field:focus { border-color: rgba(255,255,255,0.35); }
-  .key-save {
-    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); color: #aaaaaa;
-    font-family: 'Courier New', monospace; font-size: 9px; font-weight: bold;
-    letter-spacing: 0.12em; padding: 9px 16px; cursor: pointer; transition: all 0.1s; white-space: nowrap;
-  }
-  .key-save:hover { background: rgba(255,255,255,0.14); color: #ffffff; }
-  .key-status { margin-top: 10px; font-family: 'Courier New', monospace; font-size: 9px; color: #555555; letter-spacing: 0.04em; }
-  .key-status.active { color: #4ade80; }
+  .key-row { display: flex; gap: var(--s-3); flex-wrap: wrap; margin-top: var(--s-4); }
+  .key-field { flex: 1 1 260px; font-family: var(--font-mono); font-size: var(--fs-sm); }
+  .key-save { padding: 0 18px; min-height: 46px; }
+  .key-status { margin-top: var(--s-3); font-size: var(--fs-sm); color: var(--text-muted); }
+  .key-status.active { color: var(--up); }
+  .key-status code { font-family: var(--font-mono); }
   .key-clear-btn {
-    background: none; border: none; cursor: pointer; font-family: 'Courier New', monospace;
-    font-size: 9px; color: #555555; padding: 0 0 0 10px; text-decoration: underline; text-underline-offset: 2px;
+    background: none; border: 0; cursor: pointer; font: inherit; color: var(--text-muted);
+    margin-left: var(--s-2); text-decoration: underline; text-underline-offset: 2px;
   }
-  .key-clear-btn:hover { color: #f87171; }
-  .key-note { margin-top: 10px; font-family: 'Courier New', monospace; font-size: 9px; color: #333333; letter-spacing: 0.04em; line-height: 1.7; }
+  .key-clear-btn:hover { color: var(--down); }
+  .steps { margin-top: var(--s-4); padding-left: 1.2em; color: var(--text-muted); font-size: var(--fs-sm); display: grid; gap: var(--s-1); }
+  .steps a { color: var(--accent); text-underline-offset: 2px; }
 
-  /* ─ TICKER ─ */
-  .ticker-bar {
-    border: 1px solid rgba(255,255,255,0.07); border-top: none;
-    margin-top: -1px; background: #000000;
-    padding: 5px 0; overflow: hidden; white-space: nowrap;
+  /* ── Footer ── */
+  .site-footer {
+    margin-top: var(--s-8); padding-top: var(--s-5); border-top: 1px solid var(--border);
+    display: flex; flex-wrap: wrap; gap: var(--s-3); justify-content: space-between;
+    font-size: var(--fs-sm); color: var(--text-faint);
   }
-  .ticker-inner {
-    display: inline-block; font-family: 'Courier New', monospace;
-    font-size: 9px; color: #444444; letter-spacing: 0.04em;
-    animation: tickerScroll 50s linear infinite;
-  }
-  @keyframes tickerScroll { 0% { transform: translateX(100vw); } 100% { transform: translateX(-100%); } }
+  .site-footer a { text-decoration: none; }
+  .site-footer a:hover { color: var(--text); }
 
-  /* ─ FOOTER ─ */
-  .footbar {
-    border: 1px solid rgba(255,255,255,0.07); border-top: 1px solid rgba(255,255,255,0.04);
-    margin-top: -1px; background: #000000;
-    padding: 7px 14px; display: flex; align-items: center; justify-content: space-between;
-    font-family: 'Courier New', monospace; font-size: 9px;
-    color: #555555; text-transform: uppercase; letter-spacing: 0.06em;
-  }
-  .foot-left { display: flex; align-items: center; gap: 8px; }
-
-  /* ─ RESPONSIVE ─ */
-  @media (max-width: 700px) {
-    body { padding: 10px 10px 32px; background-attachment: scroll; }
-    .header-panel { padding: 18px 16px; }
-    .brand { font-size: 24px; }
-    .summary-grid { grid-template-columns: repeat(2, 1fr); }
-    .add-input.sym { width: 90px; }
-    .add-input.num { width: 130px; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
   }
 
   </style>
 </head>
 <body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-arrow-left" viewBox="0 0 16 16"><path d="M13 8H3M7 4L3 8l4 4"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 16 16"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 2.5v3h-3"/></symbol>
+  <symbol id="i-x" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></symbol>
+</svg>
+
 <div class="page">
 
-  <!-- Sysbar -->
-  <div class="sysbar">
-    <span class="sysbar-left">++ Portfolio // Stock Tracker by Lukeda</span>
-    <div class="sysbar-right">
-      <span>lukeda.me</span>
-      <span class="online-badge"><span class="led"></span> Live</span>
-    </div>
-  </div>
+  <header class="site-header">
+    <a href="../index.html" class="back"><svg class="icon" aria-hidden="true"><use href="#i-arrow-left"/></svg>Lukeda</a>
+    <span class="app-name">Portfolio</span>
+  </header>
 
-  <!-- Header -->
-  <div class="header-panel">
-    <div class="brand">Portfolio</div>
-    <div class="brand-ver">// stock tracker · lukeda.me</div>
-    <div class="brand-tagline">
-      Track what you own. Add positions with your buy price and shares — see your <strong>live P&amp;L</strong>, day change, and total portfolio value. All data stored locally in your browser.
-    </div>
-  </div>
+  <section class="intro">
+    <h1>See what your stocks are worth right now.</h1>
+    <p>Add each position with its share count and average buy price. You'll see live P&amp;L, today's move and total value. Nothing leaves this browser except the price lookups.</p>
+  </section>
 
-  <!-- Nav -->
-  <div class="navbar">
-    <span class="nav-prefix">++ nav ::</span>
-    <div class="nav-items">
-      <a href="../index.html" class="nav-lnk">← Lukeda</a>
-      <a href="index.html"   class="nav-lnk active">Portfolio</a>
-    </div>
-  </div>
+  <main>
 
-  <!-- Summary Panel -->
-  <div class="panel">
-    <div class="panel-head">
-      <span class="panel-head-left">Overview</span>
-      <span id="lastUpdated" style="font-size:8px;color:#333333;font-weight:normal;letter-spacing:0.04em;"></span>
-    </div>
-    <div class="summary-grid">
-      <div class="summary-card">
-        <div class="s-label">Total Invested</div>
-        <div class="s-value" id="sumInvested">—</div>
-        <div class="s-sub" id="sumInvestedSub"></div>
-      </div>
-      <div class="summary-card">
-        <div class="s-label">Portfolio Value</div>
+    <!-- Summary -->
+    <section class="summary" id="summary" aria-label="Portfolio summary">
+      <div class="card stat main">
+        <div class="s-label">Portfolio value</div>
         <div class="s-value" id="sumValue">—</div>
         <div class="s-sub" id="sumValueSub"></div>
       </div>
-      <div class="summary-card">
+      <div class="card stat">
         <div class="s-label">Total P&amp;L</div>
         <div class="s-value" id="sumPnl">—</div>
         <div class="s-sub" id="sumPnlSub"></div>
       </div>
-      <div class="summary-card">
-        <div class="s-label">Today's Change</div>
+      <div class="card stat">
+        <div class="s-label">Today</div>
         <div class="s-value" id="sumDay">—</div>
         <div class="s-sub" id="sumDaySub"></div>
       </div>
-    </div>
-  </div>
-
-  <!-- Portfolio Panel -->
-  <div class="panel">
-    <div class="panel-head">
-      <span class="panel-head-left">Positions</span>
-      <div class="refresh-row" style="padding:0;border:none;background:none;">
-        <button class="refresh-btn" id="refreshBtn">↺ Refresh</button>
+      <div class="card stat">
+        <div class="s-label">Invested</div>
+        <div class="s-value" id="sumInvested">—</div>
+        <div class="s-sub" id="sumInvestedSub"></div>
       </div>
-    </div>
-    <div class="no-key-banner" id="noKeyBanner">
-      // live prices unavailable — add a free <a onclick="document.getElementById('keyPanel').scrollIntoView({behavior:'smooth'})">Finnhub API key</a> in the settings below to enable real-time data
-    </div>
-    <div class="panel-body-flush">
-      <div class="table-wrap">
+    </section>
+
+    <!-- Positions -->
+    <section class="card" aria-labelledby="pos-title">
+      <div class="card-head">
+        <h2 id="pos-title">Positions</h2>
+        <div class="head-right">
+          <span class="last-updated" id="lastUpdated" aria-live="polite"></span>
+          <button class="btn btn-ghost refresh-btn" id="refreshBtn" type="button">
+            <svg class="icon spin" aria-hidden="true"><use href="#i-refresh"/></svg><span>Refresh</span>
+          </button>
+        </div>
+      </div>
+      <div class="no-key-banner" id="noKeyBanner">
+        Prices are off until you add a free Finnhub key. <a onclick="openKeyPanel()">Set it up below</a>.
+      </div>
+      <div class="table-wrap" id="tableWrap">
         <table>
           <thead>
             <tr>
               <th>Symbol</th>
               <th>Shares</th>
-              <th>Avg Cost</th>
+              <th>Avg cost</th>
               <th>Price</th>
-              <th>Mkt Value</th>
+              <th>Value</th>
               <th>P&amp;L</th>
               <th>P&amp;L %</th>
-              <th>Day Change</th>
-              <th></th>
+              <th>Today</th>
+              <th><span class="sr-only">Remove</span></th>
             </tr>
           </thead>
           <tbody id="portfolioBody"></tbody>
         </table>
         <div class="empty-state" id="emptyState" style="display:none;">
-          // no positions yet<br>add your first stock below
+          <strong>No positions yet</strong>
+          Add your first stock below.
         </div>
       </div>
-    </div>
-  </div>
+    </section>
 
-  <!-- Add Position Panel -->
-  <div class="panel">
-    <div class="panel-head"><span class="panel-head-left">Add Position</span></div>
-    <div class="panel-body">
-      <form class="add-row" id="addForm">
-        <input class="add-input sym" id="addSymbol"
-          type="text" placeholder="TICKER" maxlength="10"
-          autocomplete="off" autocapitalize="characters" spellcheck="false">
-        <input class="add-input num" id="addShares"
-          type="number" placeholder="Shares" min="0.0001" step="any">
-        <input class="add-input num" id="addPrice"
-          type="number" placeholder="Avg buy price ($)" min="0.0001" step="any">
-        <button class="add-btn" type="submit">&gt;&gt; Add</button>
-      </form>
-      <div class="add-hint">// enter the ticker, how many shares you hold, and your average purchase price</div>
-      <div class="add-err" id="addErr"></div>
-    </div>
-  </div>
-
-  <!-- API Key Settings -->
-  <div class="panel" id="keyPanel">
-    <div class="panel-head"><span class="panel-head-left">Settings // Finnhub API Key</span></div>
-    <div class="panel-body">
-      <form class="key-row" id="keyForm">
-        <input class="key-field" id="keyInput" type="text"
-          placeholder="Paste your Finnhub API key here ..."
-          autocomplete="off" spellcheck="false">
-        <button class="key-save" type="submit">&gt;&gt; Save Key</button>
-      </form>
-      <div class="key-status" id="keyStatus">// no key set</div>
-      <div class="key-note">
-        // Live prices require a free Finnhub API key — no credit card needed.<br>
-        // Get yours in 30 seconds at <strong style="color:#aaaaaa;">finnhub.io/register</strong> → copy key from dashboard → paste above.<br>
-        // Key is stored only in your browser and sent exclusively to Finnhub's servers.
+    <!-- Add position -->
+    <section class="card" aria-labelledby="add-title">
+      <div class="card-head"><h2 id="add-title">Add a position</h2></div>
+      <div class="card-body">
+        <form class="add-row" id="addForm" novalidate>
+          <div class="field sym-field">
+            <label for="addSymbol">Ticker</label>
+            <input class="add-input sym" id="addSymbol" type="text" placeholder="AAPL" maxlength="10"
+              autocomplete="off" autocapitalize="characters" spellcheck="false">
+          </div>
+          <div class="field">
+            <label for="addShares">Shares</label>
+            <input class="add-input" id="addShares" type="number" placeholder="10" min="0.0001" step="any" inputmode="decimal">
+          </div>
+          <div class="field">
+            <label for="addPrice">Average buy price ($)</label>
+            <input class="add-input" id="addPrice" type="number" placeholder="182.50" min="0.0001" step="any" inputmode="decimal">
+          </div>
+          <button class="btn btn-primary" type="submit"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>Add position</button>
+        </form>
+        <div class="add-err" id="addErr" role="alert"></div>
       </div>
-    </div>
-  </div>
+    </section>
 
-  <!-- Ticker -->
-  <div class="ticker-bar">
-    <span class="ticker-inner">
-      ···· PORTFOLIO ···· Track your stock positions and see live P&amp;L ···· Add a position: ticker · shares · average buy price ···· All data stored locally in your browser ···· Live prices via Finnhub ···· A free tool by Lukeda ···· lukeda.me ····
-    </span>
-  </div>
+    <!-- API key -->
+    <section class="card section-gap" id="keyPanel" aria-labelledby="key-title">
+      <div class="card-head" style="padding-bottom:0"><h2 id="key-title">Live prices</h2></div>
+      <div class="card-body">
+        <p class="card-note">Prices come from Finnhub. A free key takes about 30 seconds to get and doesn't need a credit card.</p>
+        <ol class="steps">
+          <li>Sign up at <a href="https://finnhub.io/register" target="_blank" rel="noopener">finnhub.io/register</a></li>
+          <li>Copy the API key from your dashboard</li>
+          <li>Paste it here. It's stored in this browser and only sent to Finnhub.</li>
+        </ol>
+        <form class="key-row" id="keyForm">
+          <label class="sr-only" for="keyInput">Finnhub API key</label>
+          <input class="key-field" id="keyInput" type="text" placeholder="Paste your Finnhub API key" autocomplete="off" spellcheck="false">
+          <button class="btn btn-ghost key-save" type="submit">Save key</button>
+        </form>
+        <div class="key-status" id="keyStatus" aria-live="polite">No key set</div>
+      </div>
+    </section>
 
-  <!-- Footer -->
-  <div class="footbar">
-    <div class="foot-left"><span class="led"></span><span>Portfolio // Lukeda</span></div>
-    <span>© 2025 &nbsp;·&nbsp; lukeda.me &nbsp;·&nbsp; Data: Finnhub &nbsp;·&nbsp; Not financial advice</span>
-  </div>
+  </main>
+
+  <footer class="site-footer">
+    <span>Prices from Finnhub · Not financial advice</span>
+    <a href="../index.html">© <span>2025–2026</span> Lukeda</a>
+  </footer>
 
 </div>
 <script>
@@ -446,11 +425,13 @@ function getPositions() {
 function savePositions(arr) { localStorage.setItem('pf_positions', JSON.stringify(arr)); }
 function getKey()  { return localStorage.getItem('sv_key') || ''; }
 function saveKey(k){ localStorage.setItem('sv_key', k.trim()); }
-function clearKey(){ localStorage.removeItem('sv_key'); liveData = {}; render(); updateKeyStatus(); }
+function clearKey(){ localStorage.removeItem('sv_key'); liveData = {}; prevPrices = {}; render(); updateKeyStatus(); }
 
 // ── Live data cache ───────────────────────────────────────────
-let liveData = {}; // { SYMBOL: { c, d, dp, o, h, l, pc } }
+let liveData = {};   // { SYMBOL: { c, d, dp, o, h, l, pc } }
+let prevPrices = {}; // last rendered price per symbol, for change flashes
 let lastFetch = null;
+let lastAddedId = null;
 
 // ── DOM refs ─────────────────────────────────────────────────
 const portfolioBody = document.getElementById('portfolioBody');
@@ -460,6 +441,14 @@ const keyStatus     = document.getElementById('keyStatus');
 const keyInput      = document.getElementById('keyInput');
 const refreshBtn    = document.getElementById('refreshBtn');
 const addErr        = document.getElementById('addErr');
+const tableWrap     = document.getElementById('tableWrap');
+const summaryEl     = document.getElementById('summary');
+
+function openKeyPanel() {
+  document.getElementById('keyPanel').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  setTimeout(() => keyInput.focus({ preventScroll: true }), 350);
+}
+function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c])); }
 
 // ── Finnhub ──────────────────────────────────────────────────
 const FH = 'https://finnhub.io/api/v1';
@@ -473,12 +462,19 @@ async function fetchQuote(symbol) {
   return res.json();
 }
 
+function setLoading(on) {
+  refreshBtn.disabled = on;
+  refreshBtn.classList.toggle('is-loading', on);
+  refreshBtn.querySelector('span').textContent = on ? 'Refreshing…' : 'Refresh';
+  tableWrap.classList.toggle('is-fetching', on);
+  summaryEl.classList.toggle('is-fetching-stats', on && !Object.keys(liveData).length);
+}
+
 async function refreshAll(silent = false) {
   const positions = getPositions();
   if (!positions.length || !getKey()) return;
 
-  refreshBtn.disabled = true;
-  refreshBtn.textContent = '↺ Loading...';
+  setLoading(true);
 
   const symbols = [...new Set(positions.map(p => p.symbol))];
 
@@ -495,19 +491,17 @@ async function refreshAll(silent = false) {
     }
   });
 
-  if (keyErr) {
-    keyStatus.textContent = '// error: invalid API key — check your Finnhub key';
-    keyStatus.className = 'key-status';
-  }
-
   lastFetch = new Date();
   document.getElementById('lastUpdated').textContent =
-    'updated ' + lastFetch.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    'Updated ' + lastFetch.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
-  refreshBtn.disabled = false;
-  refreshBtn.textContent = '↺ Refresh';
-
+  setLoading(false);
   render();
+
+  if (keyErr) {
+    keyStatus.textContent = 'Finnhub rejected this key. Check it and save it again.';
+    keyStatus.className = 'key-status';
+  }
 }
 
 // ── Format helpers ───────────────────────────────────────────
@@ -552,21 +546,27 @@ function renderTable(positions) {
 
     const sharesStr = p.shares % 1 === 0 ? fmtN(p.shares, 0) : fmtN(p.shares, 4);
 
-    return `<tr>
+    const prev  = prevPrices[p.symbol];
+    const flash = current != null && prev != null && current !== prev ? (current > prev ? 'flash-up' : 'flash-down') : '';
+
+    return `<tr data-id="${esc(p.id)}" class="${p.id === lastAddedId ? 'is-new' : ''}">
       <td>
-        <div class="td-sym">${p.symbol}</div>
-        <div class="td-date">added ${p.addedAt}</div>
+        <div class="td-sym">${esc(p.symbol)}</div>
+        <div class="td-date">Added ${esc(p.addedAt)}</div>
       </td>
       <td>${sharesStr ?? '—'}</td>
       <td>${dollar(p.avgPrice) ?? '—'}</td>
-      <td>${current != null ? dollar(current) : dimCell()}</td>
-      <td>${mktVal != null ? dollar(mktVal) : dimCell()}</td>
-      <td class="${cls(pnl)}">${pnl != null ? signedDollar(pnl) : dimCell()}</td>
-      <td class="${cls(pnlPct)}">${pnlPct != null ? pctStr(pnlPct) : dimCell()}</td>
-      <td class="${cls(dayTotal)}">${dayTotal != null ? signedDollar(dayTotal) : dimCell()}</td>
-      <td><button class="rm-btn" onclick="removePosition('${p.id}')">✕</button></td>
+      <td class="live ${flash}">${current != null ? dollar(current) : dimCell()}</td>
+      <td class="live">${mktVal != null ? dollar(mktVal) : dimCell()}</td>
+      <td class="live ${cls(pnl)}">${pnl != null ? signedDollar(pnl) : dimCell()}</td>
+      <td class="live ${cls(pnlPct)}">${pnlPct != null ? pctStr(pnlPct) : dimCell()}</td>
+      <td class="live ${cls(dayTotal)}">${dayTotal != null ? signedDollar(dayTotal) : dimCell()}</td>
+      <td><button class="rm-btn" type="button" aria-label="Remove ${esc(p.symbol)}" onclick="removePosition('${esc(p.id)}')"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button></td>
     </tr>`;
   }).join('');
+
+  positions.forEach(p => { if (liveData[p.symbol]?.c != null) prevPrices[p.symbol] = liveData[p.symbol].c; });
+  lastAddedId = null;
 }
 
 // ── Render summary ────────────────────────────────────────────
@@ -590,16 +590,17 @@ function renderSummary(positions) {
   const dayPct      = totalDay != null && totalValue != null && (totalValue - totalDay) > 0
     ? (totalDay / (totalValue - totalDay)) * 100 : null;
 
-  // Invested
   const el = id => document.getElementById(id);
+
+  // Invested
   el('sumInvested').textContent = positions.length ? (dollar(totalInvested) ?? '—') : '—';
   el('sumInvested').className = 's-value';
   el('sumInvestedSub').textContent = positions.length ? `${positions.length} position${positions.length > 1 ? 's' : ''}` : '';
 
   // Value
   el('sumValue').textContent = totalValue != null ? (dollar(totalValue) ?? '—') : '—';
-  el('sumValue').className = 's-value';
-  el('sumValueSub').textContent = '';
+  el('sumValue').className = 's-value' + (totalValue == null ? ' dim' : '');
+  el('sumValueSub').textContent = totalValue == null && positions.length ? (getKey() ? 'Waiting for prices' : 'Add a Finnhub key for live prices') : '';
 
   // P&L
   if (totalPnl != null) {
@@ -632,12 +633,13 @@ function renderSummary(positions) {
 function updateKeyStatus() {
   const k = getKey();
   noKeyBanner.style.display = k ? 'none' : 'block';
+  refreshBtn.style.display = k ? '' : 'none';
   if (k) {
-    keyStatus.innerHTML = `// key active: ${k.substring(0,8)}...
-      <button class="key-clear-btn" onclick="clearKey()">clear</button>`;
+    keyStatus.innerHTML = `Key active: <code>${esc(k.substring(0, 8))}…</code>
+      <button class="key-clear-btn" type="button" onclick="clearKey()">Remove</button>`;
     keyStatus.className = 'key-status active';
   } else {
-    keyStatus.textContent = '// no key set — live prices disabled';
+    keyStatus.textContent = 'No key set. Live prices are off.';
     keyStatus.className = 'key-status';
   }
 }
@@ -651,6 +653,14 @@ function render() {
 }
 
 // ── Add position ──────────────────────────────────────────────
+function fieldError(input, msg) {
+  addErr.textContent = msg;
+  input.classList.remove('invalid'); void input.offsetWidth; input.classList.add('invalid');
+  input.focus();
+}
+['addSymbol', 'addShares', 'addPrice'].forEach(id =>
+  document.getElementById(id).addEventListener('input', e => { e.target.classList.remove('invalid'); addErr.textContent = ''; }));
+
 document.getElementById('addForm').addEventListener('submit', async e => {
   e.preventDefault();
   addErr.textContent = '';
@@ -663,17 +673,18 @@ document.getElementById('addForm').addEventListener('submit', async e => {
   const shares = parseFloat(sharesEl.value);
   const price  = parseFloat(priceEl.value);
 
-  if (!symbol)       { addErr.textContent = '// ticker symbol required'; return; }
-  if (!shares || shares <= 0) { addErr.textContent = '// enter a valid number of shares'; return; }
-  if (!price  || price  <= 0) { addErr.textContent = '// enter a valid average buy price'; return; }
+  if (!symbol)                { fieldError(symEl,    'Enter a ticker symbol, like AAPL.'); return; }
+  if (!shares || shares <= 0) { fieldError(sharesEl, 'Shares must be more than 0.'); return; }
+  if (!price  || price  <= 0) { fieldError(priceEl,  'Average buy price must be more than 0.'); return; }
 
   const positions = getPositions();
+  const id = Date.now().toString();
   positions.push({
-    id: Date.now().toString(),
-    symbol, shares, avgPrice: price,
+    id, symbol, shares, avgPrice: price,
     addedAt: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
   });
   savePositions(positions);
+  lastAddedId = id;
 
   symEl.value = ''; sharesEl.value = ''; priceEl.value = '';
   symEl.focus();
@@ -681,24 +692,30 @@ document.getElementById('addForm').addEventListener('submit', async e => {
 
   // Fetch live data for the new symbol if not already cached
   if (getKey() && !liveData[symbol]) {
+    tableWrap.classList.add('is-fetching');
     try {
       const data = await fetchQuote(symbol);
-      if (data?.c) { liveData[symbol] = data; render(); }
+      if (data?.c) liveData[symbol] = data;
     } catch (_) {}
+    tableWrap.classList.remove('is-fetching');
+    render();
   }
 });
 
 // ── Remove position ───────────────────────────────────────────
 function removePosition(id) {
-  savePositions(getPositions().filter(p => p.id !== id));
-  render();
+  const row = portfolioBody.querySelector(`tr[data-id="${CSS.escape(id)}"]`);
+  const finish = () => { savePositions(getPositions().filter(p => p.id !== id)); render(); };
+  if (!row || matchMedia('(prefers-reduced-motion: reduce)').matches) { finish(); return; }
+  row.classList.add('is-removing');
+  setTimeout(finish, 200);
 }
 
 // ── Key form ──────────────────────────────────────────────────
 document.getElementById('keyForm').addEventListener('submit', e => {
   e.preventDefault();
   const k = keyInput.value.trim();
-  if (!k) return;
+  if (!k) { keyInput.focus(); return; }
   saveKey(k);
   keyInput.value = '';
   liveData = {};

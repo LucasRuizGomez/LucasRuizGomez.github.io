@@ -34,72 +34,44 @@ prompts/base_prompt.md
 
 ## Visual Aesthetic — Main Site (index.html)
 
-### Theme
-Dark teal terminal / retro OS interface. Looks like a CRT monitor or old-school software UI. Heavy use of monospace fonts for labels, uppercase text, and `++` prefixes for section headers.
+Clean dark-teal product page. Sub-apps keep their own retro themes; the landing page does not.
 
-### Color Palette
-| Role | Value |
-|---|---|
-| Body background | `#005060` → gradient ending `#001c3a` |
-| Background gradient | Multi-layer teal wave with sparkle dots, light rays, ribbon waves |
-| Primary text | `#9ad8d0` |
-| Muted text | `#3a9888`, `#2a7868`, `#1a7868` |
-| Dim/label text | `#0a6858`, `#0a5848`, `#0a5a50` |
-| Accent / bright | `#44ddc8`, `#33ccbb`, `#22bb99`, `#55ccbb` |
-| Brand name | `#c0f0ea` |
-| Project card titles | `#88d8cc` |
-| Panel borders | `rgba(0,180,165,0.20–0.22)` |
-| Panel backgrounds | `rgba(0,18,28,0.88)` |
-| Card backgrounds | `rgba(0,20,32,0.82)` |
-| LIVE badge | `#33ccaa` on `rgba(0,120,90,0.18)` |
-| SOON badge | `#1a7868` on `rgba(0,40,50,0.4)` |
+### Design tokens (`:root` in index.html — use these, don't hard-code values)
+- Surfaces: `--bg #031a22`, `--bg-deep`, `--surface #072631`, `--surface-hi`, `--border`, `--border-hi`
+- Text: `--text #e8f6f3`, `--text-muted #a9cec7`, `--text-faint #84aca5` (all ≥ 4.5:1)
+- Brand teal `--teal #4fd8c4`; accent amber `--accent #f6b94a` — accent is reserved for the primary CTA, focus rings and hover feedback
+- Type: system sans (`--font-sans`) everywhere; `--font-mono` only for literal code/domains. Scale `--fs-sm` … `--fs-3xl`
+- Spacing: 4px scale `--s-1` … `--s-9`; sections are grouped by spacing, not borders
+- Radius: `--r-media = --r-card − --pad-media` (inner radius = outer − padding)
 
-### Typography
-- **Body / UI**: Verdana, Tahoma, Arial, sans-serif — 11px base size
-- **Monospace labels / code**: `'Courier New', monospace` — used for nav prefix, panel heads, section labels, ticker, footer
-- **Brand / headings**: `'Trebuchet MS', Impact, Arial, sans-serif` — used for `.brand` and `.pc-name`
-- Font sizes: 8–9px for labels, 10px for descriptions, 11px body, 13px card titles, `clamp(28px, 6vw, 44px)` for brand
+### Rules
+- No filler badges, `++`/`//`/`>>` prefixes, tickers, LEDs or decorative glows
+- Headlines say what the thing does; use `text-wrap: balance` on headings
+- One icon set: inline SVG `<symbol>`s in the page, 16px, 1.75 stroke, round caps
+- Numbers use `.num` (tabular-nums)
+- Screenshots (`docs/*.png`, 1280×800) show each product; `.media` shows a shimmer until the image loads
+- Motion only for feedback (hover/press/load); respects `prefers-reduced-motion`
 
-### Layout Structure (top → bottom, all inside `.page` max-width 760px)
-1. **`.sysbar`** — top status bar: site name left, domain + LED online badge right
-2. **`.header-panel`** — brand name, version line (`// projects by lucas ruiz`), tagline
-3. **`.navbar`** — nav links with `++ nav ::` prefix label
-4. **`.panel#about`** — about text + quote + free-badge
-5. **`.panel#projects`** — project grid
-6. **`.ticker-bar`** — scrolling marquee text
-7. **`.footbar`** — LED + site name left, copyright right
-
-### Key CSS Patterns
-- All panels share: `border: 1px solid rgba(0,180,165,0.20)`, `border-top: none`, `margin-top: -1px` (seamless stacking)
-- `backdrop-filter: blur(6–8px)` on panels
-- `.panel-head` uses `::before { content: '++ '; }` prefix
-- Top edge shimmer: `::before` with `linear-gradient(90deg, transparent, rgba(0,220,195,0.5), transparent)` 1px line
-- Card top shimmer: same pattern on `.project-card::before`
-- LED pulse animation: `ledPulse` keyframes on 5×5 circle with teal glow
-- Ticker: `tickerScroll` from `translateX(100vw)` to `translateX(-100%)` over 40s
+### Layout
+1. Header — wordmark + Projects / GitHub
+2. Hero — headline + one-paragraph summary
+3. Featured card — AudioSend, large, with screenshot and the amber CTA
+4. `#projects` grid — browser apps as `.card` (screenshot, name + arrow, description, category)
+5. Footer
 
 ### Project Card Structure
 ```html
-<a href="..." class="project-card">
-  <div class="pc-row">
-    <span class="pc-name">PROJECT NAME</span>
-    <span class="pc-tag tag-live">[ Live ]</span>   <!-- or tag-soon -->
+<a href="app/index.html" class="card">
+  <div class="media"><div class="media-frame">
+    <img src="docs/app.png" width="1280" height="800" alt="..." loading="lazy">
+  </div></div>
+  <div class="card-body">
+    <h3>Name <svg class="icon" aria-hidden="true"><use href="#i-arrow-right"/></svg></h3>
+    <p>What it does, in one or two sentences.</p>
+    <span class="meta">Category</span>
   </div>
-  <div class="pc-cat">// category · subcategory</div>
-  <div class="pc-desc">Description text.</div>
-  <div class="pc-link">&gt;&gt; path/to/project</div>
 </a>
 ```
-- `tag-live`: green badge — `[ Live ]`
-- `tag-soon`: dim badge — `[ TBA ]`
-- `.soon` class on card: `opacity: 0.3; pointer-events: none`
-
-### Nav Links
-- Pattern: `<a href="#section" class="nav-lnk active">Label</a>`
-- Active state: bottom 2px gradient line + slightly brighter color
-
-### Responsive
-- Breakpoint: `max-width: 560px` — reduced padding, smaller brand text, smaller nav
 
 ---
 
@@ -125,7 +97,7 @@ Dark teal terminal / retro OS interface. Looks like a CRT monitor or old-school 
 - **Status**: Live
 - **Category**: file tools · browser utility
 - **Description**: Browser-based file utilities. All processing runs client-side (no uploads). First tool: PDF merge — drop two PDFs, receive one merged file. More tools to come.
-- **Aesthetic** (internal): Amber phosphor terminal. Same structural DNA as main site (sysbar, header-panel, navbar, panels, footer) but with a warm amber/gold color palette — dark brown-black background (`#0a0702`), amber accents (`#c89030`, `#d4a038`, `#e8c870`), scanline overlay. Feels like a vintage Hercules amber-monitor terminal. Distinct from the teal of the main site.
+- **Aesthetic** (internal): Same design rules as the main site (tokens on `:root`, system sans, 4px spacing, inner radius = outer − padding). Warm-neutral surfaces (`#0c0a07` / `#16130e`); amber `--accent #f0b13c` reserved for the run button, active states and focus. Tools are a segmented tab control; each tool shows a status line, a collapsible Details log, spinner on the run button, shimmer skeletons for page thumbnails.
 - **Library**: `pdf-lib@1.17.1` from unpkg CDN for client-side PDF manipulation.
 
 ---
@@ -135,7 +107,7 @@ Dark teal terminal / retro OS interface. Looks like a CRT monitor or old-school 
 - **Status**: Live
 - **Category**: finance · market data
 - **Description**: Enter any NYSE/NASDAQ ticker symbol to see an interactive price chart (5D/1M/3M/6M/1Y/5Y) and a key statistics grid — market cap, P/E, volume, 52-week range, beta, dividend yield, and more. No account needed.
-- **Aesthetic** (internal): Pure black terminal. Maximum contrast — near-black background (`#050505`), pure white text (`#ffffff`), white chart line, scanline overlay. Green (`#4ade80`) for positive price change, red (`#f87171`) for negative. Same structural DNA as main site (sysbar, header-panel, navbar, panels, ticker, footer) but with a monochrome white/gray palette. Feels like a Bloomberg Terminal.
+- **Aesthetic** (internal): Same design rules as the main site. Near-black neutrals (`#050505` / `#101010`), green `#4ade80` / red `#f87171` only for gains/losses, blue `--accent #7cc4ff` for the Add button and focus. Portfolio value is the enlarged stat. Skeleton cells while prices load, price-change flashes, row add/remove animation. Data comes from Finnhub (user's own free key, stored as `sv_key`).
 - **Libraries**: `chart.js@4.4.0` from jsDelivr CDN for the price chart canvas. Data from Yahoo Finance v8 chart API and v10 quoteSummary API (client-side, CORS-enabled, ~15 min delayed).
 - **Features**: Timeframe buttons (5D → 5Y), localStorage remembers last searched ticker, graceful error handling for bad symbols or API failures.
 
@@ -147,9 +119,17 @@ Dark teal terminal / retro OS interface. Looks like a CRT monitor or old-school 
 - **Category**: music · sight-reading trainer
 - **Description**: Music note recognition speed trainer. A random note appears on a treble clef staff; the user clicks (or presses 1–7) the correct Spanish note name (Do, Re, Mi, Fa, Sol, La, Si) as fast as possible. Tracks correct answers, errors, current streak, and average response time. Press R to reset stats.
 - **Note range**: C4 (Middle C, ledger line below staff) through G5 (space above staff) — 12 positions, 7px vertical step.
-- **Aesthetic** (internal): Dark indigo/purple theme. Background `#0f0e17`, accent `#818cf8` (indigo), secondary `#c4b5fd` (violet). Same structural DNA as main site but with a purple palette. Completely distinct from all other apps.
+- **Aesthetic** (internal): Same design rules as the main site. Indigo-tinted neutrals (`#0b0a12` / `#14131e`), `--accent #8b93ff` for selected settings and the restart button. The staff and note buttons are the enlarged main feature; settings are collapsed behind "Ajustes". Feedback: staff outline flashes green/red (shake on wrong), streak number bumps, note slides in. UI copy is in Spanish.
 - **Keyboard shortcuts**: 1=Do, 2=Re, 3=Mi, 4=Fa, 5=Sol, 6=La, 7=Si, R=Reset
 - **Note rendering**: SVG whole note — outer white ellipse rotated -20°, inner black ellipse rotated -15° (open note head appearance). Ledger line drawn for Middle C.
+
+---
+
+### Hollow Crypt (rpg)
+- **Location**: `rpg/index.html` (details in `rpg/CONTEXT.md`), tests in `rpg/tests.html`
+- **Status**: Live
+- **Category**: game · keyboard
+- **Description**: Top-down pixel-art dungeon game. 96×72 overworld (Greenhollow) with resources, weapon chests and slimes; the Hollow Crypt dungeon with five rooms of enemies, a key, a sealed door and the Bone King boss. Weapons come from chests or are crafted (iron gear at the camp anvil).
 
 ---
 
@@ -164,13 +144,10 @@ Dark teal terminal / retro OS interface. Looks like a CRT monitor or old-school 
 ---
 
 ## Adding a New Project — Checklist
-1. Add a new `<a>` (if live) or `<div>` (if TBA) in the `.project-grid` inside `#projects`
-2. Use `.pc-tag.tag-live` or `.pc-tag.tag-soon`
-3. Nav bar: add `<a href="path" class="nav-lnk">Label</a>` if it warrants top-level navigation
-4. Ticker: add a description blurb to `.ticker-inner`
-5. If replacing the "Next Project" placeholder card, remove the `.soon` div
-6. **Create `appname/tests.html`** — MANDATORY (see Testing Standard below)
-7. Update this `context.md` with the new app's section
+1. Add a `.card` to the `.grid` inside `#projects` (see structure above)
+2. Add a 1280×800 screenshot to `docs/`
+3. **Create `appname/tests.html`** — MANDATORY (see Testing Standard below)
+4. Update this `context.md` with the new app's section
 
 ---
 
