@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Hollow Crypt — Lukeda</title>
-  <meta name="description" content="A small top-down dungeon game: explore, gather, craft your own weapons and defeat the Bone King. Runs in your browser.">
+  <meta name="description" content="A small top-down dungeon game: explore, gather, craft your own weapons and defeat the Hollow King. Runs in your browser.">
   <style>
     html, body { margin: 0; height: 100%; background: #0b0a10; overflow: hidden; }
     canvas {
@@ -34,7 +34,7 @@
 const TILE = 16;
 const STEP = 1 / 60;
 const FONT = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
-const SAVE_KEY = 'hollowcrypt_save_v1';
+const SAVE_KEY = 'hollowcrypt_save_v2';
 
 const T = { GRASS:0, WATER:1, TREE:2, PATH:3, SAND:4, ROCK:5, FLOWERS:6, BRIDGE:7,
             FLOOR:8, WALL:9, DOOR:10, STAIRS_DOWN:11, STAIRS_UP:12, PLANKS:13 };
@@ -47,9 +47,9 @@ const DIRV = { up:[0,-1], down:[0,1], left:[-1,0], right:[1,0] };
 const DIRQ = { up:0, right:1, down:2, left:3 };
 
 const MINI_COL = {
-  [T.GRASS]:'#3f7a3a', [T.WATER]:'#2b5e9c', [T.TREE]:'#21482a', [T.PATH]:'#b39462', [T.SAND]:'#d6be86',
-  [T.ROCK]:'#6d6458', [T.FLOWERS]:'#4a8a40', [T.BRIDGE]:'#8a5a32', [T.FLOOR]:'#6e6a82', [T.WALL]:'#2c2936',
-  [T.DOOR]:'#c99a3a', [T.STAIRS_DOWN]:'#f2d27a', [T.STAIRS_UP]:'#f2d27a', [T.PLANKS]:'#8a5a32',
+  [T.GRASS]:'#a3b13a', [T.WATER]:'#3c7fa6', [T.TREE]:'#5b7428', [T.PATH]:'#c47c4c', [T.SAND]:'#c47c4c',
+  [T.ROCK]:'#aaa6b8', [T.FLOWERS]:'#a3b13a', [T.BRIDGE]:'#7a4a2c', [T.FLOOR]:'#8e8aa6', [T.WALL]:'#34313f',
+  [T.DOOR]:'#9a6a3c', [T.STAIRS_DOWN]:'#f2d27a', [T.STAIRS_UP]:'#f2d27a', [T.PLANKS]:'#8e8aa6',
 };
 
 /* ════════════════════════════════════════════════════════════════════
@@ -57,57 +57,58 @@ const MINI_COL = {
 ════════════════════════════════════════════════════════════════════ */
 const ITEMS = {
   wood:        { name:'Wood',          desc:'Chopped from trees. Used in most recipes.', type:'mat' },
-  stone:       { name:'Stone',         desc:'Mined from grey rocks.', type:'mat' },
-  herb:        { name:'Herb',          desc:'Picked from bushes. Brew it into healing.', type:'mat' },
-  coal:        { name:'Coal',          desc:'Mined from black rocks. Needs a pickaxe.', type:'mat' },
-  iron:        { name:'Iron Ore',      desc:'Mined from rusty rocks. Needs a pickaxe.', type:'mat' },
-  gel:         { name:'Slime Gel',     desc:'Dropped by slimes.', type:'mat' },
-  bone:        { name:'Bone',          desc:'Dropped by skeletons.', type:'mat' },
-  gold:        { name:'Gold',          desc:'Coins dropped by monsters.', type:'mat' },
-  iron_ingot:  { name:'Iron Ingot',    desc:'Smelted at the anvil from ore and coal.', type:'mat' },
-  rope:        { name:'Rope',          desc:'Twisted from herbs.', type:'mat' },
+  stone:       { name:'Stone',         desc:'Mined from mossy grey rocks.', type:'mat' },
+  herb:        { name:'Herb',          desc:'Picked from red wildflowers.', type:'mat' },
+  coal:        { name:'Coal',          desc:'Mined from smouldering black rocks. Needs a pickaxe.', type:'mat' },
+  iron:        { name:'Iron Ore',      desc:'Mined from rusty crystal rocks. Needs a pickaxe.', type:'mat' },
+  meat:        { name:'Raw Meat',      desc:'From hunted animals. Eat it raw for ½ heart, or roast it at the fire.', type:'heal', heal:1 },
+  gold:        { name:'Gold',          desc:'Coins carried by crypt soldiers.', type:'mat' },
   torch:       { name:'Torch',         desc:'Carry one to see further in the dark.', type:'light', unique:true },
   bandage:     { name:'Bandage',       desc:'Restores 1 heart.', type:'heal', heal:2 },
-  potion:      { name:'Health Potion', desc:'Restores 3 hearts.', type:'heal', heal:6 },
+  roast:       { name:'Roast Meat',    desc:'Restores 3 hearts.', type:'heal', heal:6 },
   pickaxe:     { name:'Pickaxe',       desc:'Lets you mine iron and coal.', type:'tool', unique:true },
   wood_sword:  { name:'Wooden Sword',  desc:'Damage 2.', type:'weapon', dmg:2, reach:13, cd:22, tier:1, unique:true },
   iron_sword:  { name:'Iron Sword',    desc:'Damage 4.', type:'weapon', dmg:4, reach:15, cd:22, tier:2, unique:true },
   knight_blade:{ name:"Knight's Blade",desc:'Damage 6. Lost deep in the crypt.', type:'weapon', dmg:6, reach:17, cd:20, tier:3, unique:true },
   wood_shield: { name:'Wooden Shield', desc:'Blocks 1 damage from strong hits.', type:'shield', def:1, tier:1, unique:true },
   iron_shield: { name:'Iron Shield',   desc:'Blocks 2 damage from strong hits.', type:'shield', def:2, tier:2, unique:true },
-  bow:         { name:'Short Bow',     desc:'Fire arrows with K. Damage 3.', type:'bow', unique:true },
-  arrows:      { name:'Arrows',        desc:'Ammunition for the bow.', type:'ammo' },
-  key:         { name:'Crypt Key',     desc:'Opens the sealed door in the crypt.', type:'key' },
+  bow:         { name:'Crossbow',      desc:'Fire bolts with K. Damage 3.', type:'bow', unique:true },
+  arrows:      { name:'Bolts',         desc:'Ammunition for the crossbow.', type:'ammo' },
+  key:         { name:'Gate Key',      desc:'Opens the sealed gate in the crypt.', type:'key' },
   heart:       { name:'Heart Crystal', desc:'Raises your maximum health by 1 heart.', type:'special' },
-  crown:       { name:'Bone Crown',    desc:'Proof that the Bone King has fallen.', type:'trophy' },
+  crown:       { name:'Hollow Crown',  desc:'Proof that the Hollow King has fallen.', type:'trophy' },
 };
 const FIST = { dmg:1, reach:9, cd:18 };
 const ATK_T = 14;
 const INV_SLOTS = 24;
 
+// station:'fire' recipes need the camp fire (cooking and smithing)
 const RECIPES = [
-  { out:['bandage',1],     in:[['herb',2]],                 cat:'heal' },
-  { out:['potion',1],      in:[['herb',2],['gel',1]],        cat:'heal' },
-  { out:['rope',1],        in:[['herb',2]],                 cat:'mat'  },
-  { out:['torch',1],       in:[['wood',1],['coal',1]],       cat:'mat'  },
-  { out:['iron_ingot',1],  in:[['iron',2],['coal',1]],       cat:'mat',  station:'anvil' },
-  { out:['pickaxe',1],     in:[['wood',2],['stone',3]],      cat:'gear' },
-  { out:['wood_sword',1],  in:[['wood',4]],                 cat:'gear' },
-  { out:['wood_shield',1], in:[['wood',5],['rope',1]],       cat:'gear' },
-  { out:['bow',1],         in:[['wood',3],['rope',1]],       cat:'gear' },
-  { out:['arrows',5],      in:[['wood',1],['stone',1]],      cat:'gear' },
-  { out:['arrows',8],      in:[['bone',2],['wood',1]],       cat:'gear', name:'Bone Arrows' },
-  { out:['iron_sword',1],  in:[['iron_ingot',2],['wood',1]], cat:'gear', station:'anvil' },
-  { out:['iron_shield',1], in:[['iron_ingot',3]],            cat:'gear', station:'anvil' },
+  { out:['bandage',1],     in:[['herb',2]],                        cat:'heal' },
+  { out:['roast',1],       in:[['meat',1],['herb',1]],             cat:'heal', station:'fire' },
+  { out:['torch',1],       in:[['wood',1],['coal',1]],             cat:'mat'  },
+  { out:['pickaxe',1],     in:[['wood',2],['stone',3]],            cat:'gear' },
+  { out:['wood_sword',1],  in:[['wood',4]],                        cat:'gear' },
+  { out:['wood_shield',1], in:[['wood',5],['herb',1]],             cat:'gear' },
+  { out:['bow',1],         in:[['wood',3],['herb',2]],             cat:'gear' },
+  { out:['arrows',5],      in:[['wood',1],['stone',1]],            cat:'gear' },
+  { out:['iron_sword',1],  in:[['iron',3],['coal',1],['wood',1]],  cat:'gear', station:'fire' },
+  { out:['iron_shield',1], in:[['iron',4],['coal',1]],             cat:'gear', station:'fire' },
 ];
 const CATS = [ { id:'all', label:'All' }, { id:'heal', label:'Healing' }, { id:'mat', label:'Materials' }, { id:'gear', label:'Gear' } ];
 function recipeName(r) { return r.name || ITEMS[r.out[0]].name; }
 
+// look: 'ch' = fortress-kit character, 'an' = hunt-pack animal. passive animals never hurt you.
 const ENEMY = {
-  slime:    { hp:3,  dmg:1, r:6,  cy:4,  hw:5, hh:3, fly:false, drops:[['gel',0.75,1],['herb',0.2,1]] },
-  bat:      { hp:2,  dmg:1, r:5,  cy:9,  hw:3, hh:3, fly:true,  drops:[['gold',0.4,1]] },
-  skeleton: { hp:6,  dmg:2, r:6,  cy:7,  hw:4, hh:3, fly:false, drops:[['bone',0.85,1],['gold',0.5,2]] },
-  boss:     { hp:70, dmg:3, r:12, cy:13, hw:8, hh:5, fly:false, drops:[] },
+  boar:   { look:'an', hp:4,  dmg:1, r:7,  cy:6,  hw:6, hh:3, fly:false, drops:[['meat',0.8,1]] },
+  fox:    { look:'an', hp:3,  dmg:1, r:6,  cy:5,  hw:5, hh:3, fly:false, drops:[['meat',0.5,1]] },
+  grouse: { look:'an', hp:2,  dmg:1, r:5,  cy:11, hw:3, hh:3, fly:true,  drops:[['meat',0.5,1]] },
+  hare:   { look:'an', hp:1,  dmg:0, r:5,  cy:4,  hw:4, hh:3, fly:false, passive:true, drops:[['meat',0.9,1]] },
+  deer:   { look:'an', hp:3,  dmg:0, r:7,  cy:8,  hw:5, hh:3, fly:false, passive:true, drops:[['meat',1,2]] },
+  guard:  { look:'ch', hp:6,  dmg:2, r:6,  cy:7,  hw:4, hh:3, fly:false, drops:[['gold',0.6,2],['roast',0.08,1]] },
+  spear:  { look:'ch', hp:5,  dmg:2, r:6,  cy:7,  hw:4, hh:3, fly:false, drops:[['gold',0.5,2]] },
+  archer: { look:'ch', hp:4,  dmg:1, r:6,  cy:7,  hw:4, hh:3, fly:false, drops:[['arrows',0.7,3],['gold',0.4,1]] },
+  boss:   { look:'ch', hp:70, dmg:3, r:13, cy:20, hw:8, hh:5, fly:false, drops:[] },
 };
 
 /* ════════════════════════════════════════════════════════════════════
@@ -132,514 +133,228 @@ function resize() {
 window.addEventListener('resize', resize);
 
 /* ════════════════════════════════════════════════════════════════════
-   PIXEL-ART SPRITES
+   ASSETS — everything is drawn from the craftpix packs in rpg/assets/
 ════════════════════════════════════════════════════════════════════ */
-const PAL = {
-  k:'#16121f', K:'#2c2638', z:'rgba(0,0,0,0.28)',
-  g:'#2f6a36', G:'#4f9a46', H:'#7cc463', h:'#245229',
-  b:'#5a3a22', B:'#7d5332', n:'#3a2616', A:'#d9b98a', a:'#a8875c',
-  y:'#c99a3a', Y:'#f2d27a',
-  s:'#5f636e', S:'#9298a4', l:'#d2d7de',
-  u:'#2d5ea8', U:'#4d86d8', c:'#9fd2ff',
-  r:'#9b2c2c', R:'#e0503c',
-  p:'#f0c49a', P:'#c99470',
-  w:'#ece6d8', W:'#ffffff',
-  o:'#c8692a', O:'#ffb347',
-  m:'#5a2f8a', M:'#9a68d8', D:'#3c3b47',
+const ASSET = {
+  fort: 'assets/craftpix-net-749505-free-medieval-fortress-top-down-pixel-minigame-kit/',
+  hunt: 'assets/craftpix-net-789196-free-top-down-hunt-animals-pixel-sprite-pack/PNG/With_Shadow/',
+  rock: 'assets/craftpix-net-974061-free-rocks-and-stones-top-down-pixel-art/PNG/Objects_separately/',
 };
+// Fortress-kit characters (32×32 frames, facing right) and the animation files each one uses
+const CHARS = {
+  hero:   { n: 8, anims: { idle: 'Idle', walk: 'Walk', atk: 'Attack_1', thrust: 'Attack_2', dead: 'Dead' } },
+  guard:  { n: 9, anims: { idle: 'Idle', walk: 'Walk', atk: 'Attack_1', dead: 'Dead' } },
+  archer: { n: 3, anims: { idle: 'Idle', walk: 'Walk', shot: 'Shot', reload: 'Recharge', dead: 'Dead' } },
+  spear:  { n: 5, anims: { idle: 'Idle', walk: 'Run', dash: 'Run+Attack', dead: 'Dead' } },
+  boss:   { n: 4, anims: { idle: 'Idle', walk: 'Walk', atk: 'Attack_1', cast: 'Cast', dead: 'Dead' } },
+  warden: { n: 6, anims: { idle: 'Idle' } },
+  scout:  { n: 7, anims: { idle: 'Idle' } },
+  fallen: { n: 1, anims: { dead: 'Dead' } },
+};
+// Hunt-pack animals (32×32 frames, rows: down, up, left, right)
+const ANIMALS = {
+  boar:   { dir: 'Boar',         anims: { idle: 'Idle', walk: 'Walk', run: 'Run', atk: 'Attack', dead: 'Death' } },
+  fox:    { dir: 'Fox',          anims: { idle: 'Idle', walk: 'walk', run: 'Run', dead: 'Death' } },
+  hare:   { dir: 'Hare',         anims: { idle: 'Idle', walk: 'Walk', run: 'Run', dead: 'Death' } },
+  deer:   { dir: 'Deer',         anims: { idle: 'Idle', walk: 'Walk', run: 'Run', dead: 'Death' } },
+  grouse: { dir: 'Black_grouse', anims: { idle: 'Flight', walk: 'Flight', dead: 'Death' } },
+};
+const ROW = { down: 0, up: 1, left: 2, right: 3 };
+
+const IMG = {};
+function loadAssets() {
+  const list = {
+    tiles: ASSET.fort + 'Tileset/Tiled_Map.png', chest: ASSET.fort + 'Tileset/Chest.png', meat: ASSET.fort + 'Tileset/Meat.png',
+    torch: ASSET.fort + 'Tileset/Torch.png', gate: ASSET.fort + 'Tileset/Gate.png', ui: ASSET.fort + 'UI/UI.png',
+    knife: ASSET.fort + 'Characters/Knife.png', bolt: ASSET.fort + 'Characters/Charge_1.png',
+  };
+  for (const k in CHARS) for (const a in CHARS[k].anims) list[`${k}.${a}`] = `${ASSET.fort}Characters/Character_${CHARS[k].n}/${CHARS[k].anims[a]}.png`;
+  for (const k in ANIMALS) for (const a in ANIMALS[k].anims) { const d = ANIMALS[k].dir; list[`${k}.${a}`] = `${ASSET.hunt}${d}/${d}_${ANIMALS[k].anims[a]}_with_shadow.png`; }
+  for (let i = 1; i <= 8; i++) for (let v = 1; v <= 5; v++) list[`rock${i}_${v}`] = `${ASSET.rock}Rock${i}_${v}.png`;
+  list.rockWater = ASSET.rock + 'Rock7_water_shadow_dark3.png';
+  list.rockWaterS = ASSET.rock + 'Rock7_water_shadow_dark4.png';
+  return Promise.all(Object.entries(list).map(([k, src]) => new Promise(res => {
+    const im = new Image();
+    im.onload = () => { IMG[k] = im; res(); };
+    im.onerror = () => { console.warn('Missing asset:', src); IMG[k] = null; res(); };
+    im.src = src;
+  })));
+}
 
 function newCanvas(w, h) {
   const c = document.createElement('canvas'); c.width = w; c.height = h;
   const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
   return [c, g];
 }
-function spr(rows, over) {
-  const h = rows.length, w = Math.max(...rows.map(r => r.length));
+function crop(img, x, y, w, h) {
   const [c, g] = newCanvas(w, h);
-  for (let y = 0; y < h; y++) for (let x = 0; x < rows[y].length; x++) {
-    const ch = rows[y][x];
-    const col = over && ch in over ? over[ch] : PAL[ch];
-    if (!col) continue;
-    g.fillStyle = col; g.fillRect(x, y, 1, 1);
-  }
+  if (img) g.drawImage(img, x, y, w, h, 0, 0, w, h);
   return c;
+}
+function strip(img, fw, fh, row) {
+  if (!img) return [newCanvas(fw, fh)[0]];
+  const n = Math.max(1, Math.floor(img.width / fw));
+  return Array.from({ length: n }, (_, i) => crop(img, i * fw, (row || 0) * fh, fw, fh));
 }
 function flipX(src) {
   const [c, g] = newCanvas(src.width, src.height);
   g.translate(src.width, 0); g.scale(-1, 1); g.drawImage(src, 0, 0);
   return c;
 }
+// Quarter-turn rotation with canvas transforms (no getImageData, so it also works from file://)
 function rot90(src, q) {
   q = ((q % 4) + 4) % 4;
   if (q === 0) return src;
-  const sw = src.width, sh = src.height;
-  const [c, g] = newCanvas(q % 2 ? sh : sw, q % 2 ? sw : sh);
-  const sd = src.getContext('2d').getImageData(0, 0, sw, sh);
-  const out = g.createImageData(c.width, c.height);
-  for (let y = 0; y < sh; y++) for (let x = 0; x < sw; x++) {
-    let nx, ny;
-    if (q === 1) { nx = sh - 1 - y; ny = x; }
-    else if (q === 2) { nx = sw - 1 - x; ny = sh - 1 - y; }
-    else { nx = y; ny = sw - 1 - x; }
-    const si = (y * sw + x) * 4, di = (ny * c.width + nx) * 4;
-    for (let k = 0; k < 4; k++) out.data[di + k] = sd.data[si + k];
-  }
-  g.putImageData(out, 0, 0);
+  const [c, g] = newCanvas(q % 2 ? src.height : src.width, q % 2 ? src.width : src.height);
+  g.translate(c.width / 2, c.height / 2); g.rotate(q * Math.PI / 2); g.drawImage(src, -src.width / 2, -src.height / 2);
   return c;
+}
+// Flat colour fill of a sprite's shape (for the white UI glyphs)
+function tint(src, col) {
+  const [c, g] = newCanvas(src.width, src.height);
+  g.drawImage(src, 0, 0); g.globalCompositeOperation = 'source-in';
+  g.fillStyle = col; g.fillRect(0, 0, c.width, c.height);
+  return c;
+}
+// Darken / colour-grade a sprite while keeping its alpha
+function shade(src, col) {
+  const [c, g] = newCanvas(src.width, src.height);
+  g.drawImage(src, 0, 0); g.globalCompositeOperation = 'multiply';
+  g.fillStyle = col; g.fillRect(0, 0, c.width, c.height);
+  g.globalCompositeOperation = 'destination-in'; g.drawImage(src, 0, 0);
+  return c;
+}
+// Tinted glyph with a 1px dark outline so it reads on any background
+function glyph(src, col, outline) {
+  const [c, g] = newCanvas(src.width + 2, src.height + 2);
+  const o = tint(src, outline || '#16121f');
+  for (const [dx, dy] of [[0, 1], [2, 1], [1, 0], [1, 2], [0, 0], [2, 2], [0, 2], [2, 0]]) g.drawImage(o, dx, dy);
+  g.drawImage(tint(src, col), 1, 1);
+  return c;
+}
+// Trim transparent borders (icons are centred by size)
+function trim(src) {
+  const g = src.getContext('2d');
+  let d;
+  try { d = g.getImageData(0, 0, src.width, src.height).data; } catch (e) { return src; }
+  let x0 = src.width, y0 = src.height, x1 = -1, y1 = -1;
+  for (let y = 0; y < src.height; y++) for (let x = 0; x < src.width; x++) if (d[(y * src.width + x) * 4 + 3]) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+  return x1 < 0 ? src : crop(src, x0, y0, x1 - x0 + 1, y1 - y0 + 1);
 }
 const whiteCache = new Map();
 function white(src) {
   let c = whiteCache.get(src);
-  if (c) return c;
-  let g; [c, g] = newCanvas(src.width, src.height);
-  g.drawImage(src, 0, 0);
-  g.globalCompositeOperation = 'source-in';
-  g.fillStyle = '#ffffff'; g.fillRect(0, 0, c.width, c.height);
-  whiteCache.set(src, c);
+  if (!c) { c = tint(src, '#ffffff'); whiteCache.set(src, c); }
   return c;
 }
-
-// ── Characters ──
-const HERO_DOWN = [
-  '................',
-  '.....kkkkkk.....',
-  '....kBBBBBBk....',
-  '...kBbbbbbbBk...',
-  '...kbppppppbk...',
-  '...kpkppppkpk...',
-  '...kppppppppk...',
-  '....kkppppkk....',
-  '...kuUUUUUUuk...',
-  '..kpuUUUUUUupk..',
-  '..kpuuUUUUuupk..',
-  '...knnnyynnnk...',
-  '....kKKkkKKk....',
-  '....kKKkkKKk....',
-  '....knnkknnk....',
-  '....kkkkkkkk....',
-];
-const LEGS_WALK = ['....kKKkkKKk....', '...kKKk..kKKk...', '...knnk...knnk..', '...kkk.....kkk..'];
-function withLegs(rows, legs) { const r = rows.slice(); legs.forEach((s, i) => r[12 + i] = s); return r; }
-const HERO_UP = HERO_DOWN.slice();
-HERO_UP[4] = '...kBbbbbbbBk...'; HERO_UP[5] = '...kbbbbbbbbk...';
-HERO_UP[6] = '...kBbbbbbbBk...'; HERO_UP[7] = '....kkbbbbkk....';
-const HERO_RIGHT = [
-  '................',
-  '.....kkkkkk.....',
-  '....kBBBBBBk....',
-  '...kBbbbbbbBk...',
-  '...kbbbbpppPk...',
-  '...kbbbppkppk...',
-  '...kbbpppppppk..',
-  '....kkpppppkk...',
-  '....kuUUUUUuk...',
-  '....kuUUUUpuk...',
-  '....kuuUUUpuk...',
-  '....knnyynnk....',
-  '.....kKKKKk.....',
-  '.....kKkkKk.....',
-  '.....knk.knk....',
-  '.....kk..kk.....',
-];
-const HERO_RIGHT_B = HERO_RIGHT.slice();
-HERO_RIGHT_B[13] = '....kKk..kKk....'; HERO_RIGHT_B[14] = '....knk...knk...'; HERO_RIGHT_B[15] = '....kk.....kk...';
-
-const SLIME = [
-  '................', '................', '................', '................', '................',
-  '......kkkk......',
-  '....kkHHHHkk....',
-  '...kHHGGGGHHk...',
-  '..kHGGGGGGGGHk..',
-  '..kGGWkGGWkGGk..',
-  '..kGGkkGGkkGGk..',
-  '.kGGGGGGGGGGGGk.',
-  '.kgGGGGGGGGGGgk.',
-  '.kggGGGGGGGGggk.',
-  '..kkgggggggggkk.',
-  '....kkkkkkkk....',
-];
-const BAT_A = [
-  '................', '................',
-  '.k............k.',
-  '.kk..........kk.',
-  '.kMk...kk...kMk.',
-  '.kMMk.kmmk.kMMk.',
-  '..kMMkmmmmkMMk..',
-  '..kMMmWmmWmMMk..',
-  '...kkmmmmmmkk...',
-  '.....kmkkmk.....',
-  '......k..k......',
-  '................',
-];
-const BAT_B = [
-  '................', '................', '................', '................',
-  '.......kk.......',
-  '......kmmk......',
-  '..kkkkmmmmkkkk..',
-  '.kMMMmWmmWmMMMk.',
-  '.kMMkkmmmmkkMMk.',
-  '.kMk.kmkkmk.kMk.',
-  '.kk...k..k...kk.',
-  '.k............k.',
-];
-const SKELETON = [
-  '................',
-  '.....kkkkkk.....',
-  '....kwwwwwwk....',
-  '...kwwwwwwwwk...',
-  '...kwkkwwkkwk...',
-  '...kwkRwwkRwk...',
-  '...kwwwkkwwwk...',
-  '....kwkwwkwk....',
-  '.....kkkkkk.....',
-  '...kwkwwwwkwk...',
-  '...kwkwkkwkwk...',
-  '...k.kwwwwk.k...',
-  '.....kwkkwk.....',
-  '.....kwkkwk.....',
-  '....kwk..kwk....',
-  '....kk....kk....',
-];
-const SKELETON_B = SKELETON.slice();
-SKELETON_B[13] = '....kwk..kwk....'; SKELETON_B[14] = '...kwk....kwk...'; SKELETON_B[15] = '...kk......kk...';
-
-// ── World objects ──
-const CHEST = [
-  '................', '................', '................',
-  '...kkkkkkkkkk...',
-  '..kBBBBBBBBBBk..',
-  '..kBbbbbbbbbBk..',
-  '..kBbbbbbbbbBk..',
-  '..kyyyyyyyyyyk..',
-  '..kBbbbyybbbBk..',
-  '..kBbbbkkbbbBk..',
-  '..kBbbbbbbbbBk..',
-  '..kBbbbbbbbbBk..',
-  '..kyyyyyyyyyyk..',
-  '...kkkkkkkkkk...',
-  '.....zzzzzz.....',
-  '................',
-];
-const CHEST_OPEN = [
-  '................',
-  '...kkkkkkkkkk...',
-  '..kBBBBBBBBBBk..',
-  '..kbbbbbbbbbbk..',
-  '..kyyyyyyyyyyk..',
-  '..kkkkkkkkkkkk..',
-  '..kBnnnnnnnnBk..',
-  '..kyyyyyyyyyyk..',
-  '..kBbbbbbbbbBk..',
-  '..kBbbbbbbbbBk..',
-  '..kBbbbbbbbbBk..',
-  '..kBbbbbbbbbBk..',
-  '..kyyyyyyyyyyk..',
-  '...kkkkkkkkkk...',
-  '.....zzzzzz.....',
-  '................',
-];
-const ROCK_NODE = [
-  '................', '................', '................', '................', '................',
-  '......kkkk......',
-  '....kkSSSSkk....',
-  '...kSSllSSSSk...',
-  '..kSSlSSSSSSsk..',
-  '..kSSSSSSSSssk..',
-  '.kSSSSSSSsssssk.',
-  '.ksSSlSSssssssk.',
-  '.kssssssssssk...',
-  '..kkkkkkkkkk....',
-  '...zzzzzzzzz....',
-  '................',
-];
-const RUBBLE = [
-  '................', '................', '................', '................', '................', '................',
-  '................', '................', '................', '................', '................', '................',
-  '....kssk.kSk....',
-  '...ksSSskssk....',
-  '....kkkk.kkk....',
-  '................',
-];
-const BUSH = [
-  '................', '................', '................',
-  '.......kk.......',
-  '....kk.kGk.kk...',
-  '...kGGkkGkkGGk..',
-  '..kGHGGkGkGGHGk.',
-  '..kGGRGGGGGRGGk.',
-  '.kGHGGGGRGGGGHk.',
-  '.kGGGRGGGGGRGGk.',
-  '..kgGGGGRGGGgk..',
-  '..kggGGGGGGggk..',
-  '...kkgggggggk...',
-  '.....kkbbkkk....',
-  '....zzzkkzzz....',
-  '................',
-];
-const BUSH_STUB = [
-  '................', '................', '................', '................', '................', '................',
-  '................', '................', '................', '................', '................',
-  '.......k..k.....',
-  '......kgkkgk....',
-  '.....kggggggk...',
-  '......kkkkkk....',
-  '................',
-];
-const TREE = [
-  '......kkkk......',
-  '....kkGGGGkk....',
-  '...kGGHHGGGGk...',
-  '..kGHHGGGGGgGk..',
-  '..kGHGGGGGgggk..',
-  '.kGGGGGGGgggGgk.',
-  '.kGGGGGGGGggggk.',
-  '.kgGGGGGgGgggggk',
-  '..kggGGgggggggk.',
-  '..kkgggggggggkk.',
-  '....kkkkbbkkk...',
-  '......kbBbk.....',
-  '......kbBbk.....',
-  '.....kkbBbkk....',
-  '....zzkkkkkzz...',
-  '................',
-];
-const ANVIL = [
-  '................', '................', '................', '................', '................', '................',
-  '...kkkkkkkkkk...',
-  '..kllllllllSSk..',
-  '...kSSSSSSSsk...',
-  '.....kSSSsk.....',
-  '......kssk......',
-  '.....kSSSSk.....',
-  '....kssssssk....',
-  '....kkkkkkkk....',
-  '...zzzzzzzzzz...',
-  '................',
-];
-const SIGN = [
-  '................', '................', '................',
-  '..kkkkkkkkkkkk..',
-  '..kBBBBBBBBBBk..',
-  '..kBbbbbbbbbBk..',
-  '..kBnnnnbnnbBk..',
-  '..kBbbbbbbbbBk..',
-  '..kBnnbnnnnbBk..',
-  '..kBBBBBBBBBBk..',
-  '..kkkkkBBkkkkk..',
-  '.......kbk......',
-  '.......kbk......',
-  '.......kbk......',
-  '......zkbkz.....',
-  '................',
-];
-const HEART = [
-  '.kk.kk.',
-  'kRRkRRk',
-  'kRWRRRk',
-  'kRRRRRk',
-  '.kRRRk.',
-  '..kRk..',
-  '...k...',
-];
-
-// ── Item icons (12×12) ──
-const ICON_ROWS = {
-  wood: ['............','............','............','...kkkkkkk..','..kBBBBBBkak','..kbbbbbbkAk','..kBBBBBBkak','...kkkkkkkk.'],
-  stone: ['............','............','....kkkk....','..kkSSSSkk..','.kSSlSSSSSk.','.kSllSSSsSk.','kSSSSSSSssSk','kSSSSSsssssk','.kssssssssk.','..kkkkkkkk..'],
-  herb: ['............','....kk......','...kHGk.kk..','..kkGGkkHGk.','.kHGkGkGGk..','..kGGGGGk...','...kkgkk....','.....gk.....','.....gk.....'],
-  coal: ['............','............','...kkkk.....','.kkKKKKkk...','.kKDKKKKKk..','kKDDKKKKKKk.','kKKKKKKKDKk.','.kKKKKKDDk..','..kkkkkkk...'],
-  iron: ['............','............','....kkkk....','..kkssssk...','.ksSoSSssk..','kssSSSoSssk.','ksoSSSSSSsk.','.kssSSoSsk..','..kkkkkkk...'],
-  gold: ['............','...kkkkk....','..kYYYYYk...','.kYyyyyYYk..','.kYyYYyyyk..','.kYyyyyyyk..','..kyyyyyk...','...kkkkk....'],
-  gel: ['............','............','....kkk.....','...kHGGk....','..kHGGGGk...','..kGWGGgk...','..kGGGggk...','...kkkkk....'],
-  bone: ['............','..kk....kk..','.kwwk..kwwk.','..kwwkkwwk..','...kwwwwk...','..kwwkkwwk..','.kwwk..kwwk.','..kk....kk..'],
-  iron_ingot: ['............','............','............','...kkkkkk...','..klllllSk..','.kllSSSSSSk.','kSSSSSSSSsk.','kssssssssk..','.kkkkkkkk...'],
-  rope: ['............','...kkkk.....','..kyAAyk....','.kAk..kAk...','.kyk..kyk...','.kAkkkkAk...','..kyAAyAk...','...kkkkkAk..','........kk..'],
-  torch: ['....kk......','...kOOk.....','..kOYYOk....','..kOYYOk....','...kook.....','....kBk.....','....kBk.....','....kbk.....','....kbk.....','....kkk.....'],
-  potion: ['....kkk.....','....kBk.....','....kwk.....','...kRRRk....','..kRWRRRk...','..kRRRRRk...','..krRRRrk...','...krrrk....','....kkk.....'],
-  bandage: ['............','............','............','..kkkkkkk...','.kwwwRwwwk..','.kwwRRRwwk..','.kwwwRwwwk..','..kkkkkkk...'],
-  key: ['............','..kkk.......','.kYYYk......','.kYkYk......','.kYYYkkkkkk.','..kkkYYYYYYk','.......kYkYk','.......kk.kk'],
-  wood_sword: ['.....kk.....','....kAAk....','....kAak....','....kAak....','....kAak....','....kAak....','..kkkAakkk..','..kBBBBBBk..','..kkkbbkkk..','....kbbk....','....kBBk....','.....kk.....'],
-  iron_sword: ['.....kk.....','....klWk....','....klSk....','....klSk....','....klSk....','....klSk....','..kkklSkkk..','..kyyyyyyk..','..kkkbbkkk..','....kbbk....','....kyyk....','.....kk.....'],
-  knight_blade: ['....kkk.....','....kcWk....','....kcUk....','....kcUk....','....kcUk....','....kcUk....','..kkkcUkkk..','.kYYYMYYYYk.','..kkkbbkkk..','....kbbk....','....kYYk....','.....kk.....'],
-  wood_shield: ['............','..kkkkkkk...','.kBBBBBBBk..','.kBbBbBbBk..','.kBbBbBbBk..','.kBBByBBBk..','.kBbBbBbBk..','..kBbBbBk...','...kBBBk....','....kkk.....'],
-  iron_shield: ['............','..kkkkkkk...','.kllllllSk..','.klSSSSSSk..','.klSyyySSk..','.klSyuySSk..','.klSyyySSk..','..klSSSSk...','...kSSSk....','....kkk.....'],
-  bow: ['..kkk.......','..kBBkw.....','...kBkw.....','....kBw.....','....kBw.....','....kBw.....','....kBw.....','...kBkw.....','..kBBkw.....','..kkk.......'],
-  arrows: ['.........kk.','........kSk.','.......kSk..','......kBk...','.....kBk....','....kBk.....','..rkBk......','..rBk.......','.rrk........'],
-  pickaxe: ['............','..kkkkkkk...','.kSSSSSSSk..','kSk.kBk.kSk.','kk..kBk..kk.','....kBk.....','....kBk.....','....kbk.....','....kbk.....','.....k......'],
-  heart: ['............','.kkk..kkk...','kRRRkkRRRk..','kRWRRRRRRk..','kRRRRRRRRk..','.kRRRRRRk...','..kRRRRk....','...kRRk.....','....kk......'],
-  crown: ['............','............','.k...k...k..','kYk.kYk.kYk.','kYYkYYYkYYk.','kYYYYRYYYYk.','kYyyyyyyyYk.','kkkkkkkkkkk.'],
-};
 
 const SPR = {};
 const ICON = {};
-function buildSprites() {
-  SPR.hero = {
-    down:  [spr(HERO_DOWN), spr(withLegs(HERO_DOWN, LEGS_WALK))],
-    up:    [spr(HERO_UP),   spr(withLegs(HERO_UP, LEGS_WALK))],
-    right: [spr(HERO_RIGHT), spr(HERO_RIGHT_B)],
-  };
-  SPR.hero.left = SPR.hero.right.map(flipX);
-  SPR.slime = spr(SLIME);
-  SPR.bat = [spr(BAT_A), spr(BAT_B)];
-  SPR.skel = [spr(SKELETON), spr(SKELETON_B)];
-  SPR.skelL = SPR.skel.map(flipX);
-  SPR.boss = buildBoss();
-  SPR.chest = spr(CHEST); SPR.chestOpen = spr(CHEST_OPEN);
-  SPR.rock = {
-    stone: spr(ROCK_NODE),
-    iron:  spr(ROCK_NODE, { S:'#8a7f78', s:'#5f5651', l:'#e08a48' }),
-    coal:  spr(ROCK_NODE, { S:'#4a4a54', s:'#2b2b33', l:'#111116' }),
-  };
-  SPR.rubble = spr(RUBBLE);
-  SPR.bush = spr(BUSH, { G:'#3a7a36', H:'#5ea04c', g:'#285a2a' }); SPR.bushStub = spr(BUSH_STUB);
-  SPR.tree = spr(TREE); SPR.treeF = flipX(SPR.tree);
-  SPR.anvil = spr(ANVIL); SPR.sign = spr(SIGN);
-  SPR.heart = [
-    spr(HEART, { R:'#3a2f45', W:'#3a2f45' }),
-    null,
-    spr(HEART),
-  ];
-  { const [c, g] = newCanvas(7, 7); g.drawImage(SPR.heart[0], 0, 0); g.drawImage(SPR.heart[2], 0, 0, 4, 7, 0, 0, 4, 7); SPR.heart[1] = c; }
-  for (const id in ICON_ROWS) ICON[id] = spr(ICON_ROWS[id]);
-  SPR.wrot = {};
-  for (const id of ['wood_sword', 'iron_sword', 'knight_blade', 'bow']) SPR.wrot[id] = [0, 1, 2, 3].map(q => rot90(ICON[id], q));
-  buildTiles();
-}
-
-function buildBoss() {
-  // 32×32 skeletal king: robe, ribcage, skull with crown, glowing eyes
-  const rows = [];
-  for (let y = 0; y < 32; y++) rows.push('.'.repeat(32).split(''));
-  const put = (x, y, ch) => { if (x >= 0 && y >= 0 && x < 32 && y < 32) rows[y][x] = ch; };
-  const rect = (x, y, w, h, ch) => { for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) put(x + i, y + j, ch); };
-  // robe (trapezoid)
-  for (let y = 14; y < 31; y++) {
-    const half = 6 + Math.floor((y - 14) * 0.55);
-    for (let x = 16 - half; x < 16 + half; x++) put(x, y, (x === 16 - half || x === 16 + half - 1) ? 'k' : ((x + y) % 7 === 0 ? 'M' : 'm'));
-  }
-  rect(16 - 15, 31, 30, 1, 'k');
-  // gold trim
-  for (let x = 8; x < 24; x++) put(x, 18, 'y');
-  rect(15, 14, 2, 17, 'y');
-  // ribcage on chest
-  for (let j = 0; j < 3; j++) { rect(11, 20 + j * 2, 4, 1, 'w'); rect(17, 20 + j * 2, 4, 1, 'w'); }
-  // arms
-  rect(6, 16, 3, 8, 'w'); rect(23, 16, 3, 8, 'w'); rect(6, 24, 3, 2, 'k'); rect(23, 24, 3, 2, 'k');
-  rect(5, 16, 1, 8, 'k'); rect(26, 16, 1, 8, 'k');
-  // skull
-  rect(10, 3, 12, 11, 'k'); rect(11, 4, 10, 9, 'w');
-  rect(12, 7, 3, 3, 'k'); rect(17, 7, 3, 3, 'k');
-  put(13, 8, 'R'); put(18, 8, 'R');
-  rect(15, 10, 2, 1, 'k');
-  rect(12, 12, 8, 1, 'k'); put(13, 13, 'w'); put(15, 13, 'w'); put(17, 13, 'w'); put(19, 13, 'w');
-  // crown
-  rect(10, 1, 12, 3, 'Y'); rect(10, 0, 2, 1, 'Y'); rect(15, 0, 2, 1, 'Y'); rect(20, 0, 2, 1, 'Y');
-  put(16, 2, 'R'); put(12, 2, 'c'); put(19, 2, 'c');
-  rect(10, 3, 12, 1, 'y');
-  return spr(rows.map(r => r.join('')));
-}
-
-/* ── Procedural 16×16 tiles ── */
 const TL = {};
-function tileCanvas(seed, fn) {
-  const [c, g] = newCanvas(16, 16);
-  const rnd = mulberry32(seed);
-  const px = (x, y, col) => { g.fillStyle = col; g.fillRect(x, y, 1, 1); };
-  const rect = (x, y, w, h, col) => { g.fillStyle = col; g.fillRect(x, y, w, h); };
-  const ri = n => Math.floor(rnd() * n);
-  fn({ g, px, rect, ri, rnd });
-  return c;
+function buildSprites() {
+  const TS = IMG.tiles, t = (x, y, w, h) => crop(TS, x, y, w, h);
+
+  // Characters: SPR.ch[name].R / .L → { anim: [frames] }
+  SPR.ch = {};
+  for (const k in CHARS) {
+    const R = {}, L = {};
+    for (const a in CHARS[k].anims) { R[a] = strip(IMG[`${k}.${a}`], 32, 32); L[a] = R[a].map(flipX); }
+    SPR.ch[k] = { R, L };
+  }
+  // Animals: SPR.an[name][anim][row] → [frames]
+  SPR.an = {};
+  for (const k in ANIMALS) {
+    SPR.an[k] = {};
+    for (const a in ANIMALS[k].anims) SPR.an[k][a] = [0, 1, 2, 3].map(r => strip(IMG[`${k}.${a}`], 32, 32, r));
+  }
+
+  // World objects
+  SPR.chest = strip(IMG.chest, 32, 32);
+  SPR.roast = strip(IMG.meat, 32, 32);
+  SPR.torch = strip(IMG.torch, 16, 16);
+  SPR.gate = strip(IMG.gate, 80, 80);
+  SPR.knife = strip(IMG.knife, 16, 16);
+  const bolt = IMG.bolt ? crop(IMG.bolt, 0, 0, IMG.bolt.width, IMG.bolt.height) : newCanvas(15, 16)[0];
+  SPR.bolt = { left: bolt, right: flipX(bolt), up: rot90(bolt, 1), down: rot90(bolt, 3) };
+  SPR.trees = [t(160, 49, 32, 45), t(193, 65, 30, 31), t(241, 48, 31, 48), t(160, 49, 32, 45), t(241, 48, 31, 48), t(272, 64, 16, 32), t(224, 72, 16, 23)];
+  SPR.flowers = [t(212, 164, 9, 9), t(227, 164, 9, 7), t(245, 166, 5, 4), t(257, 163, 13, 10)];
+  SPR.decals = [t(257, 6, 15, 8), t(242, 8, 11, 6), t(228, 38, 8, 5), t(210, 36, 12, 10)];
+  SPR.crate = t(256, 107, 16, 21); SPR.barrel = t(256, 139, 16, 21); SPR.log = t(224, 112, 16, 16);
+  SPR.fence = t(160, 113, 21, 31); SPR.post = t(198, 113, 5, 15); SPR.lantern = t(229, 135, 6, 9);
+  SPR.arch = t(96, 16, 16, 32);
+  const rk = (i, v) => IMG[`rock${i}_${v}`] ? crop(IMG[`rock${i}_${v}`], 0, 0, IMG[`rock${i}_${v}`].width, IMG[`rock${i}_${v}`].height) : newCanvas(32, 32)[0];
+  SPR.boulders = [rk(5, 3), rk(1, 3), rk(5, 4), rk(3, 3), rk(1, 4), rk(3, 4), rk(6, 3)];
+  SPR.boulderBig = [rk(5, 2), rk(1, 2), rk(3, 2)];
+  SPR.node = {
+    stone: [rk(4, 3), rk(4, 5)],
+    iron:  [rk(2, 3), rk(2, 5)],
+    coal:  [rk(8, 3), rk(8, 5)],
+    herb:  [SPR.flowers[3], SPR.flowers[2]],
+  };
+  SPR.waterRocks = [IMG.rockWater, IMG.rockWaterS].filter(Boolean);
+
+  // UI.png: white glyphs on a 16px grid, and a rounded 9-slice frame
+  const U = (i, j) => crop(IMG.ui, 16 + i * 16, 16 + j * 16, 16, 16);
+  SPR.uiFrame = crop(IMG.ui, 208, 48, 48, 48);
+  const gHeart = trim(U(5, 4));
+  SPR.heart = [glyph(gHeart, '#3a2f45'), null, glyph(gHeart, '#e0503c')];
+  { const h = SPR.heart[2], [c, g] = newCanvas(h.width, h.height); g.drawImage(SPR.heart[0], 0, 0); g.drawImage(h, 0, 0, Math.ceil(h.width / 2), h.height, 0, 0, Math.ceil(h.width / 2), h.height); SPR.heart[1] = c; }
+
+  // Item icons, all cut from the packs
+  const meatPiece = crop(SPR.roast[0], 9, 8, 15, 10);
+  Object.assign(ICON, {
+    wood: SPR.log,
+    stone: trim(rk(4, 5)), iron: trim(rk(2, 5)), coal: trim(rk(8, 5)),
+    herb: SPR.flowers[3],
+    meat: shade(meatPiece, '#ffb0a0'),
+    roast: trim(crop(SPR.roast[0], 2, 8, 30, 12)),
+    gold: glyph(trim(U(6, 0)), '#f2d27a'),
+    torch: trim(SPR.torch[0]),
+    bandage: glyph(trim(U(0, 0)), '#e0503c', '#ece6d8'),
+    pickaxe: glyph(trim(U(2, 0)), '#b8bccb'),
+    wood_sword: trim(shade(SPR.knife[0], '#c08a52')),
+    iron_sword: trim(SPR.knife[0]),
+    knight_blade: trim(shade(SPR.knife[0], '#8fb8ff')),
+    wood_shield: glyph(trim(U(5, 0)), '#9a6a3c'),
+    iron_shield: glyph(trim(U(5, 0)), '#b8bccb'),
+    bow: trim(crop(SPR.ch.archer.R.idle[0], 6, 14, 20, 18)),
+    arrows: trim(bolt),
+    key: glyph(trim(U(4, 4)), '#f2d27a'),
+    heart: glyph(gHeart, '#ff6a8a'),
+    crown: glyph(trim(U(0, 3)), '#f2d27a'),
+  });
+  // Weapon sprites for the swing, rotated per facing (up, right, down, left)
+  SPR.wrot = {};
+  for (const id of ['wood_sword', 'iron_sword', 'knight_blade']) SPR.wrot[id] = [0, 1, 2, 3].map(q => rot90(ICON[id], q));
+
+  buildTiles(t);
 }
-function buildTiles() {
-  TL.grass = [0, 1, 2].map(v => tileCanvas(100 + v, ({ px, rect, ri }) => {
-    rect(0, 0, 16, 16, '#3f7a3a');
-    for (let i = 0; i < 14; i++) px(ri(16), ri(16), '#4a8a40');
-    for (let i = 0; i < 8; i++) px(ri(16), ri(16), '#376d34');
-    for (let i = 0; i < 3; i++) { const x = ri(15), y = ri(14); px(x, y, '#69ad52'); px(x, y + 1, '#4f9244'); }
-  }));
-  TL.flowers = [0, 1].map(v => tileCanvas(140 + v, ({ g, px, ri }) => {
-    g.drawImage(TL.grass[v], 0, 0);
-    const cols = ['#f4f1e8', '#e88aa8', '#8fb8ff', '#f2d27a'];
-    for (let i = 0; i < 3; i++) {
-      const x = 2 + ri(12), y = 2 + ri(12), col = cols[ri(4)];
-      px(x - 1, y, col); px(x + 1, y, col); px(x, y - 1, col); px(x, y + 1, col); px(x, y, '#f2d27a');
-    }
-  }));
-  TL.path = [0, 1, 2].map(v => tileCanvas(160 + v, ({ px, rect, ri }) => {
-    rect(0, 0, 16, 16, '#b39462');
-    for (let i = 0; i < 12; i++) px(ri(16), ri(16), '#a38655');
-    for (let i = 0; i < 10; i++) px(ri(16), ri(16), '#c8ad78');
-    for (let i = 0; i < 2; i++) { const x = ri(14), y = ri(15); rect(x, y, 2, 1, '#8e7550'); }
-  }));
-  TL.sand = [0, 1].map(v => tileCanvas(180 + v, ({ px, rect, ri }) => {
-    rect(0, 0, 16, 16, '#d6be86');
-    for (let i = 0; i < 10; i++) px(ri(16), ri(16), '#c6ab72');
-    for (let i = 0; i < 8; i++) px(ri(16), ri(16), '#e6d4a0');
-  }));
-  TL.water = tileCanvas(200, ({ px, rect, ri }) => {
-    rect(0, 0, 16, 16, '#2b5e9c');
-    for (let i = 0; i < 10; i++) px(ri(16), ri(16), '#2f66a8');
-    for (let i = 0; i < 4; i++) px(ri(16), ri(16), '#285692');
-  });
-  TL.planks = tileCanvas(210, ({ px, rect }) => {
-    rect(0, 0, 16, 16, '#8a5a32');
-    for (let y = 0; y < 16; y += 4) { rect(0, y, 16, 1, '#a06a3c'); rect(0, y + 3, 16, 1, '#6a4224'); }
-    px(5, 1, '#6a4224'); px(5, 2, '#6a4224'); px(12, 5, '#6a4224'); px(12, 6, '#6a4224');
-    px(3, 9, '#6a4224'); px(3, 10, '#6a4224'); px(10, 13, '#6a4224'); px(10, 14, '#6a4224');
-  });
-  TL.floor = [0, 1, 2, 3].map(v => tileCanvas(220 + v, ({ px, rect, ri }) => {
-    rect(0, 0, 16, 16, '#3b3947');
-    rect(0, 0, 16, 1, '#2c2a36'); rect(0, 8, 16, 1, '#2c2a36');
-    rect(0, 0, 1, 8, '#2c2a36'); rect(8, 0, 1, 8, '#2c2a36');
-    rect(4, 8, 1, 8, '#2c2a36'); rect(12, 8, 1, 8, '#2c2a36');
-    rect(1, 1, 7, 1, '#46445a'); rect(9, 1, 7, 1, '#46445a'); rect(5, 9, 7, 1, '#46445a'); rect(13, 9, 3, 1, '#46445a'); rect(0, 9, 4, 1, '#46445a');
-    for (let i = 0; i < 6; i++) px(ri(16), ri(16), '#363442');
-    if (v === 2) { let x = 3 + ri(8), y = 2 + ri(4); for (let i = 0; i < 6; i++) { px(x, y, '#24222c'); x += ri(2); y += 1; } }
-    if (v === 3) for (let i = 0; i < 7; i++) px(ri(16), ri(16), '#3e5040');
-  }));
-  TL.wallTop = tileCanvas(240, ({ px, rect, ri }) => {
-    rect(0, 0, 16, 16, '#1c1a24');
-    for (let i = 0; i < 6; i++) px(ri(16), ri(16), '#24222e');
-  });
-  TL.wallFront = [0, 1].map(v => tileCanvas(250 + v, ({ px, rect, ri }) => {
-    rect(0, 0, 16, 16, '#4a4658');
-    rect(0, 0, 16, 2, '#5e5a70');
-    for (const y of [5, 10]) rect(0, y, 16, 1, '#302d3b');
-    rect(0, 15, 16, 1, '#26232f'); rect(0, 14, 16, 1, '#3a3748');
-    for (const [x, y0, y1] of [[5, 2, 5], [12, 2, 5], [2, 6, 10], [9, 6, 10], [6, 11, 14], [13, 11, 14]]) rect(x, y0, 1, y1 - y0, '#302d3b');
-    for (let i = 0; i < 5; i++) px(ri(16), 2 + ri(12), '#55516a');
-    if (v === 1) for (let i = 0; i < 5; i++) px(ri(16), 6 + ri(8), '#3e5040');
-  }));
-  TL.rockTop = tileCanvas(260, ({ px, rect, ri }) => {
-    rect(0, 0, 16, 16, '#7b7262');
-    for (let i = 0; i < 12; i++) px(ri(16), ri(16), '#8b8272');
-    for (let i = 0; i < 10; i++) px(ri(16), ri(16), '#6a6254');
-  });
-  TL.rockFront = tileCanvas(270, ({ px, rect, ri }) => {
-    rect(0, 0, 16, 16, '#8a7f6c');
-    rect(0, 0, 16, 2, '#a09482');
-    for (const y of [5, 9, 13]) rect(0, y, 16, 1, '#6e6556');
-    rect(0, 15, 16, 1, '#4e473d');
-    for (let i = 0; i < 8; i++) px(ri(16), 2 + ri(12), '#7a705f');
-  });
-  TL.door = tileCanvas(280, ({ px, rect }) => {
-    rect(0, 0, 16, 16, '#4a4658');
-    rect(2, 0, 12, 16, '#5a3a22');
-    for (const x of [5, 8, 11]) rect(x, 0, 1, 16, '#3d2716');
-    rect(2, 3, 12, 2, '#2a2a30'); rect(2, 11, 12, 2, '#2a2a30');
-    rect(7, 6, 2, 4, '#f2d27a'); px(7, 8, '#16121f'); px(8, 8, '#16121f');
-    rect(1, 0, 1, 16, '#16121f'); rect(14, 0, 1, 16, '#16121f');
-  });
-  TL.stairsDown = tileCanvas(290, ({ g, rect }) => {
-    g.drawImage(TL.rockFront, 0, 0);
-    rect(2, 3, 12, 13, '#0d0b12');
-    rect(1, 2, 14, 1, '#16121f'); rect(1, 3, 1, 13, '#16121f'); rect(14, 3, 1, 13, '#16121f');
-    for (const [y, c] of [[13, '#4a4658'], [10, '#36323f'], [7, '#24212b']]) rect(3, y, 10, 2, c);
-  });
-  TL.stairsUp = tileCanvas(300, ({ rect }) => {
-    rect(0, 0, 16, 16, '#3b3947');
-    for (let i = 0; i < 4; i++) { rect(1, 1 + i * 4, 14, 3, ['#7a7890', '#66647a', '#545266', '#46445a'][i]); rect(1, 4 + i * 4, 14, 1, '#2c2a36'); }
-  });
+
+/* ── 16×16 tiles cut from Tileset/Tiled_Map.png ── */
+function buildTiles(t) {
+  TL.dirt = [0, 1, 2, 3].map(i => t(239 + (i & 1) * 16, 191 + (i >> 1) * 16, 16, 16));
+  TL.slab = []; for (let j = 0; j < 3; j++) for (let i = 0; i < 3; i++) TL.slab.push(t(96 + i * 16, 64 + j * 16, 16, 16));
+  TL.brickHi = [20, 32, 44, 56].map(x => t(x, 112, 16, 16));
+  TL.brickLo = [20, 32, 44, 56].map(x => t(x, 128, 16, 16));
+  TL.wallTop = [24, 32, 40, 56].map(x => shade(t(x, 80, 16, 16), '#5a5670'));
+  TL.stairsUp = t(176, 192, 16, 16);
+  TL.deck = t(104, 136, 16, 16);
+  const ladder = t(128, 120, 16, 16);
+  TL.bridgeV = ladder; TL.bridgeH = rot90(ladder, 1);
+  TL.deckH = rot90(TL.deck, 1);
+}
+// Grass over dirt: each 8×8 quarter of a tile picks an edge / corner / inner-corner piece
+// from the grass patch (x160 y224, 4×4 tiles) and the grass-with-hole block (x240 y240, 2×2 tiles).
+function drawGrassTile(g, x, y, isG) {
+  const TS = IMG.tiles; if (!TS) return;
+  for (let qy = 0; qy < 2; qy++) for (let qx = 0; qx < 2; qx++) {
+    const sx = qx ? 1 : -1, sy = qy ? 1 : -1;
+    const V = isG(0, sy), H = isG(sx, 0), D = isG(sx, sy);
+    let tx, ty;
+    if (V && H && !D) { tx = 240 + (qx ? 0 : 16); ty = 240 + (qy ? 0 : 16); }
+    else { tx = 160 + 16 * (H ? (qx ? 2 : 1) : (qx ? 3 : 0)); ty = 224 + 16 * (V ? (qy ? 2 : 1) : (qy ? 3 : 0)); }
+    g.drawImage(TS, tx + qx * 8, ty + qy * 8, 8, 8, x + qx * 8, y + qy * 8, 8, 8);
+  }
 }
 
 /* ════════════════════════════════════════════════════════════════════
@@ -828,6 +543,7 @@ function genOverworld() {
   }
   for (let r = 5; r <= 10; r++) for (let c = 77; c <= 83; c++) setT(m, c, r, T.ROCK);
   setT(m, DUN_ENTRY.c, DUN_ENTRY.r, T.STAIRS_DOWN);
+  m.objects.push({ kind: 'arch', c: DUN_ENTRY.c, r: DUN_ENTRY.r });
   // Sand along water, flowers on grass
   for (let r = 1; r < H - 1; r++) for (let c = 1; c < W - 1; c++) {
     if (getT(m, c, r) !== T.GRASS) continue;
@@ -850,13 +566,16 @@ function genOverworld() {
 
   // Camp objects
   addObj(m, { kind: 'campfire', c: 16, r: 51, solid: true });
-  addObj(m, { kind: 'anvil', c: 18, r: 50, solid: true });
+  addObj(m, { kind: 'deco', img: 'crate', c: 18, r: 50, solid: true });
+  addObj(m, { kind: 'deco', img: 'barrel', c: 19, r: 51, solid: true });
+  addObj(m, { kind: 'deco', img: 'barrel', c: 13, r: 51, solid: true });
+  addObj(m, { kind: 'deco', img: 'log', c: 18, r: 53, solid: true });
   addObj(m, { kind: 'chest', id: 'c_camp', c: 14, r: 50, solid: true, opened: false,
               loot: [['bandage', 2], ['wood', 2]] });
-  addObj(m, { kind: 'sign', c: 13, r: 55, solid: true,
-              text: 'Greenhollow camp. Press E to chop trees, mine rocks and pick herbs, then press C to craft. The anvil forges iron gear. Rest at the fire to heal and save. The Hollow Crypt lies north-east, at the end of the road.' });
-  addObj(m, { kind: 'sign', c: 83, r: 13, solid: true,
-              text: 'The Hollow Crypt. The Bone King sleeps at the bottom. Bring a weapon and something to heal with.' });
+  addObj(m, { kind: 'npc', ch: 'warden', name: 'Camp Warden', c: 13, r: 55, solid: true,
+              text: 'Welcome to Greenhollow. Press E to chop trees, mine rocks and pick herbs, then press C to craft. Hunt boars and deer for meat. The fire roasts meat and forges iron gear, and resting there heals you and saves. The Hollow Crypt lies north-east, at the end of the road.' });
+  addObj(m, { kind: 'npc', ch: 'scout', name: 'Scout', c: 83, r: 13, solid: true,
+              text: 'That arch leads into the Hollow Crypt. The Hollow King and his soldiers still guard it. Bring a weapon and something to heal with.' });
 
   const groundNear = (c, r, rad) => findFree(m, c, r, rad, isGround);
   const clearAround = p => { for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
@@ -867,7 +586,7 @@ function genOverworld() {
     { id: 'c_forest',   at: [10, 16], loot: [['bow', 1], ['arrows', 12]] },
     { id: 'c_lake',     at: [32, 64], loot: [['wood_shield', 1], ['herb', 3]] },
     { id: 'c_mountain', at: [69, 31], loot: [['iron_sword', 1], ['iron', 2]] },
-    { id: 'c_east',     at: [86, 58], loot: [['potion', 2], ['gold', 5]] },
+    { id: 'c_east',     at: [86, 58], loot: [['roast', 2], ['gold', 5]] },
     { id: 'c_north',    at: [30, 8],  loot: [['pickaxe', 1], ['coal', 2], ['torch', 1]] },
   ];
   for (const s of CHEST_SPOTS) {
@@ -930,7 +649,8 @@ function genDungeon() {
   carve(39, 31, 6, 3);   // hall ↔ east
   carve(31, 23, 3, 5);   // hall ↔ gate
   carve(31, 11, 3, 3);   // gate ↔ boss
-  for (let c = 31; c <= 33; c++) setT(m, c, 11, T.DOOR);
+  for (let r = 11; r <= 13; r++) for (let c = 31; c <= 33; c++) setT(m, c, r, T.DOOR);
+  m.objects.push({ kind: 'gate', c: 30, r: 11, t: G.doorOpen ? 99 : 0 });
   setT(m, 32, 44, T.STAIRS_UP);
   for (const [c, r] of [[25, 4], [38, 4], [25, 8], [38, 8], [27, 17], [36, 17], [27, 20], [36, 20], [10, 30], [14, 30], [50, 30], [53, 33]]) setT(m, c, r, T.WALL);
 
@@ -940,10 +660,11 @@ function genDungeon() {
     const xs = R.w > 12 ? [R.x + 2, R.x + (R.w >> 1), R.x + R.w - 3] : [R.x + 1, R.x + R.w - 2];
     for (const c of xs) if (getT(m, c, R.y - 1) === T.WALL && c !== 32) m.objects.push({ kind: 'walltorch', c, r: R.y - 1 });
   }
-  addObj(m, { kind: 'chest', id: 'd_west', c: 7,  r: 27, solid: true, opened: false, loot: [['knight_blade', 1], ['potion', 1]] });
-  addObj(m, { kind: 'chest', id: 'd_east', c: 56, r: 27, solid: true, opened: false, loot: [['key', 1], ['potion', 1], ['arrows', 10]] });
+  addObj(m, { kind: 'chest', id: 'd_west', c: 7,  r: 27, solid: true, opened: false, loot: [['knight_blade', 1], ['roast', 1]] });
+  addObj(m, { kind: 'chest', id: 'd_east', c: 56, r: 27, solid: true, opened: false, loot: [['key', 1], ['roast', 1], ['arrows', 10]] });
   addObj(m, { kind: 'chest', id: 'd_gate', c: 24, r: 15, solid: true, opened: false, loot: [['bandage', 3], ['torch', 1]] });
-  addObj(m, { kind: 'sign', c: 35, r: 14, solid: true, text: "The King's door is sealed. Whoever buried him hid the key in the east wing." });
+  addObj(m, { kind: 'npc', ch: 'fallen', name: 'Fallen knight', c: 36, r: 15, solid: true, dead: true,
+              text: "A fallen knight. His journal reads: \"The King's gate is sealed. The key is kept in the east wing.\"" });
   m.explored = new Uint8Array(m.w * m.h);
   return m;
 }
@@ -959,38 +680,41 @@ function spawnOverEnemies(m) {
     }
     return null;
   };
-  for (let i = 0; i < 14; i++) { const p = pick(() => true); if (p) m.enemies.push(mkEnemy('slime', p.c * TILE + 8, p.r * TILE + 12)); }
-  for (let i = 0; i < 4; i++)  { const p = pick((c, r) => c > 56 && r < 40); if (p) m.enemies.push(mkEnemy('bat', p.c * TILE + 8, p.r * TILE + 12)); }
+  const put = (type, n, pred) => { for (let i = 0; i < n; i++) { const p = pick(pred || (() => true)); if (p) m.enemies.push(mkEnemy(type, p.c * TILE + 8, p.r * TILE + 12)); } };
+  put('boar', 8); put('fox', 6); put('hare', 6); put('deer', 4);
+  put('grouse', 4, (c, r) => c > 56 && r < 40);
 }
 function spawnDungeonEnemies(m) {
   m.enemies = [];
   const at = (type, c, r) => m.enemies.push(mkEnemy(type, c * TILE + 8, r * TILE + 12));
-  [[28, 30], [36, 30], [32, 33]].forEach(p => at('slime', ...p));
-  [[9, 28], [15, 34], [8, 34]].forEach(p => at('skeleton', ...p)); at('slime', 15, 28);
-  [[48, 29], [55, 30], [49, 35], [55, 35]].forEach(p => at('bat', ...p)); at('skeleton', 51, 31);
-  [[26, 18], [38, 19]].forEach(p => at('skeleton', ...p));
-  [[30, 21], [35, 16]].forEach(p => at('slime', ...p));
-  [[25, 21], [39, 15]].forEach(p => at('bat', ...p));
+  [[28, 30], [36, 30]].forEach(p => at('guard', ...p)); at('archer', 32, 29);
+  [[9, 28], [15, 34], [8, 34]].forEach(p => at('guard', ...p)); at('spear', 15, 28);
+  [[48, 29], [55, 35]].forEach(p => at('archer', ...p)); [[49, 35], [55, 30]].forEach(p => at('spear', ...p)); at('guard', 51, 31);
+  [[26, 18], [38, 19]].forEach(p => at('guard', ...p));
+  [[30, 21], [35, 17]].forEach(p => at('spear', ...p));
+  [[25, 21], [39, 15]].forEach(p => at('archer', ...p));
   if (!G.bossDefeated) { const b = mkEnemy('boss', 32 * TILE + 8, 5 * TILE + 8); m.enemies.push(b); }
 }
 function mkEnemy(type, x, y) {
   const d = ENEMY[type];
   return { type, x, y, hp: d.hp, maxHp: d.hp, dmg: d.dmg, r: d.r, cy: d.cy, hw: d.hw, hh: d.hh, fly: d.fly,
            vx: 0, vy: 0, kbx: 0, kby: 0, flash: 0, t: Math.floor(Math.random() * 60), hop: 0,
-           alive: true, moving: false, face: 1, state: 'idle', st: 0, active: false, summons: 0, wave: 0 };
+           alive: true, moving: false, face: 1, dir: 'down', state: 'idle', st: 0, active: false, summons: 0, wave: 0, act: 0 };
 }
 
-/* ── Map rendering (baked once, re-baked when tiles change) ── */
+/* ── Map rendering (ground baked once; trees and boulders are y-sorted props) ── */
+const GRASSY = new Uint8Array(16); [T.GRASS, T.FLOWERS, T.TREE].forEach(t => GRASSY[t] = 1);
 function bakeMap(m) {
   const [c, g] = newCanvas(m.w * TILE, m.h * TILE);
   m.canvas = c; m.ctx = g;
   for (let r = 0; r < m.h; r++) for (let col = 0; col < m.w; col++) drawTileTo(m, g, col, r);
+  buildProps(m);
   const [mc, mg] = newCanvas(m.w, m.h);
   m.mini = mc; m.miniCtx = mg;
   if (!m.dark) for (let r = 0; r < m.h; r++) for (let col = 0; col < m.w; col++) { mg.fillStyle = MINI_COL[getT(m, col, r)]; mg.fillRect(col, r, 1, 1); }
 }
 function rebakeTiles(m, cells) {
-  for (const [c, r] of cells) for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+  for (const [c, r] of cells) for (let dr = -2; dr <= 2; dr++) for (let dc = -1; dc <= 1; dc++) {
     const nc = c + dc, nr = r + dr;
     if (nc < 0 || nr < 0 || nc >= m.w || nr >= m.h) continue;
     m.ctx.clearRect(nc * TILE, nr * TILE, TILE, TILE);
@@ -998,46 +722,69 @@ function rebakeTiles(m, cells) {
     if (!m.dark || m.explored[nr * m.w + nc]) { m.miniCtx.fillStyle = MINI_COL[getT(m, nc, nr)]; m.miniCtx.fillRect(nc, nr, 1, 1); }
   }
 }
+// Trees and boulders overlap the tiles above them, so they are drawn with the actors, sorted by their base
+function buildProps(m) {
+  m.props = Array.from({ length: m.h }, () => []);
+  for (let r = 0; r < m.h; r++) for (let c = 0; c < m.w; c++) {
+    const t = getT(m, c, r), hv = hash2(c, r, 21);
+    let img = null, oy = 1;
+    if (t === T.TREE) img = SPR.trees[(hv * SPR.trees.length) | 0];
+    else if (t === T.ROCK && m.id === 'over') {
+      const big = hv < 0.12 && getT(m, c + 1, r) === T.ROCK && getT(m, c, r - 1) === T.ROCK && getT(m, c - 1, r) === T.ROCK;
+      img = big ? SPR.boulderBig[(hash2(c, r, 22) * 3) | 0] : SPR.boulders[(hash2(c, r, 23) * SPR.boulders.length) | 0];
+      oy = big ? 6 : 3;
+    }
+    if (img) m.props[r].push({ img, x: c * TILE + 8 - (img.width >> 1) + (t === T.TREE ? ((hv * 7 | 0) % 3) - 1 : 0), y: (r + 1) * TILE + oy - img.height, base: (r + 1) * TILE - 2 });
+  }
+}
 function drawTileTo(m, g, c, r) {
   const t = getT(m, c, r), x = c * TILE, y = r * TILE, hv = hash2(c, r, 5);
-  const below = getT(m, c, r + 1);
+  const below = getT(m, c, r + 1), below2 = getT(m, c, r + 2);
+  const solidWall = v => v === T.WALL || v === T.DOOR;
   switch (t) {
-    case T.GRASS:   g.drawImage(TL.grass[(hv * 3) | 0], x, y); break;
-    case T.FLOWERS: g.drawImage(TL.flowers[(hv * 2) | 0], x, y); break;
-    case T.PATH:    g.drawImage(TL.path[(hv * 3) | 0], x, y); break;
-    case T.SAND:    g.drawImage(TL.sand[(hv * 2) | 0], x, y); break;
-    case T.PLANKS:  g.drawImage(TL.planks, x, y); break;
-    case T.TREE:    g.drawImage(TL.grass[(hv * 3) | 0], x, y); g.drawImage(hv > 0.5 ? SPR.tree : SPR.treeF, x, y); break;
-    case T.ROCK:    g.drawImage(below === T.ROCK || below === T.STAIRS_DOWN ? TL.rockTop : TL.rockFront, x, y); break;
-    case T.FLOOR:   g.drawImage(TL.floor[hv < 0.55 ? 0 : hv < 0.75 ? 1 : hv < 0.88 ? 2 : 3], x, y); break;
-    case T.WALL:    g.drawImage(below === T.WALL || below === T.DOOR || r + 1 >= m.h ? TL.wallTop : TL.wallFront[hv > 0.8 ? 1 : 0], x, y); break;
-    case T.DOOR:    g.drawImage(TL.door, x, y); break;
-    case T.STAIRS_DOWN: g.drawImage(TL.stairsDown, x, y); break;
-    case T.STAIRS_UP:   g.drawImage(TL.stairsUp, x, y); break;
+    case T.GRASS: case T.FLOWERS: case T.TREE: {
+      g.drawImage(TL.dirt[(hv * 4) | 0], x, y);
+      drawGrassTile(g, x, y, (dc, dr) => { const n = getT(m, c + dc, r + dr); return GRASSY[n] || (n === T.WATER && false); });
+      const d = hash2(c, r, 6);
+      if (t === T.FLOWERS) {
+        for (let i = 0; i < 2; i++) { const f = SPR.flowers[(hash2(c, r, 30 + i) * 4) | 0]; g.drawImage(f, x + 1 + ((hash2(c, r, 32 + i) * (14 - f.width)) | 0) + i * 3, y + 2 + ((hash2(c, r, 34 + i) * (12 - f.height)) | 0)); }
+      } else if (t === T.GRASS && d < 0.035) {
+        const f = SPR.decals[(hash2(c, r, 7) * SPR.decals.length) | 0]; g.drawImage(f, x + ((16 - f.width) >> 1), y + ((16 - f.height) >> 1));
+      }
+      break;
+    }
+    case T.PATH: case T.SAND: case T.ROCK: case T.STAIRS_DOWN:
+      g.drawImage(TL.dirt[(hv * 4) | 0], x, y); break;
+    case T.PLANKS: case T.FLOOR: g.drawImage(TL.slab[(hv * 9) | 0], x, y); break;
+    case T.STAIRS_UP: g.drawImage(TL.stairsUp, x, y); break;
+    case T.DOOR: g.drawImage(TL.slab[4], x, y); break;
+    case T.WALL:
+      if (!solidWall(below) && r + 1 < m.h) g.drawImage(TL.brickLo[(hv * 4) | 0], x, y);
+      else if (below === T.WALL && !solidWall(below2) && r + 2 < m.h) g.drawImage(TL.brickHi[(hv * 4) | 0], x, y);
+      else g.drawImage(TL.wallTop[(hv * 4) | 0], x, y);
+      break;
     case T.WATER:
     case T.BRIDGE: {
-      g.drawImage(TL.water, x, y);
-      g.fillStyle = '#9fc8ea';
+      g.fillStyle = '#3c7fa6'; g.fillRect(x, y, 16, 16);
+      g.fillStyle = '#3674a0'; for (let i = 0; i < 6; i++) g.fillRect(x + ((hash2(c, r, 40 + i) * 15) | 0), y + ((hash2(c, r, 50 + i) * 16) | 0), 2, 1);
       const land = (dc, dr) => { const n = getT(m, c + dc, r + dr); return n !== T.WATER && n !== T.BRIDGE; };
+      // dark bank shadow under land, light foam along it
+      if (land(0, -1)) { g.fillStyle = '#2a5878'; g.fillRect(x, y, 16, 3); g.fillStyle = '#8fd0e0'; for (let i = 0; i < 16; i++) if (hash2(c * 16 + i, r, 3) > 0.3) g.fillRect(x + i, y + 3, 1, 1); }
+      g.fillStyle = '#8fd0e0';
       for (let i = 0; i < 16; i++) {
-        if (hash2(c * 16 + i, r, 3) < 0.25) continue;
-        if (land(0, -1)) g.fillRect(x + i, y, 1, 1);
+        if (hash2(c * 16 + i, r, 4) < 0.3) continue;
         if (land(0, 1))  g.fillRect(x + i, y + 15, 1, 1);
         if (land(-1, 0)) g.fillRect(x, y + i, 1, 1);
         if (land(1, 0))  g.fillRect(x + 15, y + i, 1, 1);
       }
+      if (t === T.WATER && SPR.waterRocks.length && hash2(c, r, 41) < 0.012 && !land(0, -1) && !land(0, 1) && !land(-1, 0) && !land(1, 0)) {
+        const im = SPR.waterRocks[(hash2(c, r, 42) * SPR.waterRocks.length) | 0];
+        g.drawImage(im, x + 8 - (im.width >> 1), y + 8 - (im.height >> 1));
+      }
       if (t === T.BRIDGE) {
         const vertical = getT(m, c - 1, r) === T.WATER && getT(m, c + 1, r) === T.WATER;
-        g.fillStyle = '#8a5a32';
-        if (vertical) {
-          g.fillRect(x + 2, y, 12, 16);
-          g.fillStyle = '#6a4224'; for (let j = 0; j < 16; j += 4) g.fillRect(x + 2, y + j + 3, 12, 1);
-          g.fillStyle = '#4a2e18'; g.fillRect(x + 1, y, 1, 16); g.fillRect(x + 14, y, 1, 16);
-        } else {
-          g.fillRect(x, y + 2, 16, 12);
-          g.fillStyle = '#6a4224'; for (let j = 0; j < 16; j += 4) g.fillRect(x + j + 3, y + 2, 1, 12);
-          g.fillStyle = '#4a2e18'; g.fillRect(x, y + 1, 16, 1); g.fillRect(x, y + 14, 16, 1);
-        }
+        if (vertical) { g.drawImage(TL.deck, x + 3, y, 10, 16, x + 3, y, 10, 16); g.drawImage(TL.bridgeV, x, y); }
+        else { g.drawImage(TL.deckH, x, y + 3, 16, 10, x, y + 3, 16, 10); g.drawImage(TL.bridgeH, x, y); }
       }
       break;
     }
@@ -1051,14 +798,14 @@ const G = {
   mode: 'title', tick: 0, map: 'over', maps: {}, cam: { x: 0, y: 0 }, shake: 0, off: { x: 0, y: 0 },
   toasts: [], floaters: [], particles: [], banner: null, area: null, fade: null, focus: null,
   showMap: true, deaths: 0, time: 0, bossDefeated: false, doorOpen: false, heartTaken: false,
-  victoryAt: 0, titleSel: 0, saveExists: false, sound: true,
+  victoryAt: 0, gateAt: -999, deadAt: 0, titleSel: 0, saveExists: false, sound: true,
 };
 const P = {
   x: 0, y: 0, dir: 'down', moving: false, animT: 0, hp: 10, maxHp: 10, inv: [],
   equip: { weapon: null, shield: null }, atkT: 0, atkCd: 0, hitSet: new Set(), bowCd: 0, bowT: 0,
-  iframes: 0, kbx: 0, kby: 0, actCd: 0,
+  iframes: 0, kbx: 0, kby: 0, actCd: 0, face: 1,
 };
-const ui = { invSel: 0, craftSel: 0, craftCat: 'all', craftScroll: 0, signText: '' };
+const ui = { invSel: 0, craftSel: 0, craftCat: 'all', craftScroll: 0, signText: '', signTitle: '' };
 const keys = {};
 const input = { attack: false, shoot: false, interact: false, heal: false };
 const curMap = () => G.maps[G.map];
@@ -1094,7 +841,7 @@ function autoEquip(id) {
   } else if (it.type === 'shield' && (!P.equip.shield || ITEMS[P.equip.shield].tier < it.tier)) {
     P.equip.shield = id; showBanner(id, it.name, `Equipped · blocks ${it.def} per strong hit`);
   } else if ((it.type === 'bow' || it.type === 'tool' || it.type === 'light' || it.type === 'key') && countItem(id) === 1) {
-    const sub = { bow: 'Press K to fire arrows', tool: 'You can now mine iron and coal', light: 'You see further in the dark', key: 'Opens the sealed door' }[it.type];
+    const sub = { bow: 'Press K to fire bolts', tool: 'You can now mine iron and coal', light: 'You see further in the dark', key: 'Opens the sealed door' }[it.type];
     showBanner(id, it.name, sub);
   }
 }
@@ -1103,7 +850,7 @@ function canCraft(r) { return r.in.every(([id, q]) => countItem(id) >= q); }
 function recipeBlocked(r) {
   const it = ITEMS[r.out[0]];
   if (it.unique && hasItem(r.out[0])) return 'You already have one.';
-  if (r.station === 'anvil' && !nearAnvil()) return 'Needs the anvil at camp.';
+  if (r.station === 'fire' && !nearFire()) return 'Needs the camp fire.';
   return '';
 }
 function doCraft(r) {
@@ -1113,9 +860,9 @@ function doCraft(r) {
   return true;
 }
 function filteredRecipes() { return ui.craftCat === 'all' ? RECIPES : RECIPES.filter(r => r.cat === ui.craftCat); }
-function nearAnvil() {
+function nearFire() {
   const m = curMap();
-  return m.objects.some(o => o.kind === 'anvil' && Math.hypot(o.c * TILE + 8 - P.x, o.r * TILE + 8 - P.y) < 44);
+  return m.objects.some(o => o.kind === 'campfire' && Math.hypot(o.c * TILE + 8 - P.x, o.r * TILE + 8 - P.y) < 52);
 }
 
 /* ════════════════════════════════════════════════════════════════════
@@ -1159,13 +906,13 @@ function save() {
     const chests = {};
     for (const id in G.maps) for (const o of G.maps[id].objects) if (o.kind === 'chest') chests[o.id] = { opened: o.opened, loot: o.loot };
     localStorage.setItem(SAVE_KEY, JSON.stringify({
-      v: 1, map: G.map, x: P.x, y: P.y, hp: P.hp, maxHp: P.maxHp, inv: P.inv, equip: P.equip, chests,
+      v: 2, map: G.map, x: P.x, y: P.y, hp: P.hp, maxHp: P.maxHp, inv: P.inv, equip: P.equip, chests,
       door: G.doorOpen, boss: G.bossDefeated, heart: G.heartTaken, deaths: G.deaths, time: G.time,
     }));
     G.saveExists = true;
   } catch (e) { /* storage unavailable */ }
 }
-function readSave() { try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); return s && s.v === 1 ? s : null; } catch (e) { return null; } }
+function readSave() { try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); return s && s.v === 2 ? s : null; } catch (e) { return null; } }
 
 function buildWorld() {
   G.maps = { over: genOverworld(), dungeon: genDungeon() };
@@ -1192,7 +939,7 @@ function startGame(continueSave) {
 }
 function enterMap(id, x, y, snap) {
   G.map = id; const m = curMap();
-  P.x = x; P.y = y; m.proj = []; m.drops = [];
+  P.x = x; P.y = y; m.proj = []; m.drops = []; m.corpses = [];
   if (id === 'over') spawnOverEnemies(m); else spawnDungeonEnemies(m);
   G.area = { text: m.name, t: 200 };
   updateCamera(true);
@@ -1290,9 +1037,9 @@ function useHeal(id) {
 function quickHeal() {
   const missing = P.maxHp - P.hp;
   if (missing <= 0) { toast('Your health is already full.'); sfx('deny'); return; }
-  const order = missing >= 5 ? ['potion', 'bandage'] : ['bandage', 'potion'];
+  const order = missing >= 5 ? ['roast', 'bandage', 'meat'] : missing >= 2 ? ['bandage', 'roast', 'meat'] : ['meat', 'bandage', 'roast'];
   const id = order.find(hasItem);
-  if (!id) { toast('No bandages or potions. Craft them from herbs.'); sfx('deny'); return; }
+  if (!id) { toast('Nothing to heal with. Craft bandages from herbs or roast some meat.'); sfx('deny'); return; }
   useHeal(id);
 }
 function craftSelected(times) {
@@ -1331,6 +1078,7 @@ function tick() {
   updateProjectiles(m);
   updateDrops(m);
   updateNodes(m);
+  updateCorpses(m);
   updateFx();
   updateFocus(m);
   updateCamera(false);
@@ -1345,6 +1093,7 @@ function updatePlayer() {
   for (const code in MOVE_KEYS) if (keys[code]) { const d = MOVE_KEYS[code]; dx += DIRV[d][0]; dy += DIRV[d][1]; }
   dx = Math.sign(dx); dy = Math.sign(dy);
   P.moving = !!(dx || dy);
+  if (dx && P.atkT <= 0) P.face = dx;
   if (P.moving && P.atkT <= 0) {
     if (dx && dy) { if (!((P.dir === 'left' && dx < 0) || (P.dir === 'right' && dx > 0) || (P.dir === 'up' && dy < 0) || (P.dir === 'down' && dy > 0))) P.dir = dx > 0 ? 'right' : 'left'; }
     else P.dir = dx ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
@@ -1386,8 +1135,8 @@ function updatePlayer() {
   // Bow
   if (input.shoot) {
     input.shoot = false;
-    if (!hasItem('bow')) { toast('You need a bow. Craft one or find it in a chest.'); sfx('deny'); }
-    else if (!hasItem('arrows')) { toast('Out of arrows. Craft more from wood and stone.'); sfx('deny'); }
+    if (!hasItem('bow')) { toast('You need a crossbow. Craft one or find it in a chest.'); sfx('deny'); }
+    else if (!hasItem('arrows')) { toast('Out of bolts. Craft more from wood and stone.'); sfx('deny'); }
     else if (P.bowCd <= 0) {
       const [vx, vy] = DIRV[P.dir];
       m.proj.push({ x: P.x + vx * 6, y: P.y - 6 + vy * 4, vx: vx * 3.2, vy: vy * 3.2, from: 'player', dmg: 3, life: 75, kind: 'arrow' });
@@ -1433,7 +1182,7 @@ function hurtPlayer(dmg, fx, fy) {
   if (P.hp <= 0) die();
 }
 function die() {
-  G.deaths++; sfx('die');
+  G.deaths++; sfx('die'); G.deadAt = G.tick;
   burst(P.x, P.y - 8, '#e0503c', 24, 1.6);
   G.mode = 'dead';
 }
@@ -1452,7 +1201,7 @@ function damageEnemy(e, dmg, kx, ky) {
   const k = e.type === 'boss' ? 0.12 : 1;
   e.kbx = kx * k; e.kby = ky * k;
   floater(e.x, e.y - e.cy - 12, String(dmg), '#ffffff');
-  burst(e.x, e.y - e.cy, e.type === 'slime' ? '#7cc463' : e.type === 'bat' ? '#9a68d8' : '#ece6d8', 6, 1.2);
+  burst(e.x, e.y - e.cy, ENEMY[e.type].look === 'an' ? '#c8384a' : '#d2d7de', 6, 1.2);
   sfx('hit');
   G.shake = Math.max(G.shake, e.type === 'boss' ? 3 : 2);
   if (e.hp <= 0) killEnemy(e);
@@ -1460,6 +1209,7 @@ function damageEnemy(e, dmg, kx, ky) {
 function killEnemy(e) {
   e.alive = false;
   const m = curMap();
+  m.corpses.push({ e, t: 0 });
   burst(e.x, e.y - e.cy, '#ece6d8', 14, 1.4);
   burst(e.x, e.y - e.cy, '#6b6578', 10, 0.8);
   for (const [id, chance, qty] of ENEMY[e.type].drops) if (Math.random() < chance) dropItem(m, id, qty, e.x, e.y);
@@ -1469,7 +1219,7 @@ function killEnemy(e) {
     dropItem(m, 'crown', 1, e.x - 10, e.y);
     dropItem(m, 'gold', 25, e.x + 10, e.y);
     if (!G.heartTaken) dropItem(m, 'heart', 1, e.x, e.y + 8);
-    m.enemies.forEach(o => { if (o.type === 'bat') { o.alive = false; burst(o.x, o.y - o.cy, '#9a68d8', 8, 1); } });
+    m.enemies.forEach(o => { if (o.summoned && o.alive) killEnemy(o); });
     G.victoryAt = G.tick + 120;
   }
 }
@@ -1478,47 +1228,92 @@ function dropItem(m, id, qty, x, y) {
   m.drops.push({ id, qty, x, y, vx: Math.cos(a) * 0.9, vy: Math.sin(a) * 0.9, z: 0, vz: 2.2, t: 0 });
 }
 
+// Move an enemy and remember which way it is facing (animals have 4-direction sheets)
+function go(m, e, mx, my) {
+  const hit = moveBox(m, e, mx, my, e.hw, e.hh, e.fly);
+  if (Math.abs(mx) > 0.01 || Math.abs(my) > 0.01) {
+    e.moving = true;
+    if (Math.abs(mx) > 0.01) e.face = mx < 0 ? -1 : 1;
+    e.dir = Math.abs(mx) > Math.abs(my) ? (mx < 0 ? 'left' : 'right') : (my < 0 ? 'up' : 'down');
+  }
+  return hit;
+}
+function chase(m, e, dx, dy, d, sp) {
+  const mx = dx / d * sp, my = dy / d * sp;
+  const [hx, hy] = go(m, e, mx, my);
+  if (hx && !hy) go(m, e, 0, Math.sign(my || 1) * sp);
+  if (hy && !hx) go(m, e, Math.sign(mx || 1) * sp, 0);
+}
+function wander(m, e, sp) {
+  if (e.t % 150 === 0) { const a = Math.random() * Math.PI * 2; e.vx = Math.cos(a) * sp; e.vy = Math.sin(a) * sp; e.st = 30 + (Math.random() * 40 | 0); }
+  if (e.st > 0) { e.st--; const [hx, hy] = go(m, e, e.vx, e.vy); if (hx) e.vx *= -1; if (hy) e.vy *= -1; }
+}
 function updateEnemies(m) {
   for (const e of m.enemies) {
     if (!e.alive) continue;
     e.t++;
     if (e.flash > 0) e.flash--;
+    if (e.act > 0) e.act--;
     if (e.kbx || e.kby) {
       moveBox(m, e, e.kbx, e.kby, e.hw, e.hh, e.fly);
       e.kbx *= 0.8; e.kby *= 0.8;
       if (Math.abs(e.kbx) < 0.05) e.kbx = 0; if (Math.abs(e.kby) < 0.05) e.kby = 0;
     }
     const dx = P.x - e.x, dy = (P.y - 5) - (e.y - e.cy), d = Math.hypot(dx, dy) || 1;
-    if (e.type === 'slime') {
-      if (e.hop > 0) { e.hop--; moveBox(m, e, e.vx, e.vy, e.hw, e.hh, false); e.vx *= 0.94; e.vy *= 0.94; }
-      else if (e.t % (d < 100 ? 48 : 100) === 0) {
-        if (d < 100) { e.vx = dx / d * 1.5; e.vy = dy / d * 1.5; }
-        else { const a = Math.random() * Math.PI * 2; e.vx = Math.cos(a) * 0.7; e.vy = Math.sin(a) * 0.7; }
-        e.hop = 22;
+    e.moving = false; e.fast = false;
+    switch (e.type) {
+      case 'boar': case 'spear': {
+        // Bursts: charges straight at you, then catches its breath
+        const range = e.type === 'boar' ? 110 : 120;
+        if (e.hop > 0) {
+          e.hop--; e.fast = true;
+          const [hx, hy] = go(m, e, e.vx, e.vy); if (hx || hy) e.hop = 0;
+          e.vx *= 0.985; e.vy *= 0.985;
+        } else if (d < range && e.t % (e.type === 'boar' ? 70 : 64) === 0) {
+          const sp = e.type === 'boar' ? 1.9 : 2.1;
+          e.vx = dx / d * sp; e.vy = dy / d * sp; e.hop = 24; e.face = dx < 0 ? -1 : 1;
+        } else if (e.type === 'spear' && d < 150) { chase(m, e, dx, dy, d, 0.32); }
+        else wander(m, e, 0.35);
+        break;
       }
-    } else if (e.type === 'bat') {
-      const chase = d < 130;
-      if (chase) { const px = -dy / d, py = dx / d, wob = Math.sin(e.t * 0.12) * 0.7; e.vx += (dx / d + px * wob) * 0.06; e.vy += (dy / d + py * wob) * 0.06; }
-      else { e.vx += (Math.random() - 0.5) * 0.08; e.vy += (Math.random() - 0.5) * 0.08; }
-      const sp = Math.hypot(e.vx, e.vy), max = chase ? 1.15 : 0.45;
-      if (sp > max) { e.vx *= max / sp; e.vy *= max / sp; }
-      const [hx, hy] = moveBox(m, e, e.vx, e.vy, e.hw, e.hh, true);
-      if (hx) e.vx *= -1; if (hy) e.vy *= -1;
-    } else if (e.type === 'skeleton') {
-      e.moving = false;
-      if (d < 140) {
-        const sp = 0.62, mx = dx / d * sp, my = dy / d * sp;
-        const [hx, hy] = moveBox(m, e, mx, my, e.hw, e.hh, false);
-        if (hx && !hy) moveBox(m, e, 0, Math.sign(my || 1) * sp, e.hw, e.hh, false);
-        if (hy && !hx) moveBox(m, e, Math.sign(mx || 1) * sp, 0, e.hw, e.hh, false);
-        e.moving = true; e.face = dx < 0 ? -1 : 1;
-      } else {
-        if (e.t % 120 === 0) { const a = Math.random() * Math.PI * 2; e.vx = Math.cos(a) * 0.3; e.vy = Math.sin(a) * 0.3; e.st = 40; }
-        if (e.st > 0) { e.st--; moveBox(m, e, e.vx, e.vy, e.hw, e.hh, false); e.moving = true; e.face = e.vx < 0 ? -1 : 1; }
+      case 'fox':
+        if (d < 120) { chase(m, e, dx, dy, d, 0.85); e.fast = true; } else wander(m, e, 0.4);
+        break;
+      case 'hare': case 'deer':
+        if (d < 72) { chase(m, e, -dx, -dy, d, e.type === 'hare' ? 1.4 : 1.15); e.fast = true; }
+        else wander(m, e, 0.3);
+        break;
+      case 'grouse': {
+        const near = d < 130;
+        if (near) { const px = -dy / d, py = dx / d, wob = Math.sin(e.t * 0.12) * 0.7; e.vx += (dx / d + px * wob) * 0.06; e.vy += (dy / d + py * wob) * 0.06; }
+        else { e.vx += (Math.random() - 0.5) * 0.08; e.vy += (Math.random() - 0.5) * 0.08; }
+        const sp = Math.hypot(e.vx, e.vy), max = near ? 1.15 : 0.45;
+        if (sp > max) { e.vx *= max / sp; e.vy *= max / sp; }
+        const [hx, hy] = go(m, e, e.vx, e.vy);
+        if (hx) e.vx *= -1; if (hy) e.vy *= -1;
+        break;
       }
-    } else if (e.type === 'boss') updateBoss(e, m, dx, dy, d);
+      case 'guard':
+        if (d < 140) { chase(m, e, dx, dy, d, 0.62); if (d < 24 && e.act <= 0) e.act = 24; }
+        else wander(m, e, 0.3);
+        break;
+      case 'archer':
+        // Keeps its distance and fires bolts
+        if (d < 170) {
+          e.face = dx < 0 ? -1 : 1;
+          if (d < 56) chase(m, e, -dx, -dy, d, 0.5);
+          else if (e.act <= 0 && e.t % 20 === 0 && Math.random() < 0.35) {
+            e.act = 50;
+            const ax = P.x - e.x, ay = (P.y - 6) - (e.y - 8), ad = Math.hypot(ax, ay) || 1;
+            m.proj.push({ x: e.x, y: e.y - 8, vx: ax / ad * 2.1, vy: ay / ad * 2.1, from: 'enemy', dmg: 1, life: 120, kind: 'bolt' });
+            sfx('shoot');
+          }
+        } else wander(m, e, 0.3);
+        break;
+      case 'boss': updateBoss(e, m, dx, dy, d); break;
+    }
 
-    if (P.iframes <= 0 && e.alive) {
+    if (P.iframes <= 0 && e.alive && !ENEMY[e.type].passive) {
       const cd = Math.hypot(P.x - e.x, (P.y - 5) - (e.y - e.cy));
       if (cd < e.r + 5) hurtPlayer(e.dmg, e.x, e.y);
     }
@@ -1537,7 +1332,7 @@ function updateEnemies(m) {
 const inRoom = (x, y, R) => x >= R.x * TILE && x < (R.x + R.w) * TILE && y >= R.y * TILE && y < (R.y + R.h) * TILE;
 function updateBoss(e, m, dx, dy, d) {
   if (!e.active) {
-    if (inRoom(P.x, P.y, ROOMS.boss)) { e.active = true; e.state = 'roar'; e.st = 70; G.shake = 12; sfx('roar'); toast('The Bone King awakens!', '#ff9a7a'); }
+    if (inRoom(P.x, P.y, ROOMS.boss)) { e.active = true; e.state = 'roar'; e.st = 70; G.shake = 12; sfx('roar'); toast('The Hollow King rises from his throne!', '#ff9a7a'); }
     return;
   }
   const phase2 = e.hp <= e.maxHp / 2;
@@ -1547,7 +1342,7 @@ function updateBoss(e, m, dx, dy, d) {
     case 'roar': if (e.st <= 0) next('chase', 120); break;
     case 'chase': {
       const sp = phase2 ? 0.72 : 0.55;
-      moveBox(m, e, dx / d * sp, dy / d * sp, e.hw, e.hh, false);
+      go(m, e, dx / d * sp, dy / d * sp);
       e.face = dx < 0 ? -1 : 1;
       if (e.st <= 0) {
         if (phase2 && e.summons < 2 && e.hp <= e.maxHp * (e.summons ? 0.25 : 0.5)) next('summon', 40);
@@ -1571,7 +1366,7 @@ function updateBoss(e, m, dx, dy, d) {
     case 'summon':
       if (e.st <= 0) {
         e.summons++;
-        for (let i = 0; i < 3; i++) { const a = i / 3 * Math.PI * 2; const b = mkEnemy('bat', e.x + Math.cos(a) * 26, e.y + Math.sin(a) * 18); b.t = 0; m.enemies.push(b); burst(b.x, b.y - 8, '#9a68d8', 10, 1); }
+        for (let i = 0; i < 2; i++) { const a = i * Math.PI; const b = mkEnemy('spear', e.x + Math.cos(a) * 30, e.y + 10); b.t = 0; b.summoned = true; m.enemies.push(b); burst(b.x, b.y - 8, '#c8384a', 12, 1); }
         sfx('roar'); next('recover', 40);
       }
       break;
@@ -1583,7 +1378,7 @@ function fireRing(m, e, n, off) {
   sfx('shoot');
   for (let i = 0; i < n; i++) {
     const a = off + i / n * Math.PI * 2;
-    m.proj.push({ x: e.x, y: e.y - 14, vx: Math.cos(a) * 1.35, vy: Math.sin(a) * 1.35, from: 'enemy', dmg: 2, life: 260, kind: 'bone' });
+    m.proj.push({ x: e.x, y: e.y - 20, vx: Math.cos(a) * 1.35, vy: Math.sin(a) * 1.35, from: 'enemy', dmg: 2, life: 260, kind: 'knife' });
   }
 }
 
@@ -1614,6 +1409,10 @@ function updateDrops(m) {
   }
   m.drops = m.drops.filter(d => !d.gone);
 }
+function updateCorpses(m) {
+  for (const c of m.corpses) c.t++;
+  m.corpses = m.corpses.filter(c => c.t < 150);
+}
 function updateNodes(m) {
   if (G.tick % 30) return;
   for (const o of m.objects) if (o.kind === 'node' && o.left <= 0 && G.tick >= o.respawn) o.left = o.max;
@@ -1642,13 +1441,13 @@ function updateFocus(m) {
   const px = P.x + vx * 9, py = P.y - 4 + vy * 9;
   let best = null, bd = 15;
   for (const o of m.objects) {
-    if (o.kind === 'walltorch') continue;
+    if (o.kind === 'walltorch' || o.kind === 'gate' || o.kind === 'deco' || o.kind === 'arch') continue;
     if (o.kind === 'chest' && o.opened) continue;
     const ox = o.c * TILE + 8, oy = o.r * TILE + 10, d = Math.hypot(ox - px, oy - py);
     if (d < bd) { bd = d; best = o; }
   }
   if (best) {
-    const label = { chest: 'Open', sign: 'Read', anvil: 'Craft', campfire: 'Rest' }[best.kind]
+    const label = { chest: 'Open', campfire: 'Rest', npc: best.dead ? 'Search' : 'Talk' }[best.kind]
       || (best.kind === 'node' ? (best.left <= 0 ? 'Regrowing' : { stone: 'Mine', iron: 'Mine iron', coal: 'Mine coal', herb: 'Pick herb' }[best.res]) : '');
     G.focus = { obj: best, label, x: best.c * TILE + 8, y: best.r * TILE };
     return;
@@ -1679,17 +1478,16 @@ function interact(m) {
   const o = f.obj;
   switch (o.kind) {
     case 'chest': openChest(o); break;
-    case 'sign': ui.signText = o.text; G.mode = 'sign'; break;
-    case 'anvil': G.mode = 'craft'; break;
+    case 'npc': ui.signText = o.text; ui.signTitle = o.name; G.mode = 'sign'; if (!o.dead) o.face = P.x < o.c * TILE + 8 ? -1 : 1; break;
     case 'campfire':
       P.hp = P.maxHp; save(); sfx('heal'); burst(o.c * TILE + 8, o.r * TILE + 4, '#ffb347', 12, 0.8, -0.03);
-      toast('You rest by the fire. Health restored and game saved.', '#7be08a');
+      toast('You rest by the fire. Health restored and game saved. Press C to cook and forge here.', '#7be08a');
       break;
     case 'node': harvest(o); break;
   }
 }
 function openChest(o) {
-  o.opened = true; sfx('open');
+  o.opened = true; o.openAt = G.tick; sfx('open');
   const cx = o.c * TILE + 8, cy = o.r * TILE + 4;
   burst(cx, cy, '#f2d27a', 14, 1.1, 0.03);
   const left = [];
@@ -1717,7 +1515,7 @@ function harvest(o) {
 function openDoor(m, silent) {
   const cells = [];
   for (let r = 0; r < m.h; r++) for (let c = 0; c < m.w; c++) if (getT(m, c, r) === T.DOOR) { setT(m, c, r, T.FLOOR); cells.push([c, r]); }
-  G.doorOpen = true;
+  G.doorOpen = true; G.gateAt = silent ? -999 : G.tick;
   if (m.canvas) rebakeTiles(m, cells);
   if (!silent) cells.forEach(([c, r]) => burst(c * TILE + 8, r * TILE + 8, '#6b6578', 8, 1));
 }
@@ -1786,10 +1584,16 @@ function renderWorld(m, withActors) {
 
   const vis = (x, y, pad) => x > G.cam.x - pad && x < G.cam.x + VW + pad && y > G.cam.y - pad && y < G.cam.y + VH + pad + 16;
   const list = [];
-  for (const o of m.objects) if (vis(o.c * TILE, o.r * TILE, 32)) list.push([o.kind === 'walltorch' ? -1 : o.r * TILE + 13, () => drawObj(o)]);
+  const objKey = o => o.kind === 'walltorch' ? -1 : o.kind === 'gate' ? (o.r + 3) * TILE : o.kind === 'arch' ? o.r * TILE + 15 : o.r * TILE + 13;
+  for (const o of m.objects) if (vis(o.c * TILE, o.r * TILE, 48)) list.push([objKey(o), () => drawObj(o)]);
+  if (m.props) for (let r = r0; r < Math.min(m.h, r1 + 4); r++) for (const p of m.props[r]) {
+    if (p.x + p.img.width < G.cam.x - 2 || p.x > G.cam.x + VW + 2) continue;
+    list.push([p.base, () => ctx.drawImage(p.img, p.x, p.y)]);
+  }
   for (const d of m.drops) if (vis(d.x, d.y, 16)) list.push([d.y, () => drawDrop(d)]);
   if (withActors) {
-    for (const e of m.enemies) if (vis(e.x, e.y, 40)) list.push([e.y, () => drawEnemy(e)]);
+    if (m.corpses) for (const c of m.corpses) if (vis(c.e.x, c.e.y, 40)) list.push([c.e.y - 2, () => drawCorpse(c)]);
+    for (const e of m.enemies) if (vis(e.x, e.y, 48)) list.push([e.y, () => drawEnemy(e)]);
     list.push([P.y, drawPlayer]);
   }
   list.sort((a, b) => a[0] - b[0]);
@@ -1802,42 +1606,42 @@ function renderWorld(m, withActors) {
   if (m.dark) drawLighting(m, offX, offY);
 }
 
+const anim = (frames, t, speed) => frames[((t / speed) | 0) % frames.length];
+// Draw a sprite with its base centre at (x, y)
+function drawAt(img, x, y) {
+  ctx.drawImage(img, Math.round(x - img.width / 2), Math.round(y - img.height));
+}
 function drawObj(o) {
   const x = o.c * TILE, y = o.r * TILE;
   switch (o.kind) {
-    case 'chest':
-      ctx.drawImage(o.opened ? SPR.chestOpen : SPR.chest, x, y);
-      if (!o.opened && (G.tick + o.c * 13) % 90 < 8) { ctx.fillStyle = '#fff6c8'; ctx.fillRect(x + 11, y + 4, 1, 3); ctx.fillRect(x + 10, y + 5, 3, 1); }
+    case 'chest': {
+      const f = !o.opened ? 0 : o.openAt == null ? 3 : Math.min(3, ((G.tick - o.openAt) / 5) | 0);
+      ctx.drawImage(SPR.chest[f] || SPR.chest[0], x - 8, y - 16);
+      if (!o.opened && (G.tick + o.c * 13) % 90 < 8) { ctx.fillStyle = '#fff6c8'; ctx.fillRect(x + 11, y + 2, 1, 3); ctx.fillRect(x + 10, y + 3, 3, 1); }
       break;
-    case 'node':
-      if (o.res === 'herb') ctx.drawImage(o.left > 0 ? SPR.bush : SPR.bushStub, x, y);
-      else ctx.drawImage(o.left > 0 ? SPR.rock[o.res] : SPR.rubble, x, y);
+    }
+    case 'node': drawAt(SPR.node[o.res][o.left > 0 ? 0 : 1], x + 8, y + (o.res === 'herb' ? 14 : 18)); break;
+    case 'deco': drawAt(SPR[o.img], x + 8, y + 16); break;
+    case 'npc': {
+      if (o.dead) { ctx.drawImage(SPR.ch.fallen.R.dead[1], x - 8, y - 15); break; }
+      if (Math.hypot(P.x - x - 8, P.y - y - 8) < 60) o.face = P.x < x + 8 ? -1 : 1;
+      const S = SPR.ch[o.ch][o.face < 0 ? 'L' : 'R'];
+      ctx.drawImage(anim(S.idle, G.tick + o.c * 7, 12), x - 8, y - 15);
       break;
-    case 'anvil': ctx.drawImage(SPR.anvil, x, y); break;
-    case 'sign': ctx.drawImage(SPR.sign, x, y); break;
+    }
     case 'campfire': drawCampfire(x, y); break;
-    case 'walltorch': drawWallTorch(x, y); break;
+    case 'walltorch': ctx.drawImage(anim(SPR.torch, G.tick + o.c * 5, 7), x, y + 1); break;
+    case 'gate': {
+      const f = !G.doorOpen ? 0 : Math.min(5, ((G.tick - G.gateAt) / 6) | 0);
+      ctx.drawImage(SPR.gate[f], x, y - 16);
+      break;
+    }
+    case 'arch': ctx.drawImage(SPR.arch, x, y - 16); break;
   }
 }
 function drawCampfire(x, y) {
-  ctx.fillStyle = '#5f636e'; for (const [i, j] of [[2, 13], [4, 14], [7, 14], [10, 14], [12, 13], [3, 12], [12, 12]]) ctx.fillRect(x + i, y + j, 2, 1);
-  ctx.fillStyle = '#5a3a22'; ctx.fillRect(x + 3, y + 12, 10, 2);
-  ctx.fillStyle = '#7d5332'; ctx.fillRect(x + 4, y + 11, 8, 1);
-  const H = [[3, 6, 8, 6, 3], [4, 7, 6, 8, 4], [3, 8, 7, 5, 4]][(G.tick / 6 | 0) % 3];
-  for (let i = 0; i < 5; i++) {
-    ctx.fillStyle = '#e0503c'; ctx.fillRect(x + 5 + i, y + 11 - H[i], 1, H[i]);
-    if (H[i] > 3) { ctx.fillStyle = '#ffb347'; ctx.fillRect(x + 5 + i, y + 13 - H[i], 1, H[i] - 3); }
-  }
-  ctx.fillStyle = '#fff1a8'; ctx.fillRect(x + 7, y + 8, 1, 3);
-  if (G.tick % 9 === 0) G.particles.push({ x: x + 6 + Math.random() * 4, y: y + 4, vx: (Math.random() - 0.5) * 0.2, vy: -0.4, g: 0, t: 30, col: '#ffb347', s: 1 });
-}
-function drawWallTorch(x, y) {
-  const cx = x + 7, cy = y + 7, f = (G.tick / 5 | 0) % 3;
-  ctx.fillStyle = '#26232f'; ctx.fillRect(cx - 1, cy + 5, 3, 1);
-  ctx.fillStyle = '#5a3a22'; ctx.fillRect(cx, cy + 2, 1, 3);
-  ctx.fillStyle = '#e0503c'; ctx.fillRect(cx - 1, cy - 1, 3, 3);
-  ctx.fillStyle = '#ffb347'; ctx.fillRect(cx, cy - 2 - (f === 1 ? 1 : 0), 1, 3);
-  if (f === 2) { ctx.fillStyle = '#fff1a8'; ctx.fillRect(cx, cy, 1, 1); }
+  ctx.drawImage(anim(SPR.roast, G.tick, 7), x - 8, y - 16);
+  if (G.tick % 9 === 0) G.particles.push({ x: x + 6 + Math.random() * 4, y: y + 2, vx: (Math.random() - 0.5) * 0.2, vy: -0.4, g: 0, t: 30, col: '#ffb347', s: 1 });
 }
 function drawDrop(d) {
   const img = ICON[d.id];
@@ -1846,22 +1650,25 @@ function drawDrop(d) {
   ctx.drawImage(img, Math.round(d.x - img.width / 2), Math.round(d.y - img.height - d.z) + bob);
 }
 function drawPlayer() {
-  if (P.iframes > 0 && (G.tick >> 2) % 2 === 0) return;
-  const fr = P.moving ? ((P.animT / 9 | 0) % 2) : 0;
-  const img = SPR.hero[P.dir][fr];
-  const x = Math.round(P.x) - 8, y = Math.round(P.y) - 15;
-  ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.fillRect(x + 4, y + 15, 8, 2);
+  const S = SPR.ch.hero[P.face < 0 ? 'L' : 'R'];
+  let img;
+  if (G.mode === 'dead') img = S.dead[Math.min(S.dead.length - 1, ((G.tick - G.deadAt) / 10) | 0)];
+  else {
+    if (P.iframes > 0 && (G.tick >> 2) % 2 === 0) return;
+    if (P.atkT > 0 && (P.dir === 'left' || P.dir === 'right')) img = S.atk[Math.min(S.atk.length - 1, ((ATK_T - P.atkT) / ATK_T * S.atk.length) | 0)];
+    else if (P.bowT > 0) img = S.thrust[Math.min(S.thrust.length - 1, ((10 - P.bowT) / 10 * S.thrust.length) | 0)];
+    else img = P.moving ? anim(S.walk, P.animT, 7) : anim(S.idle, G.tick, 12);
+  }
+  const x = Math.round(P.x) - 16, y = Math.round(P.y) - 30;
+  ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(x + 11, y + 30, 10, 2);
   if (P.dir === 'up') drawWeapon();
   ctx.drawImage(img, x, y);
-  if (P.dir !== 'up') drawWeapon();
+  if (P.dir === 'down') drawWeapon();
 }
+// The hero's sheet only swings sideways, so up/down swings show the blade sprite and an arc
 function drawWeapon() {
-  const [vx, vy] = DIRV[P.dir];
-  if (P.bowT > 0) {
-    const b = SPR.wrot.bow[DIRQ[P.dir]];
-    ctx.drawImage(b, Math.round(P.x + vx * 8 - b.width / 2), Math.round(P.y - 6 + vy * 8 - b.height / 2));
-  }
   if (P.atkT <= 0) return;
+  const [vx, vy] = DIRV[P.dir];
   const p = 1 - P.atkT / ATK_T;
   const ext = p < 0.4 ? p / 0.4 : 1 - (p - 0.4) / 0.6;
   const id = P.equip.weapon;
@@ -1874,33 +1681,54 @@ function drawWeapon() {
     const R = weapon().reach * 0.85 + 4, a0 = Math.atan2(vy, vx), span = 1.15, frac = (p - 0.1) / 0.65;
     ctx.fillStyle = `rgba(255,255,255,${0.9 - frac * 0.6})`;
     pixelArc(P.x, P.y - 6, R, a0 - span, a0 - span + span * 2 * Math.min(1, frac * 1.6));
-    ctx.fillStyle = `rgba(255,255,255,${0.5 - frac * 0.4})`;
-    pixelArc(P.x, P.y - 6, R - 2, a0 - span, a0 - span + span * 2 * Math.min(1, frac * 1.6));
   }
 }
 function pixelArc(cx, cy, R, a, b) {
   const step = 0.8 / R;
   for (let t = a; t <= b; t += step) ctx.fillRect(Math.round(cx + Math.cos(t) * R), Math.round(cy + Math.sin(t) * R), 1, 1);
 }
+function enemyFrame(e) {
+  if (ENEMY[e.type].look === 'an') {
+    const A = SPR.an[e.type], row = ROW[e.dir] || 0;
+    if (e.type === 'boar' && e.hop > 0 && e.fast && Math.hypot(P.x - e.x, P.y - e.y) < 30) return anim(A.atk[row], e.t, 5);
+    const set = e.moving ? (e.fast && A.run ? A.run : A.walk) : A.idle;
+    return anim(set[row], e.t, e.fast ? 5 : 8);
+  }
+  const S = SPR.ch[e.type][e.face < 0 ? 'L' : 'R'];
+  const prog = (set, total, left) => set[Math.max(0, Math.min(set.length - 1, (((total - left) / total) * set.length) | 0))];
+  switch (e.type) {
+    case 'guard':  return e.act > 0 ? prog(S.atk, 24, e.act) : e.moving ? anim(S.walk, e.t, 8) : anim(S.idle, e.t, 12);
+    case 'archer': return e.act > 40 ? prog(S.shot, 10, e.act - 40) : e.act > 0 ? prog(S.reload, 40, e.act) : e.moving ? anim(S.walk, e.t, 8) : anim(S.idle, e.t, 12);
+    case 'spear':  return e.hop > 0 ? anim(S.dash, e.t, 5) : e.moving ? anim(S.walk, e.t, 8) : anim(S.idle, e.t, 12);
+    default: // boss
+      if (e.state === 'slamWind') return prog(S.atk, 52, Math.max(0, e.st));
+      if (e.state === 'volleyWind' || e.state === 'summon' || e.state === 'roar') return anim(S.cast, e.t, 8);
+      return e.moving ? anim(S.walk, e.t, 9) : anim(S.idle, e.t, 12);
+  }
+}
 function drawEnemy(e) {
-  let img, yo = 0;
-  if (e.type === 'slime') { img = SPR.slime; if (e.hop > 0) yo = -Math.round(Math.sin((22 - e.hop) / 22 * Math.PI) * 4); }
-  else if (e.type === 'bat') { img = SPR.bat[(e.t / 7 | 0) % 2]; yo = -6 + Math.round(Math.sin(e.t * 0.1) * 2); }
-  else if (e.type === 'skeleton') { const fr = e.moving ? ((e.t / 10 | 0) % 2) : 0; img = e.face < 0 ? SPR.skelL[fr] : SPR.skel[fr]; }
-  else { img = SPR.boss; if (e.state === 'slamWind') yo = -Math.round(Math.min(1, (52 - e.st) / 30) * 6); }
-  const w = img.width, h = img.height;
-  ctx.fillStyle = 'rgba(0,0,0,0.3)';
-  ctx.fillRect(Math.round(e.x - w / 4), Math.round(e.y), Math.round(w / 2), 2);
+  let img = enemyFrame(e);
+  const animal = ENEMY[e.type].look === 'an', k = e.type === 'boss' ? 2 : 1;
+  let yo = 0;
+  if (e.type === 'grouse') yo = -8 + Math.round(Math.sin(e.t * 0.1) * 2);
+  if (!animal) { ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(Math.round(e.x - 5 * k), Math.round(e.y), 10 * k, 2); }
   if (e.flash > 0 && e.flash % 4 < 2) img = white(img);
-  const x = Math.round(e.x - w / 2), y = Math.round(e.y - h + 1 + yo);
   if (e.type === 'boss' && e.state === 'volleyWind' && G.tick % 6 < 3) img = white(img);
-  ctx.drawImage(img, x, y);
+  const top = animal ? e.y - 28 + yo : e.y - 30 * k;
+  ctx.drawImage(img, Math.round(e.x - 16 * k), Math.round(top), 32 * k, 32 * k);
   if (e.type !== 'boss' && e.hp < e.maxHp) {
-    const bw = 12, bx = Math.round(e.x - bw / 2), by = y - 3;
+    const bw = 12, bx = Math.round(e.x - bw / 2), by = Math.round(e.y - (animal ? 24 + (e.type === 'deer' ? 6 : 0) : 20) + yo);
     ctx.fillStyle = '#16121f'; ctx.fillRect(bx - 1, by - 1, bw + 2, 3);
     ctx.fillStyle = '#4a2030'; ctx.fillRect(bx, by, bw, 1);
     ctx.fillStyle = '#e0503c'; ctx.fillRect(bx, by, Math.max(1, Math.round(bw * e.hp / e.maxHp)), 1);
   }
+}
+function drawCorpse(c) {
+  const e = c.e, animal = ENEMY[e.type].look === 'an', k = e.type === 'boss' ? 2 : 1;
+  if (c.t > 110 && (c.t >> 2) % 2) return;
+  const frames = animal ? SPR.an[e.type].dead[ROW[e.dir] || 0] : SPR.ch[e.type][e.face < 0 ? 'L' : 'R'].dead;
+  const img = frames[Math.min(frames.length - 1, (c.t / 7) | 0)];
+  ctx.drawImage(img, Math.round(e.x - 16 * k), Math.round(animal ? e.y - 28 : e.y - 30 * k), 32 * k, 32 * k);
 }
 function drawBossTelegraph(e) {
   if (e.state !== 'slamWind') return;
@@ -1911,17 +1739,10 @@ function drawBossTelegraph(e) {
   pixelArc(e.slamX, e.slamY, R, 0, Math.PI * 2);
 }
 function drawProjectile(p) {
-  const x = Math.round(p.x), y = Math.round(p.y);
-  if (p.kind === 'arrow') {
-    const hz = Math.abs(p.vx) > Math.abs(p.vy), s = hz ? Math.sign(p.vx) : Math.sign(p.vy);
-    if (hz) { ctx.fillStyle = '#7d5332'; ctx.fillRect(x - 4 * s - (s < 0 ? 0 : 0), y, 6, 1); ctx.fillStyle = '#d2d7de'; ctx.fillRect(x + (s > 0 ? 2 : -3), y - (0), 2, 1); ctx.fillStyle = '#e0503c'; ctx.fillRect(x + (s > 0 ? -5 : 4), y - 1, 1, 3); }
-    else { ctx.fillStyle = '#7d5332'; ctx.fillRect(x, y - 3, 1, 6); ctx.fillStyle = '#d2d7de'; ctx.fillRect(x, y + (s > 0 ? 3 : -4), 1, 2); ctx.fillStyle = '#e0503c'; ctx.fillRect(x - 1, y + (s > 0 ? -4 : 3), 3, 1); }
-  } else {
-    ctx.fillStyle = '#16121f'; ctx.fillRect(x - 2, y - 2, 5, 5);
-    ctx.fillStyle = '#ece6d8';
-    if ((G.tick >> 3) % 2) { ctx.fillRect(x - 1, y, 3, 1); ctx.fillRect(x, y - 1, 1, 3); }
-    else { ctx.fillRect(x - 1, y - 1, 1, 1); ctx.fillRect(x + 1, y + 1, 1, 1); ctx.fillRect(x, y, 1, 1); ctx.fillRect(x + 1, y - 1, 1, 1); ctx.fillRect(x - 1, y + 1, 1, 1); }
-  }
+  let img;
+  if (p.kind === 'knife') img = anim(SPR.knife, G.tick + (p.x | 0), 4);
+  else img = SPR.bolt[Math.abs(p.vx) > Math.abs(p.vy) ? (p.vx < 0 ? 'left' : 'right') : (p.vy < 0 ? 'up' : 'down')];
+  ctx.drawImage(img, Math.round(p.x - img.width / 2), Math.round(p.y - img.height / 2));
 }
 function drawLighting(m, offX, offY) {
   const g = lightCanvas.getContext('2d');
@@ -1938,7 +1759,7 @@ function drawLighting(m, offX, offY) {
   };
   light(P.x, P.y - 6, hasItem('torch') ? 120 : 78);
   for (const o of m.objects) if (o.kind === 'walltorch') light(o.c * TILE + 8, o.r * TILE + 12, 54 + Math.sin(G.tick * 0.2 + o.c) * 3);
-  for (const p of m.proj) if (p.kind === 'bone') light(p.x, p.y, 14);
+  for (const p of m.proj) if (p.kind === 'knife') light(p.x, p.y, 14);
   for (const e of m.enemies) if (e.type === 'boss' && e.active) light(e.x, e.y - 14, 40);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.drawImage(lightCanvas, 0, 0);
@@ -1957,9 +1778,26 @@ function text(s, x, y, col, size, weight, align, base) {
   ctx.fillText(s, x, y);
 }
 function panel(x, y, w, h) {
-  ctx.fillStyle = C.panel; ctx.fillRect(x, y, w, h);
-  ctx.fillStyle = C.border; ctx.fillRect(x, y, w, 2); ctx.fillRect(x, y + h - 2, w, 2); ctx.fillRect(x, y, 2, h); ctx.fillRect(x + w - 2, y, 2, h);
-  ctx.fillStyle = C.inner; ctx.fillRect(x + 2, y + 2, w - 4, 1);
+  ctx.fillStyle = C.panel; ctx.fillRect(x + 2, y + 2, w - 4, h - 4);
+  frame9(x, y, w, h, '#6a5f88');
+}
+// 9-slice of the rounded frame in UI/UI.png (8px corners), drawn at a whole-pixel scale
+const frameCache = new Map();
+function frame9(x, y, w, h, col) {
+  let src = frameCache.get(col);
+  if (!src) { src = tint(SPR.uiFrame, col); frameCache.set(col, src); }
+  const k = Math.max(1, Math.round(UI * 2)), c = 8, ck = c * k;
+  const X = Math.round(x * UI), Y = Math.round(y * UI), W = Math.round(w * UI), H = Math.round(h * UI), S = src.width;
+  ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(src, 0, 0, c, c, X, Y, ck, ck);
+  ctx.drawImage(src, S - c, 0, c, c, X + W - ck, Y, ck, ck);
+  ctx.drawImage(src, 0, S - c, c, c, X, Y + H - ck, ck, ck);
+  ctx.drawImage(src, S - c, S - c, c, c, X + W - ck, Y + H - ck, ck, ck);
+  ctx.drawImage(src, c, 0, S - 2 * c, c, X + ck, Y, W - 2 * ck, ck);
+  ctx.drawImage(src, c, S - c, S - 2 * c, c, X + ck, Y + H - ck, W - 2 * ck, ck);
+  ctx.drawImage(src, 0, c, c, S - 2 * c, X, Y + ck, ck, H - 2 * ck);
+  ctx.drawImage(src, S - c, c, c, S - 2 * c, X + W - ck, Y + ck, ck, H - 2 * ck);
+  ctx.restore();
 }
 function box(x, y, w, h, fill, border, bw) {
   ctx.fillStyle = fill; ctx.fillRect(x, y, w, h);
@@ -2001,7 +1839,7 @@ function drawHUD(m) {
     { key: 'J', id: P.equip.weapon, empty: 'Fists' },
     { key: '',  id: P.equip.shield },
     { key: 'K', id: hasItem('bow') ? 'bow' : null, n: hasItem('bow') ? countItem('arrows') : null },
-    { key: 'Q', id: hasItem('potion') ? 'potion' : hasItem('bandage') ? 'bandage' : null, n: countItem('potion') + countItem('bandage') },
+    { key: 'Q', id: ['roast', 'bandage', 'meat'].find(hasItem) || null, n: countItem('roast') + countItem('bandage') + countItem('meat') },
   ];
   slotRow.forEach((s, i) => {
     const x = 16 + i * 50, y = 50;
@@ -2017,7 +1855,7 @@ function drawHUD(m) {
   const boss = m.enemies.find(e => e.type === 'boss' && e.active && e.alive);
   if (boss) {
     const w = Math.min(520, uiW() - 80), x = (uiW() - w) / 2, y = uiH() - 70;
-    text('The Bone King', uiW() / 2, y - 8, C.text, 15, 700, 'center');
+    text('The Hollow King', uiW() / 2, y - 8, C.text, 15, 700, 'center');
     box(x - 2, y - 2, w + 4, 16, '#16121f');
     box(x, y, w, 12, '#3a1a24');
     box(x, y, Math.round(w * boss.hp / boss.maxHp), 12, boss.hp <= boss.maxHp / 2 ? '#ff5a4a' : '#c8384a');
@@ -2134,8 +1972,8 @@ function drawCrafting() {
   const W = Math.min(900, uiW() - 40), H = Math.min(540, uiH() - 40), X = Math.round((uiW() - W) / 2), Y = Math.round((uiH() - H) / 2);
   panel(X, Y, W, H);
   text('Crafting', X + 24, Y + 38, C.text, 22, 700);
-  const anvil = nearAnvil();
-  text(anvil ? 'At the anvil: iron recipes available' : 'Iron recipes need the anvil at camp', X + W - 24, Y + 38, anvil ? C.ok : C.faint, 13, 600, 'right');
+  const fire = nearFire();
+  text(fire ? 'At the camp fire: cooking and forging available' : 'Cooking and iron gear need the camp fire', X + W - 24, Y + 38, fire ? C.ok : C.faint, 13, 600, 'right');
   // Tabs
   let tx = X + 24;
   CATS.forEach(c => {
@@ -2173,7 +2011,7 @@ function drawCrafting() {
       text(`${have} / ${q}`, dx + dw - 16, y + 17, enough ? C.ok : C.bad, 14, 700, 'right', 'middle');
     });
     const sy = ly + 182 + r.in.length * 40 + 10;
-    if (r.station === 'anvil') text(anvil ? 'Anvil: nearby' : 'Anvil: go to camp', dx + 16, sy, anvil ? C.ok : C.bad, 13, 600);
+    if (r.station === 'fire') text(fire ? 'Camp fire: nearby' : 'Camp fire: go to camp', dx + 16, sy, fire ? C.ok : C.bad, 13, 600);
     const status = blocked || (ok ? 'Ready to craft' : 'Missing materials');
     text(status, dx + 16, ly + lh - 56, ok ? C.ok : C.bad, 14, 700);
     let fx = dx + 16;
@@ -2188,10 +2026,11 @@ function drawCrafting() {
 }
 
 function drawSign() {
-  const W = Math.min(640, uiW() - 40), lines = wrap(ui.signText, W - 48, 16), H = 64 + lines.length * 24;
+  const W = Math.min(640, uiW() - 40), lines = wrap(ui.signText, W - 48, 16), H = 92 + lines.length * 24;
   const X = Math.round((uiW() - W) / 2), Y = Math.round(uiH() - H - 70);
   panel(X, Y, W, H);
-  lines.forEach((l, i) => text(l, X + 24, Y + 36 + i * 24, C.text, 16, 500));
+  text(ui.signTitle || '', X + 24, Y + 36, C.gold, 16, 700);
+  lines.forEach((l, i) => text(l, X + 24, Y + 64 + i * 24, C.text, 16, 500));
   const w = 64; keycap('E', X + W - w, Y + H - 30, 20); text('Close', X + W - w + 26, Y + H - 20, C.muted, 13, 500, 'left', 'middle');
 }
 function centerCard(title, sub, lines, foot) {
@@ -2218,7 +2057,7 @@ function drawDead() {
 }
 function drawVictory() {
   const mins = Math.floor(G.time / 3600), secs = Math.floor(G.time / 60) % 60;
-  centerCard('The Bone King has fallen', 'The Hollow Crypt is quiet again.', [
+  centerCard('The Hollow King has fallen', 'The Hollow Crypt is quiet again.', [
     ['Time played', `${mins}:${String(secs).padStart(2, '0')}`], ['Deaths', String(G.deaths)], ['Weapon', P.equip.weapon ? ITEMS[P.equip.weapon].name : 'Fists'],
   ], 'Enter to keep exploring');
 }
@@ -2227,7 +2066,7 @@ function drawTitle() {
   const cx = uiW() / 2, cy = uiH() / 2;
   text('HOLLOW CRYPT', cx + 3, cy - 86, '#16121f', 64, 900, 'center');
   text('HOLLOW CRYPT', cx, cy - 90, C.text, 64, 900, 'center');
-  text('Explore, gather, forge your own weapons, and defeat the Bone King.', cx, cy - 46, C.muted, 16, 500, 'center');
+  text('Explore, gather, forge your own weapons, and defeat the Hollow King.', cx, cy - 46, C.muted, 16, 500, 'center');
   const opts = G.saveExists ? ['Continue', 'New game'] : ['New game'];
   opts.forEach((o, i) => {
     const sel = i === G.titleSel, y = cy + 6 + i * 52, w = 240;
@@ -2253,12 +2092,17 @@ function frame(ts) {
 }
 
 resize();
-buildSprites();
-buildWorld();
-G.saveExists = !!readSave();
-G.map = 'over';
-P.x = CAMP.c * TILE; P.y = CAMP.r * TILE;
-requestAnimationFrame(frame);
+ctx.fillStyle = '#0b0a10'; ctx.fillRect(0, 0, DW, DH);
+ctx.fillStyle = '#a9a1bf'; ctx.font = `600 ${Math.round(16 * UI)}px ${FONT}`; ctx.textAlign = 'center';
+ctx.fillText('Loading…', DW / 2, DH / 2);
+loadAssets().then(() => {
+  buildSprites();
+  buildWorld();
+  G.saveExists = !!readSave();
+  G.map = 'over';
+  P.x = CAMP.c * TILE; P.y = CAMP.r * TILE;
+  requestAnimationFrame(frame);
+});
 </script>
 </body>
 </html>

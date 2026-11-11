@@ -46,18 +46,19 @@
     <ul>
       <li>Graphics stay sharp at any window size and on high-DPI screens (no blurry pixels or text).</li>
       <li>Title screen shows Continue only when a save exists.</li>
-      <li>Camp chest gives 2 bandages and 2 wood; the camp sign explains the controls.</li>
+      <li>Camp chest gives 2 bandages and 2 wood; the Camp Warden (Talk) explains the controls.</li>
       <li>E chops trees (wood), mines grey rocks (stone), picks bushes (herb); iron and coal say a pickaxe is needed until you have one.</li>
-      <li>Crafting: Wooden Sword (4 wood) auto-equips; iron recipes say "Needs the anvil" away from camp and work next to it.</li>
+      <li>Crafting: Wooden Sword (4 wood) auto-equips; Roast Meat and iron recipes say "Needs the camp fire" away from camp and work next to it.</li>
       <li>J / Space swings the equipped weapon; enemies flash, get knocked back, show damage numbers and drop loot.</li>
       <li>K fires arrows when you have a bow and arrows; the arrow count drops.</li>
-      <li>Q uses a bandage or potion; hearts refill.</li>
+      <li>Q uses roast meat, a bandage or raw meat; hearts refill.</li>
       <li>Taking a hit flashes the hero, knocks them back and removes hearts; a shield shows "blocked" on strong hits.</li>
       <li>The road leads to the crypt stairs in the north-east mountains; walking onto the stairs fades into the dungeon.</li>
       <li>The crypt is dark: wall torches and your own light show the way; carrying a torch makes your light larger.</li>
       <li>The sealed door stays locked until you take the key from the east wing chest.</li>
-      <li>The Bone King wakes when you enter his room: slam (red circle telegraph), bone volleys, bat summons below half health.</li>
-      <li>Defeating him drops the Bone Crown, gold and a Heart Crystal (+1 heart) and shows the victory screen.</li>
+      <li>All world art comes from rpg/assets (fortress kit, hunt animals, rocks); boars, foxes, hares, deer and grouse animate in 4 directions.</li>
+      <li>The Hollow King wakes when you enter his room: slam (red circle telegraph), spinning knife volleys, spearman summons below half health.</li>
+      <li>Defeating him drops the Hollow Crown, gold and a Heart Crystal (+1 heart) and shows the victory screen.</li>
       <li>Dying shows "You fell"; Enter wakes you at camp with full health and your gear.</li>
       <li>Resting at the camp fire heals and saves; reloading the page and choosing Continue restores everything.</li>
       <li>Esc pauses and lists all controls; X toggles sound.</li>
@@ -82,20 +83,19 @@ function rectCircle(rx, ry, rw, rh, cx, cy, cr) { const nx = Math.max(rx, Math.m
 function shieldReduce(dmg, def) { return dmg > 1 ? Math.max(1, dmg - def) : dmg; }
 
 const ITEMS = {
-  wood:{type:'mat'}, stone:{type:'mat'}, herb:{type:'mat'}, coal:{type:'mat'}, iron:{type:'mat'}, gel:{type:'mat'}, bone:{type:'mat'}, gold:{type:'mat'},
-  iron_ingot:{type:'mat'}, rope:{type:'mat'}, torch:{type:'light',unique:true}, bandage:{type:'heal',heal:2}, potion:{type:'heal',heal:6},
+  wood:{type:'mat'}, stone:{type:'mat'}, herb:{type:'mat'}, coal:{type:'mat'}, iron:{type:'mat'}, meat:{type:'heal',heal:1}, gold:{type:'mat'},
+  torch:{type:'light',unique:true}, bandage:{type:'heal',heal:2}, roast:{type:'heal',heal:6},
   pickaxe:{type:'tool',unique:true}, wood_sword:{type:'weapon',dmg:2,tier:1,unique:true}, iron_sword:{type:'weapon',dmg:4,tier:2,unique:true},
   knight_blade:{type:'weapon',dmg:6,tier:3,unique:true}, wood_shield:{type:'shield',def:1,tier:1,unique:true}, iron_shield:{type:'shield',def:2,tier:2,unique:true},
   bow:{type:'bow',unique:true}, arrows:{type:'ammo'}, key:{type:'key'}, heart:{type:'special'}, crown:{type:'trophy'},
 };
 const RECIPES = [
-  { out:['bandage',1], in:[['herb',2]] }, { out:['potion',1], in:[['herb',2],['gel',1]] },
-  { out:['rope',1], in:[['herb',2]] }, { out:['torch',1], in:[['wood',1],['coal',1]] },
-  { out:['iron_ingot',1], in:[['iron',2],['coal',1]], station:'anvil' }, { out:['pickaxe',1], in:[['wood',2],['stone',3]] },
-  { out:['wood_sword',1], in:[['wood',4]] }, { out:['wood_shield',1], in:[['wood',5],['rope',1]] },
-  { out:['bow',1], in:[['wood',3],['rope',1]] }, { out:['arrows',5], in:[['wood',1],['stone',1]] },
-  { out:['arrows',8], in:[['bone',2],['wood',1]] }, { out:['iron_sword',1], in:[['iron_ingot',2],['wood',1]], station:'anvil' },
-  { out:['iron_shield',1], in:[['iron_ingot',3]], station:'anvil' },
+  { out:['bandage',1], in:[['herb',2]] }, { out:['roast',1], in:[['meat',1],['herb',1]], station:'fire' },
+  { out:['torch',1], in:[['wood',1],['coal',1]] }, { out:['pickaxe',1], in:[['wood',2],['stone',3]] },
+  { out:['wood_sword',1], in:[['wood',4]] }, { out:['wood_shield',1], in:[['wood',5],['herb',1]] },
+  { out:['bow',1], in:[['wood',3],['herb',2]] }, { out:['arrows',5], in:[['wood',1],['stone',1]] },
+  { out:['iron_sword',1], in:[['iron',3],['coal',1],['wood',1]], station:'fire' },
+  { out:['iron_shield',1], in:[['iron',4],['coal',1]], station:'fire' },
 ];
 const INV_SLOTS = 24;
 function makePlayer() { return { inv: [], equip: { weapon: null, shield: null } }; }
@@ -116,13 +116,13 @@ function removeItem(P, id, qty) {
   return true;
 }
 function canCraft(P, r) { return r.in.every(([id, q]) => countItem(P, id) >= q); }
-function recipeBlocked(P, r, nearAnvil) {
+function recipeBlocked(P, r, nearFire) {
   if (ITEMS[r.out[0]].unique && countItem(P, r.out[0]) > 0) return 'owned';
-  if (r.station === 'anvil' && !nearAnvil) return 'anvil';
+  if (r.station === 'fire' && !nearFire) return 'fire';
   return '';
 }
-function doCraft(P, r, nearAnvil) {
-  if (!canCraft(P, r) || recipeBlocked(P, r, nearAnvil)) return false;
+function doCraft(P, r, nearFire) {
+  if (!canCraft(P, r) || recipeBlocked(P, r, nearFire)) return false;
   r.in.forEach(([id, q]) => removeItem(P, id, q));
   addItem(P, r.out[0], r.out[1]);
   return true;
@@ -153,16 +153,16 @@ test('removeItem fails when there is not enough', () => { const P = makePlayer()
 suite('Crafting');
 test('Every recipe uses and produces known items', () => RECIPES.forEach(r => { assert(ITEMS[r.out[0]], r.out[0]); r.in.forEach(([id]) => assert(ITEMS[id], id)); }));
 test('Every weapon and shield can be crafted or is loot-only by design', () => { const craftable = new Set(RECIPES.map(r => r.out[0])); ['wood_sword', 'iron_sword', 'wood_shield', 'iron_shield', 'bow', 'pickaxe'].forEach(id => assert(craftable.has(id), id)); });
-test('Wooden sword: 4 wood → sword, wood consumed', () => { const P = makePlayer(); addItem(P, 'wood', 4); assert(doCraft(P, RECIPES[6], false)); eq(countItem(P, 'wood'), 0); eq(P.equip.weapon, 'wood_sword'); });
-test('Cannot craft without materials', () => { const P = makePlayer(); addItem(P, 'wood', 3); eq(doCraft(P, RECIPES[6], false), false); eq(countItem(P, 'wood'), 3); });
-test('Iron recipes need the anvil', () => { const P = makePlayer(); addItem(P, 'iron', 2); addItem(P, 'coal', 1); eq(doCraft(P, RECIPES[4], false), false); assert(doCraft(P, RECIPES[4], true)); eq(countItem(P, 'iron_ingot'), 1); });
-test('Unique gear cannot be crafted twice', () => { const P = makePlayer(); addItem(P, 'wood', 8); assert(doCraft(P, RECIPES[6], false)); eq(doCraft(P, RECIPES[6], false), false); eq(countItem(P, 'wood'), 4); });
-test('Full iron sword chain: ore + coal → ingots → sword', () => {
-  const P = makePlayer(); addItem(P, 'iron', 4); addItem(P, 'coal', 2); addItem(P, 'wood', 1);
-  assert(doCraft(P, RECIPES[4], true)); assert(doCraft(P, RECIPES[4], true)); assert(doCraft(P, RECIPES[11], true));
-  eq(P.equip.weapon, 'iron_sword'); eq(countItem(P, 'iron_ingot'), 0);
+test('Wooden sword: 4 wood → sword, wood consumed', () => { const P = makePlayer(); addItem(P, 'wood', 4); assert(doCraft(P, RECIPES[4], false)); eq(countItem(P, 'wood'), 0); eq(P.equip.weapon, 'wood_sword'); });
+test('Cannot craft without materials', () => { const P = makePlayer(); addItem(P, 'wood', 3); eq(doCraft(P, RECIPES[4], false), false); eq(countItem(P, 'wood'), 3); });
+test('Cooking and iron recipes need the camp fire', () => { const P = makePlayer(); addItem(P, 'meat', 1); addItem(P, 'herb', 1); eq(doCraft(P, RECIPES[1], false), false); assert(doCraft(P, RECIPES[1], true)); eq(countItem(P, 'roast'), 1); });
+test('Unique gear cannot be crafted twice', () => { const P = makePlayer(); addItem(P, 'wood', 8); assert(doCraft(P, RECIPES[4], false)); eq(doCraft(P, RECIPES[4], false), false); eq(countItem(P, 'wood'), 4); });
+test('Iron sword: ore + coal + wood at the fire → sword', () => {
+  const P = makePlayer(); addItem(P, 'iron', 3); addItem(P, 'coal', 1); addItem(P, 'wood', 1);
+  eq(doCraft(P, RECIPES[8], false), false); assert(doCraft(P, RECIPES[8], true));
+  eq(P.equip.weapon, 'iron_sword'); eq(countItem(P, 'iron'), 0);
 });
-test('Arrow recipes give stacks', () => { const P = makePlayer(); addItem(P, 'wood', 2); addItem(P, 'stone', 1); addItem(P, 'bone', 2); doCraft(P, RECIPES[9], false); doCraft(P, RECIPES[10], false); eq(countItem(P, 'arrows'), 13); });
+test('Bolt recipe gives a stack of 5', () => { const P = makePlayer(); addItem(P, 'wood', 2); addItem(P, 'stone', 2); doCraft(P, RECIPES[7], false); doCraft(P, RECIPES[7], false); eq(countItem(P, 'arrows'), 10); });
 
 // ── Render ──────────────────────────────────────────────────────────
 const box = document.getElementById('results');
