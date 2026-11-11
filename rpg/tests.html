@@ -47,10 +47,30 @@
       <li>Graphics stay sharp at any window size and on high-DPI screens (no blurry pixels or text).</li>
       <li>Title screen shows Continue only when a save exists.</li>
       <li>Camp chest gives 2 bandages and 2 wood; the Camp Warden (Talk) explains the controls.</li>
+      <li>Trees shake on each chop and fall after 3, leaving a stump that grows back into a sapling and then a tree; rocks shrink with each hit and vanish when mined out, then regrow once you step off the tile.</li>
       <li>E chops trees (wood), mines grey rocks (stone), picks bushes (herb); iron and coal say a pickaxe is needed until you have one.</li>
       <li>Crafting: Wooden Sword (4 wood) auto-equips; Roast Meat and iron recipes say "Needs the camp fire" away from camp and work next to it.</li>
-      <li>J / Space swings the equipped weapon; enemies flash, get knocked back, show damage numbers and drop loot.</li>
-      <li>K fires arrows when you have a bow and arrows; the arrow count drops.</li>
+      <li>Left click swings toward the cursor (Space / J swing where you face); holding the button keeps swinging; enemies flash, get knocked back, show damage numbers and drop loot.</li>
+      <li>Right click fires a bolt at the cursor at any angle (K fires straight ahead); holding keeps firing; the bolt count drops.</li>
+      <li>Mobs always face the way they move: no walking backwards, no turning while knocked back.</li>
+      <li>Foxes run head-first in both directions.</li>
+      <li>Shift rolls you a few tiles; hits and bolts pass through you mid-roll and a white ghost trail follows.</li>
+      <li>Landing a sword hit freezes the action for a moment; damage numbers pop, bounce and fade.</li>
+      <li>Boars paw the ground and spearmen crouch under a red "!" before charging; crossbowmen show a dotted red aim line that locks just before they fire.</li>
+      <li>Day turns to dusk and night (clock under the minimap); at night it is dark except around you and the camp fire, a fox pack shows up, and resting at the fire sleeps until morning.</li>
+      <li>The Camp Warden and the Scout give quests (shown under the minimap) and pay out when you return.</li>
+      <li>The merchant next to the camp buys and sells; gold updates; Shift + Enter trades 5 at once.</li>
+      <li>1 / 2 / 3 use a bandage / roast meat / raw meat.</li>
+      <li>Arrow slits in the crypt walls glow and fire down when you walk below them. The chest in the east wing is a mimic.</li>
+      <li>After the Hollow King dies, stairs under his throne lead to the Deep Vaults; the last vault holds the Champion's Shield.</li>
+      <li>Chopped trees and mined rocks are still gone after saving and reloading.</li>
+      <li>Pause → Options: volumes, interface size and key rebinding work and persist after a reload.</li>
+      <li>Everything in menus can be clicked; right click goes back; the wheel scrolls lists.</li>
+      <li>A gamepad plays the whole game (stick, X attack, RT crossbow with right-stick aim, B roll, A use, Start pause) and navigates every menu.</li>
+      <li>Music changes between day, night, crypt and the boss fight; X mutes everything.</li>
+      <li>Menus use the parchment-and-wood UI pack: green buttons and tabs, slot tiles in the bag, a ✕ close button; item icons (key, pickaxe, crossbow, herb, gold, wood, swords, shields, Heart Crystal) come from the pack.</li>
+      <li>Ripples appear on lakes and the river now and then, bolts that fall short into water splash, and a whirlpool turns in the lake by the crypt.</li>
+      <li>Keyboard only: J / Space turns toward an adjacent monster; K auto-aims at the monster marked with yellow corners; the HUD shows J / K and the hint bar lists keyboard controls. Moving the mouse switches the HUD to LMB / RMB and shows the crosshair.</li>
       <li>Q uses roast meat, a bandage or raw meat; hearts refill.</li>
       <li>Taking a hit flashes the hero, knocks them back and removes hearts; a shield shows "blocked" on strong hits.</li>
       <li>The road leads to the crypt stairs in the north-east mountains; walking onto the stairs fades into the dungeon.</li>
@@ -86,7 +106,7 @@ const ITEMS = {
   wood:{type:'mat'}, stone:{type:'mat'}, herb:{type:'mat'}, coal:{type:'mat'}, iron:{type:'mat'}, meat:{type:'heal',heal:1}, gold:{type:'mat'},
   torch:{type:'light',unique:true}, bandage:{type:'heal',heal:2}, roast:{type:'heal',heal:6},
   pickaxe:{type:'tool',unique:true}, wood_sword:{type:'weapon',dmg:2,tier:1,unique:true}, iron_sword:{type:'weapon',dmg:4,tier:2,unique:true},
-  knight_blade:{type:'weapon',dmg:6,tier:3,unique:true}, wood_shield:{type:'shield',def:1,tier:1,unique:true}, iron_shield:{type:'shield',def:2,tier:2,unique:true},
+  steel_spear:{type:'weapon',dmg:5,tier:2.5,unique:true}, knight_blade:{type:'weapon',dmg:6,tier:3,unique:true}, wood_shield:{type:'shield',def:1,tier:1,unique:true}, iron_shield:{type:'shield',def:2,tier:2,unique:true}, champion_shield:{type:'shield',def:3,tier:3,unique:true},
   bow:{type:'bow',unique:true}, arrows:{type:'ammo'}, key:{type:'key'}, heart:{type:'special'}, crown:{type:'trophy'},
 };
 const RECIPES = [
@@ -96,6 +116,7 @@ const RECIPES = [
   { out:['bow',1], in:[['wood',3],['herb',2]] }, { out:['arrows',5], in:[['wood',1],['stone',1]] },
   { out:['iron_sword',1], in:[['iron',3],['coal',1],['wood',1]], station:'fire' },
   { out:['iron_shield',1], in:[['iron',4],['coal',1]], station:'fire' },
+  { out:['steel_spear',1], in:[['iron',4],['coal',2],['wood',2]], station:'fire' },
 ];
 const INV_SLOTS = 24;
 function makePlayer() { return { inv: [], equip: { weapon: null, shield: null } }; }
@@ -162,6 +183,7 @@ test('Iron sword: ore + coal + wood at the fire → sword', () => {
   eq(doCraft(P, RECIPES[8], false), false); assert(doCraft(P, RECIPES[8], true));
   eq(P.equip.weapon, 'iron_sword'); eq(countItem(P, 'iron'), 0);
 });
+test("Steel spear outranks the iron sword and is replaced by the Knight's Blade", () => { const P = makePlayer(); addItem(P, 'iron_sword', 1); addItem(P, 'iron', 4); addItem(P, 'coal', 2); addItem(P, 'wood', 2); assert(doCraft(P, RECIPES[10], true)); eq(P.equip.weapon, 'steel_spear'); addItem(P, 'knight_blade', 1); eq(P.equip.weapon, 'knight_blade'); });
 test('Bolt recipe gives a stack of 5', () => { const P = makePlayer(); addItem(P, 'wood', 2); addItem(P, 'stone', 2); doCraft(P, RECIPES[7], false); doCraft(P, RECIPES[7], false); eq(countItem(P, 'arrows'), 10); });
 
 // ── Render ──────────────────────────────────────────────────────────
