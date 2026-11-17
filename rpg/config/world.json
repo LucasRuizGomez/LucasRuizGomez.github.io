@@ -53,7 +53,7 @@
     "gatehouse": { "sprite": "gatehouse", "w": 1, "h": 1, "solid": false, "arch": true },
     "statue":    { "sprite": "statue",    "w": 1, "h": 1, "solid": true },
     "pillar":    { "sprite": "pillar",    "w": 1, "h": 1, "solid": true },
-    "banner":    { "sprite": "banner",    "w": 1, "h": 1, "solid": true, "frames": 5 },
+    "banner":    { "sprite": "banner",    "w": 1, "h": 1, "solid": true, "frames": 5, "ox": 12 },
     "sign":      { "sprite": "sign",      "w": 1, "h": 1, "solid": true },
     "bench":     { "sprite": "bench",     "w": 3, "h": 1, "solid": true },
     "crate":     { "sprite": "crate",     "w": 1, "h": 1, "solid": true },

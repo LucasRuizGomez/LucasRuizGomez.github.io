@@ -571,7 +571,7 @@ void WorldView::drawObject(Sim& sim, Map& m, const Object& o) {
             const Sprite& img = fr.size() > 1 ? anim(fr, tick + o.c * 7, 9) : spr_.get(o.sprite);
             const PropDef* pd = db_.prop(o.id);
             if (pd && pd->flat) g_.draw(img, x + 8 - img.w / 2, y + 8 - img.h / 2);
-            else drawAt(img, x + 8, y + 16 + (o.h > 1 ? 2 : 0));
+            else drawAt(img, x + 8 + (pd ? pd->ox : 0), y + 16 + (o.h > 1 ? 2 : 0));
             break;
         }
         case ObjKind::Sign:

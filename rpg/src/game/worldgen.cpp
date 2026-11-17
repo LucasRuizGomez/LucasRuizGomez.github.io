@@ -530,6 +530,7 @@ struct OverworldGen {
         each("stones", 4, [&](int c, int r, const ZoneDef& z) {
             clearGround(c, r, 4);
             for (int k = 0; k < 8; k++) {
+                if (k == 2) continue;   // leave the south side open: a stone there would hide the chest
                 const double a = k / 8.0 * PI * 2;
                 placeProp("menhir", c + static_cast<int>(std::lround(std::cos(a) * 3.4)), r + static_cast<int>(std::lround(std::sin(a) * 2.6)));
             }

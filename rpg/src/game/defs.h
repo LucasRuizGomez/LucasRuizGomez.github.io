@@ -109,6 +109,7 @@ struct ZoneDef {
 struct PropDef {
     std::string id, sprite;
     int w = 1, h = 1, frames = 1;
+    int ox = 0;   // horizontal shift in pixels when drawn, for sprites whose foot is not in the middle (a flag pole)
     bool solid = true, flat = false, arch = false;
 };
 
