@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hollow Crypt — Lukeda</title>
+  <meta name="description" content="An open-world action RPG that runs in your browser: towns, dungeons, quests, mounts and loot. Written in C++, compiled to WebAssembly.">
+  <style>
+    html, body { margin: 0; height: 100%; background: #0b0a10; overflow: hidden; }
+    canvas {
+      display: block; width: 100vw; height: 100vh; outline: none;
+      image-rendering: pixelated; image-rendering: crisp-edges;
+    }
+    #loading {
+      position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+      font: 600 16px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: #a9a1bf; background: #0b0a10; z-index: 3;
+    }
+    #loading[hidden] { display: none; }
+    #bar { width: min(320px, 60vw); height: 6px; border-radius: 3px; background: #241f33; overflow: hidden; }
+    #fill { width: 0; height: 100%; background: #f2d27a; transition: width 120ms; }
+    #backLink {
+      position: fixed; left: 16px; bottom: 14px; z-index: 2;
+      font: 500 14px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      color: #b9b2cc; text-decoration: none; padding: 6px 10px; border-radius: 8px;
+      background: rgba(21, 18, 29, 0.85); border: 1px solid rgba(255, 255, 255, 0.12);
+      transition: color 160ms, border-color 160ms;
+    }
+    #backLink:hover { color: #fff; border-color: rgba(255, 255, 255, 0.3); }
+    #backLink[hidden] { display: none; }
+  </style>
+</head>
+<body>
+<canvas id="canvas" tabindex="-1" oncontextmenu="event.preventDefault()"></canvas>
+<div id="loading"><div id="status">Loading…</div><div id="bar"><div id="fill"></div></div></div>
+<a id="backLink" href="../index.html">← Lukeda</a>
+<script>
+  var Module = {
+    canvas: document.getElementById('canvas'),
+    // "Downloading data... (12345/67890)" while the asset pack streams in, empty once the game is running
+    setStatus: function (text) {
+      var m = text && text.match(/\((\d+(?:\.\d+)?)\/(\d+)\)/);
+      if (m) document.getElementById('fill').style.width = (100 * m[1] / m[2]) + '%';
+      document.getElementById('status').textContent = text ? 'Loading…' : '';
+      if (!text) document.getElementById('loading').hidden = true;
+    },
+    onRuntimeInitialized: function () { document.getElementById('fill').style.width = '100%'; },
+    printErr: function (text) { console.warn(text); },
+    onAbort: function () { document.getElementById('status').textContent = 'The game could not start. Try reloading the page.'; document.getElementById('loading').hidden = false; }
+  };
+  window.addEventListener('keydown', function (e) {
+    // Keep the page from scrolling or moving focus while playing
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'Tab', 'Backspace'].indexOf(e.code) >= 0) e.preventDefault();
+  });
+  window.addEventListener('load', function () { Module.canvas.focus(); });
+  Module.canvas.addEventListener('mousedown', function () { Module.canvas.focus(); });
+</script>
+{{{ SCRIPT }}}
+</body>
+</html>

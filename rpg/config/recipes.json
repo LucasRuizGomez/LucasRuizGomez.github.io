@@ -1,0 +1,26 @@
+{
+  // "station": "fire" recipes need a camp fire or a forge nearby. cat: heal | mat | gear
+  "categories": [
+    { "id": "all", "label": "All" },
+    { "id": "heal", "label": "Healing" },
+    { "id": "mat", "label": "Supplies" },
+    { "id": "gear", "label": "Gear" }
+  ],
+  "recipes": [
+    { "out": ["bandage", 1],       "in": [["herb", 2]],                              "cat": "heal" },
+    { "out": ["roast", 1],         "in": [["meat", 1], ["herb", 1]],                 "cat": "heal", "station": "fire" },
+    { "out": ["potion", 1],        "in": [["herb", 4], ["bark", 1]],                 "cat": "heal", "station": "fire" },
+    { "out": ["torch", 1],         "in": [["wood", 1], ["coal", 1]],                 "cat": "mat" },
+    { "out": ["pickaxe", 1],       "in": [["wood", 2], ["stone", 3]],                "cat": "mat" },
+    { "out": ["arrows", 5],        "in": [["wood", 1], ["stone", 1]],                "cat": "mat" },
+    { "out": ["wood_sword", 1],    "in": [["wood", 4]],                              "cat": "gear" },
+    { "out": ["wood_shield", 1],   "in": [["wood", 5], ["herb", 1]],                 "cat": "gear" },
+    { "out": ["bow", 1],           "in": [["wood", 3], ["herb", 2]],                 "cat": "gear" },
+    { "out": ["leather_armor", 1], "in": [["hide", 4]],                              "cat": "gear" },
+    { "out": ["iron_sword", 1],    "in": [["iron", 3], ["coal", 1], ["wood", 1]],    "cat": "gear", "station": "fire" },
+    { "out": ["iron_shield", 1],   "in": [["iron", 4], ["coal", 1]],                 "cat": "gear", "station": "fire" },
+    { "out": ["steel_spear", 1],   "in": [["iron", 4], ["coal", 2], ["wood", 2]],    "cat": "gear", "station": "fire" },
+    { "out": ["chain_armor", 1],   "in": [["iron", 6], ["coal", 2], ["hide", 2]],    "cat": "gear", "station": "fire" },
+    { "out": ["frost_brand", 1],   "in": [["iron", 6], ["coal", 3], ["frost_shard", 4]], "cat": "gear", "station": "fire" }
+  ]
+}

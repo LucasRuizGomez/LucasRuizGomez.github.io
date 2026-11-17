@@ -1,0 +1,32 @@
+{
+  "bundle": [
+    "assets/fonts",
+    "assets/audio/sfx",
+    "assets/generated",
+    "assets/armm1998-zelda-like",
+    "assets/craftpix-net-749505-free-medieval-fortress-top-down-pixel-minigame-kit/Tileset/Tiled_Map.png",
+    "assets/craftpix-net-749505-free-medieval-fortress-top-down-pixel-minigame-kit/Tileset/Chest.png",
+    "assets/craftpix-net-749505-free-medieval-fortress-top-down-pixel-minigame-kit/Tileset/Meat.png",
+    "assets/craftpix-net-749505-free-medieval-fortress-top-down-pixel-minigame-kit/Tileset/Torch.png",
+    "assets/craftpix-net-749505-free-medieval-fortress-top-down-pixel-minigame-kit/Tileset/Gate.png",
+    "assets/craftpix-net-749505-free-medieval-fortress-top-down-pixel-minigame-kit/UI/UI.png",
+    "assets/craftpix-net-749505-free-medieval-fortress-top-down-pixel-minigame-kit/Characters/Knife.png",
+    "assets/craftpix-net-749505-free-medieval-fortress-top-down-pixel-minigame-kit/Characters/Charge_1.png",
+    "assets/craftpix-net-749505-free-medieval-fortress-top-down-pixel-minigame-kit/Characters/Charge_2.png",
+    "assets/craftpix-net-749505-free-medieval-fortress-top-down-pixel-minigame-kit/Characters/Character_1",
+    "assets/craftpix-net-749505-free-medieval-fortress-top-down-pixel-minigame-kit/Characters/Character_2",
+    "assets/craftpix-net-749505-free-medieval-fortress-top-down-pixel-minigame-kit/Characters/Character_3",
+    "assets/craftpix-net-749505-free-medieval-fortress-top-down-pixel-minigame-kit/Characters/Character_4",
+    "assets/craftpix-net-749505-free-medieval-fortress-top-down-pixel-minigame-kit/Characters/Character_5",
+    "assets/craftpix-net-749505-free-medieval-fortress-top-down-pixel-minigame-kit/Characters/Character_6",
+    "assets/craftpix-net-749505-free-medieval-fortress-top-down-pixel-minigame-kit/Characters/Character_7",
+    "assets/craftpix-net-749505-free-medieval-fortress-top-down-pixel-minigame-kit/Characters/Character_8",
+    "assets/craftpix-net-749505-free-medieval-fortress-top-down-pixel-minigame-kit/Characters/Character_9",
+    "assets/craftpix-net-789196-free-top-down-hunt-animals-pixel-sprite-pack/PNG/With_Shadow",
+    "assets/craftpix-net-974061-free-rocks-and-stones-top-down-pixel-art/PNG/Objects_separately",
+    "assets/craftpix-net-255216-free-basic-pixel-art-ui-for-rpg/PNG/Icons.png",
+    "assets/craftpix-net-255216-free-basic-pixel-art-ui-for-rpg/PNG/Main_tiles.png",
+    "assets/craftpix-net-255216-free-basic-pixel-art-ui-for-rpg/PNG/Buttons.png",
+    "assets/craftpix-net-255216-free-basic-pixel-art-ui-for-rpg/PNG/Inventory.png"
+  ]
+}

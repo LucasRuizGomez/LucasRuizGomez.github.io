@@ -1,0 +1,180 @@
+{
+  // The overworld is generated from the seed in game.json. Positions are tile coordinates (c = column, r = row)
+  // on a 256 x 192 map with north at the top.
+
+  // A tile belongs to the zone whose nearest centre is closest (borders are bent by noise).
+  // water / trees / rocks are noise thresholds: higher water = more lakes, LOWER trees or rocks = more of them.
+  // spawns: [enemy, weight]. density = spawn points per 1000 walkable tiles.
+  "zones": [
+    { "id": "vale", "name": "Greenhollow Vale", "levels": [1, 3], "centers": [[44, 150]],
+      "water": 0.26, "trees": 0.62, "rocks": 0.9, "flowers": 0.05, "tree": "oak",
+      "ground": "#ffffff", "foliage": "#ffffff", "music": "overworld", "density": 9,
+      "spawns": [["boar", 5], ["fox", 4], ["hare", 4], ["deer", 3], ["bandit", 1]],
+      "nodes": { "stone": 5, "herb": 7 } },
+    { "id": "heartlands", "name": "The Heartlands", "levels": [2, 4], "centers": [[120, 116]],
+      "water": 0.22, "trees": 0.69, "rocks": 0.74, "flowers": 0.07, "tree": "oak",
+      "ground": "#f4f0c0", "foliage": "#f0e8a8", "music": "overworld", "density": 10,
+      "spawns": [["boar", 4], ["fox", 3], ["deer", 3], ["hare", 2], ["bandit", 4], ["bandit_archer", 2]],
+      "nodes": { "stone": 6, "herb": 6, "iron": 1 } },
+    { "id": "deepwood", "name": "Deepwood", "levels": [3, 5], "centers": [[46, 60]],
+      "water": 0.21, "trees": 0.48, "rocks": 0.84, "flowers": 0.03, "tree": "mixed",
+      "ground": "#c4d49c", "foliage": "#a8c898", "music": "forest", "density": 12,
+      "spawns": [["wolf", 5], ["stumpling", 5], ["dire_boar", 3], ["elk", 2], ["hare", 1]],
+      "nodes": { "stone": 4, "herb": 9, "iron": 1 } },
+    { "id": "coast", "name": "Saltmere Coast", "levels": [4, 6], "centers": [[164, 166]],
+      "water": 0.34, "trees": 0.72, "rocks": 0.78, "flowers": 0.04, "tree": "oak", "sandy": true,
+      "ground": "#e8e4a8", "foliage": "#d8e0a0", "music": "coast", "density": 10,
+      "spawns": [["smuggler", 4], ["smuggler_archer", 3], ["smuggler_spear", 2], ["dire_boar", 2], ["elk", 2], ["grouse", 2]],
+      "nodes": { "stone": 5, "herb": 5, "iron": 3, "coal": 2 } },
+    { "id": "marsh", "name": "Ashen Marsh", "levels": [6, 8], "centers": [[210, 106]],
+      "water": 0.4, "trees": 0.6, "rocks": 0.86, "flowers": 0.02, "tree": "dead",
+      "ground": "#9eb08a", "foliage": "#9aa878", "music": "marsh", "density": 12,
+      "spawns": [["stalker", 5], ["bog_boar", 3], ["marsh_crow", 3], ["mire_treant", 3]],
+      "nodes": { "stone": 3, "herb": 8, "iron": 3, "coal": 3 } },
+    { "id": "frost", "name": "Frostpeak", "levels": [8, 10], "centers": [[150, 28], [226, 30], [92, 22]],
+      "water": 0.2, "trees": 0.62, "rocks": 0.52, "flowers": 0.0, "tree": "pine", "snow": true,
+      "ground": "#e4ecf6", "foliage": "#c8dcec", "music": "mountains", "density": 11,
+      "spawns": [["frost_wolf", 5], ["ice_hawk", 3], ["frost_elk", 2], ["snow_hare", 2], ["miner", 1]],
+      "nodes": { "stone": 6, "herb": 2, "iron": 6, "coal": 5 } }
+  ],
+
+  // Points of interest scattered over the wilderness (how many of each the generator tries to place).
+  "pois": { "shrine": 12, "camp": 12, "ruin": 9, "graveyard": 6, "cache": 18, "stones": 7, "pond": 8 },
+
+  // Multi-tile and decorative objects. w / h is the blocked footprint in tiles (bottom row = the object's row).
+  "props": {
+    "house_a":   { "sprite": "house_a",   "w": 5, "h": 3, "solid": true },
+    "house_b":   { "sprite": "house_b",   "w": 5, "h": 3, "solid": true },
+    "hut":       { "sprite": "hut",       "w": 1, "h": 1, "solid": true },
+    "stall":     { "sprite": "stall",     "w": 3, "h": 2, "solid": true },
+    "fountain":  { "sprite": "fountain",  "w": 3, "h": 2, "solid": true, "frames": 3 },
+    "tower":     { "sprite": "tower",     "w": 3, "h": 2, "solid": true },
+    "tower_roof": { "sprite": "tower_roof", "w": 3, "h": 2, "solid": true },
+    "gatehouse": { "sprite": "gatehouse", "w": 1, "h": 1, "solid": false, "arch": true },
+    "statue":    { "sprite": "statue",    "w": 1, "h": 1, "solid": true },
+    "pillar":    { "sprite": "pillar",    "w": 1, "h": 1, "solid": true },
+    "banner":    { "sprite": "banner",    "w": 1, "h": 1, "solid": true, "frames": 5 },
+    "sign":      { "sprite": "sign",      "w": 1, "h": 1, "solid": true },
+    "bench":     { "sprite": "bench",     "w": 3, "h": 1, "solid": true },
+    "crate":     { "sprite": "crate",     "w": 1, "h": 1, "solid": true },
+    "crate2":    { "sprite": "crate2",    "w": 1, "h": 1, "solid": true },
+    "barrel":    { "sprite": "barrel",    "w": 1, "h": 1, "solid": true },
+    "barrel2":   { "sprite": "barrel2",   "w": 1, "h": 1, "solid": true },
+    "log":       { "sprite": "log",       "w": 1, "h": 1, "solid": true },
+    "sack":      { "sprite": "sack",      "w": 1, "h": 1, "solid": true },
+    "plant":     { "sprite": "plant",     "w": 1, "h": 1, "solid": true },
+    "veg1":      { "sprite": "veg1",      "w": 1, "h": 1, "solid": true },
+    "veg2":      { "sprite": "veg2",      "w": 1, "h": 1, "solid": true },
+    "veg3":      { "sprite": "veg3",      "w": 1, "h": 1, "solid": true },
+    "grave":     { "sprite": "grave",     "w": 1, "h": 1, "solid": true },
+    "bones":     { "sprite": "bones",     "w": 1, "h": 1, "solid": false, "flat": true },
+    "skull":     { "sprite": "skull",     "w": 1, "h": 1, "solid": false, "flat": true },
+    "bigstump":  { "sprite": "bigstump",  "w": 1, "h": 1, "solid": true },
+    "bush":      { "sprite": "bush",      "w": 1, "h": 1, "solid": true },
+    "lily":      { "sprite": "lily",      "w": 1, "h": 1, "solid": false, "flat": true },
+    "fence":     { "sprite": "fence",     "w": 1, "h": 1, "solid": true },
+    "menhir":    { "sprite": "menhir",    "w": 1, "h": 1, "solid": true },
+    "anvil":     { "sprite": "anvil",     "w": 1, "h": 1, "solid": true }
+  },
+
+  // role: quest | merchant | stable | smith | herbalist. "shop" names an entry in "shops" below.
+  // "sprite" is a fortress-kit character (ch1..ch9), "tint" recolours it.
+  "towns": [
+    { "id": "greenhollow", "name": "Greenhollow", "at": [44, 152], "radius": 13, "houses": 4, "stalls": 1, "zone": "vale", "music": "town_a",
+      "features": ["campfire", "waypoint", "fence", "start"],
+      "npcs": [
+        { "id": "warden", "name": "Warden Aldric", "sprite": "ch6", "role": "quest",
+          "text": "Welcome to Greenhollow. Chop trees, mine rocks and pick herbs with the Use key, then open Crafting. The fire roasts meat and forges iron, and resting there heals you. The world is wide: follow the roads, and read the signposts." },
+        { "id": "mira", "name": "Huntress Mira", "sprite": "ch7", "role": "quest",
+          "text": "The vale feeds us, if you know how to hunt it. Boars charge, so step aside. Foxes do not give up." },
+        { "id": "merchant", "name": "Tobin the Trader", "sprite": "ch2", "role": "merchant", "shop": "general", "text": "" },
+        { "id": "hobb", "name": "Stablemaster Hobb", "sprite": "ch2", "tint": "#c8a878", "role": "stable", "shop": "stable", "text": "" }
+      ] },
+    { "id": "thornwick", "name": "Thornwick", "at": [52, 62], "radius": 11, "houses": 3, "stalls": 1, "zone": "deepwood", "music": "town_b",
+      "features": ["fountain", "campfire", "waypoint", "fence"],
+      "npcs": [
+        { "id": "rowan", "name": "Elder Rowan", "sprite": "ch6", "tint": "#a8c890", "role": "quest",
+          "text": "Thornwick has stood under these boughs for three hundred years. Lately the wood itself has turned on us." },
+        { "id": "sela", "name": "Sela the Herbalist", "sprite": "ch7", "tint": "#c8e0a0", "role": "herbalist", "shop": "herbalist",
+          "text": "" },
+        { "id": "scout", "name": "Scout Edda", "sprite": "ch7", "tint": "#e0c8a0", "role": "quest",
+          "text": "I keep watch on the old road. Fewer travellers every season, and more things that bite." }
+      ] },
+    { "id": "crossroads", "name": "Wayfarers' Rest", "at": [118, 112], "radius": 9, "houses": 2, "stalls": 1, "zone": "heartlands", "music": "town_c",
+      "features": ["campfire", "waypoint"],
+      "npcs": [
+        { "id": "oswin", "name": "Pilgrim Oswin", "sprite": "ch6", "tint": "#d8d0f0", "role": "quest",
+          "text": "Every road in the realm crosses here. I walk them all, from shrine to shrine. The old stones still answer, if you touch them." },
+        { "id": "peddler", "name": "Road Peddler", "sprite": "ch2", "tint": "#e0b0a0", "role": "merchant", "shop": "general", "text": "" }
+      ] },
+    { "id": "saltmere", "name": "Saltmere", "at": [160, 168], "radius": 13, "houses": 5, "stalls": 2, "zone": "coast", "music": "town_harbor",
+      "features": ["fountain", "campfire", "forge", "waypoint", "fence"],
+      "npcs": [
+        { "id": "brine", "name": "Captain Brine", "sprite": "ch1", "tint": "#a0c0e0", "role": "quest",
+          "text": "Saltmere lives by its harbour, and the harbour is being bled dry. Smugglers, lad. A whole nest of them down the coast." },
+        { "id": "dagna", "name": "Dagna the Smith", "sprite": "ch7", "tint": "#e0a080", "role": "smith", "shop": "smith",
+          "text": "" },
+        { "id": "fishmonger", "name": "Old Fishmonger", "sprite": "ch2", "tint": "#b0d0d0", "role": "merchant", "shop": "general", "text": "" }
+      ] },
+    { "id": "fenwatch", "name": "Fenwatch", "at": [200, 108], "radius": 8, "houses": 1, "stalls": 0, "zone": "marsh", "music": "town_c",
+      "features": ["campfire", "waypoint", "fence"],
+      "npcs": [
+        { "id": "voss", "name": "Quartermaster Voss", "sprite": "ch1", "tint": "#b0c0a0", "role": "quest",
+          "text": "This is the last dry ground before the Ashen Marsh. Mind the reeds. What hunts there, hunts quietly." },
+        { "id": "sutler", "name": "Camp Sutler", "sprite": "ch2", "tint": "#a0b090", "role": "merchant", "shop": "general", "text": "" }
+      ] },
+    { "id": "highwatch", "name": "Highwatch", "at": [128, 34], "radius": 12, "houses": 4, "stalls": 1, "zone": "frost", "music": "town_b",
+      "features": ["fountain", "campfire", "forge", "waypoint", "towers"],
+      "npcs": [
+        { "id": "yrsa", "name": "Commander Yrsa", "sprite": "ch1", "tint": "#d0e0ff", "role": "quest",
+          "text": "Highwatch guards the pass. Beyond it, in the eastern peaks, the Hollow King sits on his throne of bones. No one I have sent has come back." },
+        { "id": "armorer", "name": "Bjarn the Armorer", "sprite": "ch7", "tint": "#c0d0e0", "role": "smith", "shop": "armorer", "text": "" },
+        { "id": "stablehand", "name": "Stablemaster Inga", "sprite": "ch2", "tint": "#d0e0f0", "role": "stable", "shop": "stable", "text": "" }
+      ] }
+  ],
+
+  // kind "generated": rooms chained by corridors from the seed. kind "crypt": the hand-built Hollow Crypt.
+  // "under" puts the entrance inside another dungeon (stairs behind its boss) instead of on the overworld.
+  // entrance: sprite drawn over the stairs tile (door | cave | mine).
+  "dungeons": [
+    { "id": "cellar", "name": "The Old Cellar", "kind": "generated", "at": [70, 138], "entrance": "mine", "level": 2,
+      "size": [44, 36], "rooms": 5, "seed": 101, "tint": "#c8b8a0", "music": "dungeon_cellars",
+      "enemies": ["cellar_rat", "bandit", "bandit", "bandit_archer"], "boss": "bandit_chief", "traps": 1,
+      "reward": [["leather_armor", 1], ["gold", 25], ["bandage", 3]] },
+    { "id": "burrow", "name": "Rootcellar Burrow", "kind": "generated", "at": [22, 34], "entrance": "cave", "level": 4,
+      "size": [56, 44], "rooms": 7, "seed": 202, "tint": "#a8c090", "music": "dungeon_caves",
+      "enemies": ["stumpling", "stumpling", "wolf", "dire_boar"], "boss": "elder_treant", "traps": 2,
+      "reward": [["steel_spear", 1], ["gold", 45], ["potion", 2]] },
+    { "id": "cove", "name": "Smugglers' Cove", "kind": "generated", "at": [224, 172], "entrance": "cave", "level": 5,
+      "size": [60, 44], "rooms": 8, "seed": 303, "tint": "#a0b8d0", "music": "dungeon_cellars",
+      "enemies": ["smuggler", "smuggler_archer", "smuggler_spear", "smuggler"], "boss": "smuggler_king", "traps": 3,
+      "reward": [["knight_blade", 1], ["gold", 70], ["potion", 2]] },
+    { "id": "sunken", "name": "The Drowned Vaults", "kind": "generated", "at": [236, 84], "entrance": "door", "level": 7,
+      "size": [60, 46], "rooms": 9, "seed": 404, "tint": "#88b8a0", "music": "dungeon_deep",
+      "enemies": ["drowned", "drowned_archer", "drowned", "mire_treant"], "boss": "bog_warden", "traps": 4,
+      "reward": [["chain_armor", 1], ["signet", 1], ["gold", 100]] },
+    { "id": "mine", "name": "Frostpeak Mine", "kind": "generated", "at": [84, 16], "entrance": "mine", "level": 8,
+      "size": [64, 46], "rooms": 9, "seed": 505, "tint": "#b0d0f0", "music": "dungeon_caves",
+      "enemies": ["miner", "miner_spear", "miner", "frost_wolf"], "boss": "frost_golem", "traps": 4,
+      "reward": [["plate_armor", 1], ["gold", 130], ["frost_shard", 5]] },
+    { "id": "crypt", "name": "The Hollow Crypt", "kind": "crypt", "at": [230, 20], "entrance": "door", "level": 10,
+      "size": [64, 48], "music": "dungeon_crypt", "boss": "boss" },
+    { "id": "vaults", "name": "The Deep Vaults", "kind": "generated", "under": "crypt", "level": 11,
+      "size": [60, 46], "rooms": 9, "seed": 4242, "tint": "#b8a8d8", "music": "dungeon_deep",
+      "enemies": ["guard", "spear", "archer"], "traps": 5,
+      "reward": [["champion_shield", 1], ["kings_edge", 1], ["gold", 200], ["potion", 3]] }
+  ],
+
+  // buy: [item, quantity, price]. sell: what the merchant pays per unit; gear is always bought at a fraction of its value.
+  "shops": {
+    "general":   { "title": "Trader", "buy": [["arrows", 10, 6], ["bandage", 1, 3], ["roast", 1, 6], ["torch", 1, 5], ["pickaxe", 1, 10], ["iron", 1, 5], ["coal", 1, 4]],
+                   "sell": { "meat": 1, "herb": 1, "wood": 1, "stone": 1, "iron": 2, "coal": 2, "hide": 2, "bark": 3, "frost_shard": 5 } },
+    "herbalist": { "title": "Herbalist", "buy": [["bandage", 1, 3], ["potion", 1, 14], ["herb", 1, 2], ["roast", 1, 6]],
+                   "sell": { "herb": 1, "bark": 4, "meat": 1 } },
+    "smith":     { "title": "Smith", "buy": [["iron_sword", 1, 22], ["iron_shield", 1, 30], ["steel_spear", 1, 38], ["chain_armor", 1, 50], ["band", 1, 18], ["arrows", 10, 6], ["pickaxe", 1, 10]],
+                   "sell": { "iron": 3, "coal": 2, "hide": 2, "frost_shard": 6 } },
+    "armorer":   { "title": "Armorer", "buy": [["knight_blade", 1, 60], ["frost_brand", 1, 100], ["champion_shield", 1, 110], ["plate_armor", 1, 120], ["signet", 1, 50], ["potion", 1, 14], ["arrows", 10, 6]],
+                   "sell": { "iron": 3, "coal": 2, "hide": 2, "frost_shard": 6 } },
+    "stable":    { "title": "Stable", "buy": [["mount_boar", 1, 60], ["mount_stag", 1, 180]], "sell": {} }
+  }
+}

@@ -1,0 +1,56 @@
+{
+  // Sound effects: event -> files in assets/audio/sfx (one is picked at random) and a volume 0..1.
+  // Sources and licences are listed in assets/CREDITS.md.
+  "sfx": {
+    "swing":    { "files": ["swing.wav", "swing2.wav", "swing3.wav"], "vol": 0.55 },
+    "hit":      { "files": ["blade_01.ogg", "blade_02.ogg", "blade_03.ogg"], "vol": 0.6 },
+    "hurt":     { "files": ["bite-small.wav", "bite-small2.wav"], "vol": 0.8 },
+    "pick":     { "files": ["item_misc_01.ogg", "item_misc_02.ogg", "item_misc_04.ogg"], "vol": 0.5 },
+    "coin":     { "files": ["coin.wav", "coin3.wav", "item_coins_01.ogg"], "vol": 0.55 },
+    "gem":      { "files": ["item_gem_01.ogg", "item_gem_03.ogg"], "vol": 0.7 },
+    "legendary": { "files": ["item_gem_04.ogg"], "vol": 0.9 },
+    "chop":     { "files": ["item_wood_01.ogg", "item_wood_02.ogg", "item_wood_03.ogg"], "vol": 0.8 },
+    "mine":     { "files": ["item_stone_01.ogg", "item_stone_02.ogg", "item_stone_03.ogg", "item_stone_04.ogg"], "vol": 0.8 },
+    "break":    { "files": ["item_stone_02.ogg", "wood-small.wav"], "vol": 0.7 },
+    "open":     { "files": ["lock_01.ogg", "lock_02.ogg", "lock_03.ogg"], "vol": 0.8 },
+    "craft":    { "files": ["metal-small1.wav", "metal-small2.wav", "metal-small3.wav"], "vol": 0.7 },
+    "equip":    { "files": ["sword-unsheathe.wav", "sword-unsheathe2.wav", "armor-light.wav", "chainmail1.wav"], "vol": 0.5 },
+    "boom":     { "files": ["spell_fire_02.ogg", "spell_fire_03.ogg"], "vol": 0.9 },
+    "shoot":    { "files": ["swing2.wav", "swing3.wav"], "vol": 0.5 },
+    "die":      { "files": ["creature_die_01.ogg"], "vol": 0.7 },
+    "kill":     { "files": ["creature_hurt_01.ogg", "creature_hurt_02.ogg"], "vol": 0.5 },
+    "roar":     { "files": ["giant1.wav", "giant2.wav", "giant3.wav", "creature_roar_02.ogg"], "vol": 0.9 },
+    "heal":     { "files": ["bottle.wav", "bubble.wav"], "vol": 0.7 },
+    "deny":     { "files": ["interface6.wav"], "vol": 0.4 },
+    "door":     { "files": ["door.wav", "chain_01.ogg"], "vol": 0.9 },
+    "dodge":    { "files": ["cloth-heavy.wav", "cloth.wav"], "vol": 0.6 },
+    "charge":   { "files": ["mnstr3.wav", "mnstr7.wav", "creature_monster_02.ogg"], "vol": 0.5 },
+    "alert":    { "files": ["interface3.wav"], "vol": 0.3 },
+    "splash":   { "files": ["bubble2.wav"], "vol": 0.5 },
+    "trap":     { "files": ["lock_02.ogg"], "vol": 0.6 },
+    "ui":       { "files": ["interface1.wav"], "vol": 0.35 },
+    "uiMove":   { "files": ["interface1.wav"], "vol": 0.18 },
+    "uiOpen":   { "files": ["book_01.ogg", "book_02.ogg"], "vol": 0.5 },
+    "quest":    { "files": ["book_03.ogg"], "vol": 0.7 },
+    "questDone": { "files": ["spell_02.ogg"], "vol": 0.7 },
+    "levelup":  { "files": ["magic1.wav"], "vol": 0.8 },
+    "shrine":   { "files": ["spell_01.ogg"], "vol": 0.8 },
+    "waypoint": { "files": ["spell_01.ogg"], "vol": 0.7 },
+    "mount":    { "files": ["wolfman.wav", "ogre1.wav"], "vol": 0.35 },
+    "whirl":    { "files": ["metal-ringing.wav"], "vol": 0.7 },
+    "elite":    { "files": ["shade1.wav", "shade4.wav"], "vol": 0.6 }
+  },
+  // Music: track -> file in assets/audio/music. Zones, towns and dungeons name their track in world.json;
+  // the tracks below are picked by what is happening (see src/view/music_director.cpp).
+  "music": {
+    "title": "title.mp3",
+    "overworld": "overworld.mp3", "forest": "forest.mp3", "coast": "coast.mp3", "marsh": "marsh.mp3", "mountains": "mountains.mp3",
+    "night": "night.mp3",
+    "town_a": "town_a.mp3", "town_b": "town_b.mp3", "town_c": "town_c.mp3", "town_harbor": "town_harbor.mp3",
+    "dungeon_caves": "dungeon_caves.mp3", "dungeon_crypt": "dungeon_crypt.mp3", "dungeon_cellars": "dungeon_cellars.mp3", "dungeon_deep": "dungeon_deep.mp3",
+    "combat": "combat.mp3", "combat_elite": "combat_elite.mp3", "boss": "boss.mp3",
+    "victory": "victory.mp3", "death": "death.mp3"
+  },
+  "states": { "title": "title", "night": "night", "combat": "combat", "elite": "combat_elite", "boss": "boss", "victory": "victory", "death": "death" },
+  "fadeMs": 700
+}

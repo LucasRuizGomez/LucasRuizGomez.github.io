@@ -1,0 +1,390 @@
+// Unit tests for the rules and the world generator. They run headless (Node for the web build).
+#include "doctest.h"
+
+#include "core/rng.h"
+#include "game/sim.h"
+
+#include <cmath>
+
+using namespace hc;
+
+namespace {
+
+const Database& database() {
+    static const Database db = Database::load(HC_CONFIG_DIR);
+    return db;
+}
+
+// A fresh game with the hero standing at the Greenhollow start point.
+Sim freshGame(uint32_t seed = 7) {
+    Sim sim(database(), seed);
+    sim.newGame("Tester");
+    return sim;
+}
+
+void run(Sim& sim, int ticks, SimInput in = {}) {
+    for (int i = 0; i < ticks; i++) sim.tick(in);
+}
+
+}   // namespace
+
+TEST_CASE("rng is deterministic and in range") {
+    Rng a(1337), b(1337);
+    for (int i = 0; i < 1000; i++) {
+        const double v = a.next();
+        CHECK(v == b.next());
+        CHECK(v >= 0.0);
+        CHECK(v < 1.0);
+    }
+    CHECK(hash2(3, 4, 5) == hash2(3, 4, 5));
+    CHECK(hash2(3, 4, 5) != hash2(4, 3, 5));
+    const double n = fbm(1.5, 2.5, 9);
+    CHECK(n >= 0.0);
+    CHECK(n <= 1.0);
+}
+
+TEST_CASE("config loads and cross-references resolve") {
+    const Database& db = database();
+    CHECK(db.items.size() > 30);
+    CHECK(db.enemies.size() > 25);
+    CHECK(db.zones.size() == 6);
+    CHECK(db.towns.size() == 6);
+    CHECK(db.dungeons.size() == 7);
+    CHECK(db.quests.size() >= 20);
+    CHECK(db.enemy("wolf").look == Look::Animal);   // inherited from its base
+    CHECK(db.enemy("wolf").hp == 8);
+    CHECK(db.item("iron_sword").isGear());
+    CHECK(db.item("wood").stacks());
+    CHECK(db.xpForLevel(2) > db.xpForLevel(1));
+    for (const auto& q : db.quests) CHECK(db.npc(q.giver) != nullptr);
+}
+
+TEST_CASE("collision: boxes stop at walls and slide along them") {
+    Map m = makeMap("t", 8, 8, FLOOR);
+    for (int r = 0; r < 8; r++) m.set(4, r, WALL);
+    CHECK(m.tileFree(1, 1, false));
+    CHECK_FALSE(m.tileFree(4, 1, false));
+    CHECK_FALSE(m.tileFree(-1, 0, false));
+    double x = 3 * TILE + 8, y = 3 * TILE + 8;
+    const auto [hx, hy] = m.moveBox(x, y, 6, 2, 4, 3, false);
+    CHECK(hx);
+    CHECK_FALSE(hy);
+    CHECK(x == doctest::Approx(3 * TILE + 8));
+    CHECK(y == doctest::Approx(3 * TILE + 10));
+}
+
+TEST_CASE("pathfinding goes around obstacles") {
+    Map m = makeMap("t", 12, 12, FLOOR);
+    for (int r = 0; r < 10; r++) m.set(6, r, WALL);
+    const auto path = astar(m, {2, 2}, {9, 2}, [&](int c, int r) { return walkable(m.get(c, r)) ? 1.0 : -1.0; });
+    REQUIRE_FALSE(path.empty());
+    CHECK(path.front() == TilePos{2, 2});
+    CHECK(path.back() == TilePos{9, 2});
+    for (const auto& p : path) CHECK(m.get(p.c, p.r) != WALL);
+}
+
+TEST_CASE("overworld: towns, dungeons and chests are reachable from the start") {
+    const Database& db = database();
+    const Map over = generateOverworld(db);
+    CHECK(over.w == db.tuning.worldW);
+    CHECK(over.h == db.tuning.worldH);
+    REQUIRE(over.tileFree(over.start.c, over.start.r, false));
+    const auto mask = reachMask(over, over.start.c, over.start.r);
+    auto near = [&](int c, int r) {
+        for (int dr = -1; dr <= 1; dr++)
+            for (int dc = -1; dc <= 1; dc++)
+                if (over.inside(c + dc, r + dr) && mask[over.idx(c + dc, r + dr)]) return true;
+        return false;
+    };
+    for (const auto& t : db.towns) CHECK_MESSAGE(near(t.at.c, t.at.r + 3), "town not reachable: " << t.id);
+    for (const auto& d : db.dungeons)
+        if (d.under.empty()) {
+            CHECK_MESSAGE(near(d.at.c, d.at.r + 1), "dungeon not reachable: " << d.id);
+            CHECK(over.get(d.at.c, d.at.r) == STAIRS_DOWN);
+        }
+    int chests = 0, npcs = 0, shrines = 0;
+    for (const auto& o : over.objects) {
+        if (o.kind == ObjKind::Chest) {
+            chests++;
+            CHECK_MESSAGE(near(o.c, o.r), "chest not reachable at " << o.c << "," << o.r);
+        }
+        if (o.kind == ObjKind::Npc) npcs++;
+        if (o.kind == ObjKind::Shrine) shrines++;
+    }
+    CHECK(chests > 20);
+    CHECK(shrines >= 6);
+    size_t wantNpcs = 0;
+    for (const auto& t : db.towns) wantNpcs += t.npcs.size();
+    CHECK(npcs == wantNpcs);
+    CHECK(over.spawns.size() > 150);
+    // Same seed, same world
+    const Map again = generateOverworld(db);
+    CHECK(again.t == over.t);
+    CHECK(again.objects.size() == over.objects.size());
+}
+
+TEST_CASE("dungeons: every room connects to the entrance and the reward is reachable") {
+    const Database& db = database();
+    const Map over = generateOverworld(db);
+    for (const auto& d : db.dungeons) {
+        const Map m = generateDungeon(db, d, over);
+        REQUIRE_MESSAGE(m.tileFree(m.start.c, m.start.r, false), d.id);
+        const auto mask = reachMask(m, m.start.c, m.start.r);
+        if (d.kind == "generated") {
+            for (const auto& R : m.rooms) CHECK_MESSAGE(mask[m.idx(R.center().c, R.center().r)] == 1, d.id);
+            bool reward = false;
+            for (const auto& o : m.objects)
+                if (o.kind == ObjKind::Chest && o.id == d.id + "_reward") reward = mask[m.idx(o.c, o.r + 1)] == 1;
+            CHECK_MESSAGE(reward, d.id);
+        }
+        CHECK_FALSE(m.links.empty());
+    }
+}
+
+TEST_CASE("inventory: stacking, gear instances, equipping, removal") {
+    Sim sim = freshGame();
+    CHECK(sim.countItem("wood") == 0);
+    CHECK(sim.addItem({"wood", 3}));
+    CHECK(sim.addItem({"wood", 2}));
+    CHECK(sim.countItem("wood") == 5);
+    CHECK(sim.P.inv.size() == 1);
+    CHECK_FALSE(sim.removeItem("wood", 9));
+    CHECK(sim.removeItem("wood", 5));
+    CHECK(sim.P.inv.empty());
+
+    const int fists = sim.weaponDamage();
+    CHECK(sim.addItem({"wood_sword", 1}));
+    REQUIRE(sim.equipped(EquipSlot::Weapon) != nullptr);
+    CHECK(sim.weaponDamage() == fists - 1 + 2);
+    CHECK(sim.addItem({"iron_sword", 1}));   // better tier: auto-equips
+    CHECK(sim.equipped(EquipSlot::Weapon)->id == "iron_sword");
+    CHECK(sim.P.inv.size() == 2);            // gear never stacks
+    CHECK(sim.P.inv[0].uid != sim.P.inv[1].uid);
+    sim.removeItem("iron_sword", 1);
+    CHECK(sim.equipped(EquipSlot::Weapon) == nullptr);
+
+    const int hp = sim.maxHp();
+    sim.addItem({"leather_armor", 1});
+    CHECK(sim.maxHp() == hp + 2);
+}
+
+TEST_CASE("crafting chain: wood to sword, fire recipes need a fire") {
+    Sim sim = freshGame();
+    const RecipeDef* sword = nullptr;
+    const RecipeDef* roast = nullptr;
+    for (const auto& r : sim.db.recipes) {
+        if (r.out == "wood_sword") sword = &r;
+        if (r.out == "roast") roast = &r;
+    }
+    REQUIRE(sword);
+    REQUIRE(roast);
+    CHECK_FALSE(sim.canCraft(*sword));
+    sim.addItem({"wood", 4});
+    CHECK(sim.canCraft(*sword));
+    CHECK(sim.craft(*sword, 1) == 1);
+    CHECK(sim.countItem("wood") == 0);
+    CHECK(sim.hasItem("wood_sword"));
+
+    sim.addItem({"meat", 1});
+    sim.addItem({"herb", 1});
+    // Walk the hero far from any fire: the recipe must be refused
+    sim.P.x = 5 * TILE;
+    sim.P.y = 5 * TILE;
+    CHECK(sim.recipeBlocked(*roast) != "");
+    CHECK(sim.craft(*roast, 1) == 0);
+    CHECK(sim.hasItem("meat"));
+}
+
+TEST_CASE("gear rolls respect rarity and slots") {
+    Sim sim = freshGame();
+    for (int i = 0; i < 200; i++) {
+        const Item it = sim.makeGear("iron_sword", 2);
+        CHECK(it.rarity >= 2);
+        CHECK(it.affixes.size() == static_cast<size_t>(sim.db.rarities[it.rarity].affixes));
+        for (const auto& [id, v] : it.affixes) {
+            const AffixDef* a = sim.db.affix(id);
+            REQUIRE(a);
+            CHECK(v >= a->min);
+            CHECK(v <= a->max);
+            CHECK(std::find(a->slots.begin(), a->slots.end(), ItemType::Weapon) != a->slots.end());
+        }
+    }
+    const Item gear = sim.randomGear(1);
+    CHECK(sim.db.item(gear.id).isGear());
+}
+
+TEST_CASE("combat: shields reduce strong hits only, hits grant invulnerability, death and respawn") {
+    Sim sim = freshGame();
+    sim.P.hp = sim.maxHp();
+    const int full = sim.P.hp;
+    sim.hurtPlayer(1, 0, 0);
+    CHECK(sim.P.hp == full - 1);
+    sim.hurtPlayer(4, 0, 0);   // still invulnerable
+    CHECK(sim.P.hp == full - 1);
+    sim.P.iframes = 0;
+    sim.addItem({"wood_shield", 1});
+    sim.hurtPlayer(3, 0, 0);   // 3 - 1 block
+    CHECK(sim.P.hp == full - 3);
+    sim.P.iframes = 0;
+    sim.hurtPlayer(1, 0, 0);   // weak hits are never reduced to zero
+    CHECK(sim.P.hp == full - 4);
+
+    sim.addItem({"gold", 40});
+    sim.P.iframes = 0;
+    sim.hurtPlayer(99, 0, 0);
+    CHECK(sim.mode == Mode::Dead);
+    sim.respawn();
+    CHECK(sim.mode == Mode::Play);
+    CHECK(sim.P.hp == sim.maxHp());
+    CHECK(sim.countItem("gold") == 30);
+}
+
+TEST_CASE("killing monsters gives xp, levels and quest credit") {
+    Sim sim = freshGame();
+    Map& m = sim.map();
+    // Take the boar quest directly
+    sim.quests["thin_herd"] = {1, {0}};
+    const int level = sim.P.level;
+    for (int i = 0; i < 6; i++) {
+        m.enemies.push_back(sim.makeEnemy(sim.db.enemy("boar"), sim.P.x + 200, sim.P.y, false));
+        sim.damageEnemy(m.enemies.back(), 99, 0, 0);
+    }
+    const QuestDef* q = sim.db.quest("thin_herd");
+    REQUIRE(q);
+    CHECK(sim.objectiveProgress(*q, 0) == 6);
+    CHECK(sim.questReady(*q));
+    CHECK(sim.npcMarker("mira") == 3);
+    CHECK((sim.P.level > level || sim.P.xp > 0));
+    sim.gainXp(100000);
+    CHECK(sim.P.level == sim.db.tuning.maxLevel);
+}
+
+TEST_CASE("quests: prerequisites gate availability") {
+    Sim sim = freshGame();
+    const QuestDef* first = sim.db.quest("first_blade");
+    const QuestDef* stew = sim.db.quest("camp_stew");
+    REQUIRE(first);
+    REQUIRE(stew);
+    CHECK(sim.questAvailable(*first));
+    CHECK_FALSE(sim.questAvailable(*stew));
+    CHECK(sim.npcMarker("warden") == 1);
+    sim.quests["first_blade"] = {2, {1}};
+    CHECK(sim.questAvailable(*stew));
+}
+
+TEST_CASE("simulation runs: walking moves the hero, the clock advances, nothing crashes") {
+    Sim sim = freshGame();
+    const double x0 = sim.P.x, y0 = sim.P.y;
+    const int t0 = sim.time;
+    SimInput in;
+    in.moveY = 1;
+    run(sim, 120, in);
+    CHECK(sim.time == t0 + 120);
+    CHECK((sim.P.x != x0 || sim.P.y != y0));
+    // A long idle stretch with spawning, night and autosave ticking over
+    run(sim, 4000);
+    CHECK(sim.mode == Mode::Play);
+    CHECK(sim.zonesFound.count("vale") == 1);
+    CHECK(sim.waypoints.count("greenhollow") == 1);
+}
+
+TEST_CASE("day and night") {
+    Sim sim = freshGame();
+    CHECK(sim.hourOfDay() == doctest::Approx(sim.db.tuning.startHour).epsilon(0.01));
+    CHECK_FALSE(sim.isNight());
+    sim.time = sim.db.tuning.dayLength * 17 / 24;   // 23:00
+    CHECK(sim.isNight());
+    CHECK(sim.darkness() == doctest::Approx(1.0));
+}
+
+TEST_CASE("save and load round-trip") {
+    Sim sim = freshGame();
+    sim.addItem({"wood", 7});
+    sim.addItem(sim.makeGear("iron_sword", 3));
+    sim.addItem({"gold", 55});
+    sim.gainXp(120);
+    sim.quests["first_blade"] = {2, {1}};
+    sim.quests["thin_herd"] = {1, {4}};
+    sim.bossesDefeated.insert("cellar");
+    Map& m = sim.map();
+    int opened = 0;
+    for (auto& o : m.objects)
+        if (o.kind == ObjKind::Chest && !o.mimic && opened < 2) {
+            o.opened = true;
+            o.openAt = 1;
+            o.loot.clear();
+            opened++;
+        }
+    run(sim, 30);
+    const json saved = sim.saveGame();
+    const std::string text = saved.dump();
+
+    Sim other(database(), 99);
+    REQUIRE(other.loadGame(json::parse(text)));
+    CHECK(other.P.name == "Tester");
+    CHECK(other.P.level == sim.P.level);
+    CHECK(other.P.xp == sim.P.xp);
+    CHECK(other.countItem("wood") == 7);
+    CHECK(other.countItem("gold") == 55);
+    REQUIRE(other.equipped(EquipSlot::Weapon) != nullptr);
+    CHECK(other.equipped(EquipSlot::Weapon)->rarity == 3);
+    CHECK(other.equipped(EquipSlot::Weapon)->affixes.size() == 3);
+    CHECK(other.weaponDamage() == sim.weaponDamage());
+    CHECK(other.quests["first_blade"].state == 2);
+    CHECK(other.quests["thin_herd"].counts[0] == 4);
+    CHECK(other.bossesDefeated.count("cellar") == 1);
+    CHECK(other.time == sim.time);
+    int openedAfter = 0;
+    for (const auto& o : other.map().objects)
+        if (o.kind == ObjKind::Chest && o.opened) openedAfter++;
+    CHECK(openedAfter == opened);
+    CHECK(other.P.x == doctest::Approx(sim.P.x));
+    CHECK(other.map().explored == sim.map().explored);
+
+    Sim bad(database(), 1);
+    CHECK_FALSE(bad.loadGame(json::parse("{\"v\": 1}")));
+    CHECK_FALSE(bad.loadGame(json("nonsense")));
+}
+
+// A bot mashes the controls in every map: it must never crash, leave the map or corrupt a save.
+TEST_CASE("soak: a random bot plays every map") {
+    Sim sim = freshGame(21);
+    for (const char* id : {"iron_sword", "wood_shield", "bow", "torch", "pickaxe", "mount_boar"}) sim.addItem({id, 1});
+    sim.addItem({"arrows", 500});
+    sim.addItem({"potion", 20});
+    sim.gainXp(2000);
+    std::vector<std::string> ids;
+    for (const auto& [id, m] : sim.maps) ids.push_back(id);
+    REQUIRE(ids.size() >= 2);
+    Rng bot(99);
+    const char* actions[] = {"attack", "shoot", "dodge", "interact", "heal", "quick1", "quick2", "quick3", "skill", "mount", "recall"};
+    for (const std::string& id : ids) {
+        const Map& target = sim.maps.at(id);
+        sim.enterMap(id, target.start.c * TILE + 8, target.start.r * TILE + 10);
+        SimInput in;
+        for (int t = 0; t < 2500; t++) {
+            if (t % 20 == 0) {
+                const double a = bot.next() * 6.283185307;
+                in.moveX = std::cos(a);
+                in.moveY = std::sin(a);
+                in.holdAttack = bot.next() < 0.4;
+                in.holdShoot = bot.next() < 0.2;
+            }
+            if (bot.next() < 0.05) sim.action(actions[bot.range(11)], false);
+            // Menus and the death screen stop the world: get back into play the way the app would
+            if (sim.mode == Mode::Dead) sim.respawn();
+            else if (sim.mode != Mode::Play) sim.mode = Mode::Play;
+            sim.tick(in);
+        }
+        const Map& m = sim.map();
+        CHECK(sim.P.x >= 0);
+        CHECK(sim.P.y >= 0);
+        CHECK(sim.P.x <= m.w * TILE);
+        CHECK(sim.P.y <= m.h * TILE);
+        CHECK(sim.P.hp >= 0);
+        CHECK(sim.P.hp <= sim.maxHp());
+        Sim copy(database(), 5);
+        CHECK(copy.loadGame(json::parse(sim.saveGame().dump())));
+        CHECK(copy.mapId == sim.mapId);
+    }
+}

@@ -13,7 +13,7 @@ Tools I build because I needed them and couldn't find a good free version. Every
 | [**Filekit**](https://lukeda.me/filekit/) | File tools that run in the browser: merge PDFs, convert images and Word documents to PDF, and edit PDF pages, without uploading anything. | JavaScript, pdf-lib, PDF.js |
 | [**NoteRead**](https://lukeda.me/noteread/) | Sight-reading trainer. A note appears on the staff and you name it as fast as you can. Tracks accuracy, streaks and reaction time. | JavaScript, SVG, Web Audio API |
 | [**My Little Board**](https://lukeda.me/positwebsite/) | Sticky-note board. Click anywhere to add a note, drag to move, scroll to rotate, and keep a checklist on each note. | JavaScript, `localStorage` |
-| [**Hollow Crypt**](https://lukeda.me/rpg/) | Top-down dungeon game: explore, gather, craft weapons, beat the Bone King. | JavaScript, Canvas |
+| [**Hollow Crypt**](https://lukeda.me/rpg/) | Open-world action RPG: six regions, towns, dungeons, quests, crafting and loot. Source in [`rpg/`](rpg/). | C++, SDL2, WebAssembly |
 
 ## Screenshots
 

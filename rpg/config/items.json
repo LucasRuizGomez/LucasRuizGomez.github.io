@@ -1,0 +1,68 @@
+{
+  // type: mat | heal | weapon | shield | armor | trinket | bow | ammo | tool | light | key | special | trophy | mount
+  // Gear (weapon, shield, armor, trinket) never stacks: every piece is its own item and can roll a rarity with affixes.
+  // "value" is the base price in gold; merchants pay a fraction of it. "level" gates random drops and purchases.
+  "items": [
+    { "id": "wood",   "name": "Wood",     "type": "mat", "value": 1, "desc": "Chopped from trees. Used in most recipes." },
+    { "id": "stone",  "name": "Stone",    "type": "mat", "value": 1, "desc": "Mined from mossy grey rocks." },
+    { "id": "herb",   "name": "Herb",     "type": "mat", "value": 1, "desc": "Picked from red wildflowers." },
+    { "id": "coal",   "name": "Coal",     "type": "mat", "value": 2, "desc": "Mined from smouldering black rocks. Needs a pickaxe." },
+    { "id": "iron",   "name": "Iron Ore", "type": "mat", "value": 2, "desc": "Mined from rusty crystal rocks. Needs a pickaxe." },
+    { "id": "hide",   "name": "Hide",     "type": "mat", "value": 2, "desc": "Tough animal hide. Leatherworkers pay for it." },
+    { "id": "bark",   "name": "Living Bark", "type": "mat", "value": 3, "desc": "Still warm. Shed by the walking stumps of Deepwood." },
+    { "id": "frost_shard", "name": "Frost Shard", "type": "mat", "value": 5, "desc": "A sliver of ice that never melts." },
+    { "id": "gold",   "name": "Gold",     "type": "mat", "value": 0, "desc": "Coin of the realm." },
+
+    { "id": "meat",    "name": "Raw Meat",   "type": "heal", "heal": 1, "value": 1, "desc": "From hunted animals. Eat it raw for half a heart, or roast it at a fire." },
+    { "id": "bandage", "name": "Bandage",    "type": "heal", "heal": 2, "value": 3, "desc": "Clean linen and a herb poultice." },
+    { "id": "roast",   "name": "Roast Meat", "type": "heal", "heal": 6, "value": 6, "desc": "Hot off the fire. Worth the wait." },
+    { "id": "potion",  "name": "Healing Potion", "type": "heal", "heal": 12, "value": 14, "desc": "Brewed by people who know their herbs." },
+
+    { "id": "torch",   "name": "Torch",   "type": "light", "unique": true, "value": 5,  "desc": "Carry one to see further in the dark." },
+    { "id": "pickaxe", "name": "Pickaxe", "type": "tool",  "unique": true, "value": 10, "desc": "Lets you mine iron and coal." },
+    { "id": "bow",     "name": "Crossbow", "type": "bow",  "unique": true, "value": 20, "desc": "Fires bolts. Damage 3, plus your level bonus." },
+    { "id": "arrows",  "name": "Bolts",   "type": "ammo", "value": 1, "desc": "Ammunition for the crossbow." },
+    { "id": "key",     "name": "Gate Key", "type": "key", "desc": "Opens the sealed gate in the Hollow Crypt." },
+    { "id": "heart",   "name": "Heart Crystal", "type": "special", "desc": "Raises your maximum health by 1 heart." },
+    { "id": "crown",   "name": "Hollow Crown", "type": "trophy", "desc": "Proof that the Hollow King has fallen." },
+
+    { "id": "wood_sword",   "name": "Wooden Sword",   "type": "weapon", "dmg": 2, "reach": 13, "cd": 22, "tier": 1,   "level": 1,  "value": 4,  "desc": "A whittled blade. Better than fists." },
+    { "id": "iron_sword",   "name": "Iron Sword",     "type": "weapon", "dmg": 4, "reach": 15, "cd": 22, "tier": 2,   "level": 2,  "value": 18, "desc": "Honest iron with a good edge." },
+    { "id": "steel_spear",  "name": "Steel Spear",    "type": "weapon", "dmg": 5, "reach": 21, "cd": 24, "tier": 2.5, "level": 4,  "value": 30, "desc": "Long reach. Forged at a fire." },
+    { "id": "knight_blade", "name": "Knight's Blade", "type": "weapon", "dmg": 6, "reach": 17, "cd": 20, "tier": 3,   "level": 6,  "value": 48, "desc": "A soldier's sword, quick and well balanced." },
+    { "id": "frost_brand",  "name": "Frost Brand",    "type": "weapon", "dmg": 8, "reach": 18, "cd": 20, "tier": 4,   "level": 8,  "value": 80, "desc": "Cold to the touch. Forged in Highwatch." },
+    { "id": "kings_edge",   "name": "King's Edge",    "type": "weapon", "dmg": 10, "reach": 19, "cd": 18, "tier": 5,  "level": 10, "value": 160, "desc": "The blade the Hollow King carried in life." },
+
+    { "id": "wood_shield",     "name": "Wooden Shield",     "type": "shield", "def": 1, "tier": 1, "level": 1, "value": 6,  "desc": "Blocks 1 damage from strong hits." },
+    { "id": "iron_shield",     "name": "Iron Shield",       "type": "shield", "def": 2, "tier": 2, "level": 4, "value": 26, "desc": "Blocks 2 damage from strong hits." },
+    { "id": "champion_shield", "name": "Champion's Shield", "type": "shield", "def": 3, "tier": 3, "level": 8, "value": 90, "desc": "Blocks 3 damage from strong hits." },
+
+    { "id": "leather_armor", "name": "Leather Jerkin", "type": "armor", "hp": 2, "tier": 1, "level": 2, "value": 14, "desc": "Adds 1 heart of health." },
+    { "id": "chain_armor",   "name": "Chain Hauberk",  "type": "armor", "hp": 4, "tier": 2, "level": 5, "value": 40, "desc": "Adds 2 hearts of health." },
+    { "id": "plate_armor",   "name": "Plate Cuirass",  "type": "armor", "hp": 6, "tier": 3, "level": 8, "value": 95, "desc": "Adds 3 hearts of health." },
+
+    { "id": "band",   "name": "Copper Band",    "type": "trinket", "tier": 1, "level": 2, "value": 12, "desc": "A plain ring. Its worth is in what it was enchanted with." },
+    { "id": "signet", "name": "Traveller's Signet", "type": "trinket", "tier": 2, "level": 6, "value": 40, "desc": "Worn by those who walk far from home." },
+
+    { "id": "mount_boar", "name": "War Boar",   "type": "mount", "unique": true, "level": 3, "value": 60,  "mountSprite": "boar", "mountSpeed": 1.6, "desc": "A saddle-broken boar. Summon it outdoors to ride 60% faster." },
+    { "id": "mount_stag", "name": "Frost Stag", "type": "mount", "unique": true, "level": 7, "value": 180, "mountSprite": "deer", "mountSpeed": 2.0, "desc": "Swift and sure-footed. Summon it outdoors to ride twice as fast." }
+  ],
+
+  // Rarity tiers for dropped gear. "affixes" is how many random bonuses a piece of that rarity rolls.
+  "rarities": [
+    { "id": "common",    "name": "",          "color": "#3a2414", "glow": "#ece6d8", "affixes": 0, "weight": 62, "valueMul": 1 },
+    { "id": "magic",     "name": "Fine",      "color": "#2b5fb8", "glow": "#6aa8ff", "affixes": 1, "weight": 26, "valueMul": 1.8 },
+    { "id": "rare",      "name": "Rare",      "color": "#9a6a00", "glow": "#ffd24a", "affixes": 2, "weight": 10, "valueMul": 3 },
+    { "id": "legendary", "name": "Legendary", "color": "#b0461a", "glow": "#ff8a3c", "affixes": 3, "weight": 2,  "valueMul": 6 }
+  ],
+
+  // Random bonuses. "slots" says which gear types can roll it.
+  "affixes": [
+    { "id": "might",     "label": "of Might",     "stat": "dmg",   "min": 1, "max": 3,  "slots": ["weapon", "trinket"],          "text": "+{v} damage" },
+    { "id": "vitality",  "label": "of Vitality",  "stat": "hp",    "min": 2, "max": 4,  "slots": ["armor", "shield", "trinket"], "text": "+{h} hearts" },
+    { "id": "haste",     "label": "of Haste",     "stat": "speed", "min": 5, "max": 12, "slots": ["armor", "trinket", "weapon"], "text": "+{v}% movement speed" },
+    { "id": "precision", "label": "of Precision", "stat": "crit",  "min": 6, "max": 15, "slots": ["weapon", "trinket"],          "text": "{v}% chance to strike twice as hard" },
+    { "id": "leech",     "label": "of the Leech", "stat": "leech", "min": 10, "max": 25, "slots": ["weapon", "trinket"],         "text": "{v}% chance to heal half a heart on a kill" },
+    { "id": "warding",   "label": "of Warding",   "stat": "ward",  "min": 1, "max": 1,  "slots": ["shield", "armor"],            "text": "Blocks {v} more damage from strong hits" }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  // Rebindable actions with their default keys (KeyboardEvent.code names, up to two per action).
+  // Movement (WASD / arrows), Enter and Escape are fixed so the game can never become unplayable.
+  "actions": [
+    { "id": "attack",   "label": "Attack",          "keys": ["Space", "KeyJ"] },
+    { "id": "shoot",    "label": "Crossbow",        "keys": ["KeyK"] },
+    { "id": "skill",    "label": "Whirlwind",       "keys": ["KeyV"] },
+    { "id": "dodge",    "label": "Dodge roll",      "keys": ["ShiftLeft", "ShiftRight"] },
+    { "id": "interact", "label": "Use / talk",      "keys": ["KeyE", "KeyF"] },
+    { "id": "heal",     "label": "Quick heal",      "keys": ["KeyQ"] },
+    { "id": "quick1",   "label": "Use bandage",     "keys": ["Digit1"] },
+    { "id": "quick2",   "label": "Eat roast meat",  "keys": ["Digit2"] },
+    { "id": "quick3",   "label": "Drink potion",    "keys": ["Digit3"] },
+    { "id": "mount",    "label": "Mount / dismount", "keys": ["KeyR"] },
+    { "id": "recall",   "label": "Recall to town",  "keys": ["KeyT"] },
+    { "id": "bag",      "label": "Bag",             "keys": ["KeyI", "Tab"] },
+    { "id": "craft",    "label": "Crafting",        "keys": ["KeyC"] },
+    { "id": "quests",   "label": "Quest log",       "keys": ["KeyL"] },
+    { "id": "map",      "label": "World map",       "keys": ["KeyM"] }
+  ],
+  // Standard-mapping gamepad buttons while playing.
+  "gamepad": {
+    "a": "interact", "b": "dodge", "x": "attack", "y": "heal",
+    "leftshoulder": "craft", "rightshoulder": "attack",
+    "lefttrigger": "skill", "righttrigger": "shoot",
+    "back": "bag", "leftstick": "mount", "rightstick": "map"
+  },
+  "defaults": { "sfx": 0.8, "music": 0.5, "ui": 1.0 }
+}

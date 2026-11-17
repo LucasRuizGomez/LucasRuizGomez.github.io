@@ -1,0 +1,29 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": { "major": 3, "minor": 24, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "web-base", "hidden": true, "generator": "Ninja",
+      "toolchainFile": "$env{EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake"
+    },
+    { "name": "web-debug", "displayName": "Web (WebAssembly), debug", "inherits": "web-base",
+      "binaryDir": "${sourceDir}/build/web-debug", "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug" } },
+    { "name": "web-release", "displayName": "Web (WebAssembly), release", "inherits": "web-base",
+      "binaryDir": "${sourceDir}/build/web-release", "cacheVariables": { "CMAKE_BUILD_TYPE": "Release" } },
+    { "name": "native-debug", "displayName": "Native desktop, debug", "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/native-debug", "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug" } },
+    { "name": "native-release", "displayName": "Native desktop, release", "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/native-release", "cacheVariables": { "CMAKE_BUILD_TYPE": "Release" } }
+  ],
+  "buildPresets": [
+    { "name": "web-debug", "configurePreset": "web-debug" },
+    { "name": "web-release", "configurePreset": "web-release" },
+    { "name": "native-debug", "configurePreset": "native-debug" },
+    { "name": "native-release", "configurePreset": "native-release" }
+  ],
+  "testPresets": [
+    { "name": "web-debug", "configurePreset": "web-debug", "output": { "outputOnFailure": true } },
+    { "name": "web-release", "configurePreset": "web-release", "output": { "outputOnFailure": true } },
+    { "name": "native-debug", "configurePreset": "native-debug", "output": { "outputOnFailure": true } }
+  ]
+}

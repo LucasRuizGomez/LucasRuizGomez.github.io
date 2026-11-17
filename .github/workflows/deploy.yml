@@ -1,0 +1,72 @@
+# Builds Hollow Crypt (C++ -> WebAssembly), runs its tests, and publishes the whole site to GitHub Pages.
+# Needs Settings -> Pages -> Build and deployment -> Source set to "GitHub Actions".
+name: Build and deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  EMSDK_VERSION: 7.0.0   # keep in step with the SDK used locally (rpg/README.md)
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install the Emscripten SDK
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: ${{ env.EMSDK_VERSION }}
+          actions-cache-folder: emsdk-cache
+
+      - name: Install Ninja
+        run: sudo apt-get update && sudo apt-get install -y ninja-build
+
+      - name: Configure
+        working-directory: rpg
+        run: cmake --preset web-release -DHC_WARNINGS_AS_ERRORS=ON
+
+      - name: Build
+        working-directory: rpg
+        run: cmake --build --preset web-release
+
+      - name: Test
+        working-directory: rpg
+        run: ctest --preset web-release
+
+      # The site is the repository as it is, with rpg/ replaced by the compiled game.
+      - name: Assemble the site
+        run: |
+          mkdir _site
+          rsync -a --exclude .git --exclude .github --exclude _site --exclude emsdk-cache --exclude rpg ./ _site/
+          mkdir _site/rpg
+          cp -r rpg/build/web-release/dist/. _site/rpg/
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
