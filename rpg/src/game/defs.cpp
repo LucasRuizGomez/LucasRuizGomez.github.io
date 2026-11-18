@@ -295,6 +295,7 @@ Database Database::load(const std::string& dir) {
             p.solid = it.value().value("solid", true);
             p.flat = it.value().value("flat", false);
             p.ox = it.value().value("ox", 0);
+            p.oy = it.value().value("oy", 0);
             p.arch = it.value().value("arch", false);
             db.props[p.id] = std::move(p);
         }
@@ -309,6 +310,24 @@ Database Database::load(const std::string& dir) {
             for (auto se = it.value().at("sell").begin(); se != it.value().at("sell").end(); ++se) s.sell[se.key()] = se.value();
             db.shops[s.id] = std::move(s);
         }
+        auto readNpc = [&](const json& n, const std::string& town) {
+            NpcDef d;
+            d.id = n.at("id");
+            d.name = n.at("name");
+            d.sprite = n.at("sprite");
+            d.tint = n.value("tint", "");
+            d.role = n.value("role", "villager");
+            d.shop = n.value("shop", "");
+            d.text = n.value("text", "");
+            d.town = town;
+            if (n.contains("lines"))
+                for (const auto& l : n.at("lines")) d.lines.push_back(l);
+            if (d.text.empty() && !d.lines.empty()) d.text = d.lines.front();
+            if (n.contains("at")) d.at = parsePos(n.at("at"));
+            if (!d.shop.empty() && !db.shops.count(d.shop)) throw std::runtime_error("NPC " + d.id + " uses unknown shop " + d.shop);
+            if (db.npcs_.count(d.id)) throw std::runtime_error("Two NPCs share the id " + d.id);
+            return d;
+        };
         for (const auto& e : j.at("towns")) {
             TownDef t;
             t.id = e.at("id");
@@ -321,21 +340,66 @@ Database Database::load(const std::string& dir) {
             t.music = e.at("music");
             for (const auto& f : e.at("features")) t.features.push_back(f);
             for (const auto& n : e.at("npcs")) {
-                NpcDef d;
-                d.id = n.at("id");
-                d.name = n.at("name");
-                d.sprite = n.at("sprite");
-                d.tint = n.value("tint", "");
-                d.role = n.at("role");
-                d.shop = n.value("shop", "");
-                d.text = n.value("text", "");
-                d.town = t.id;
-                if (!d.shop.empty() && !db.shops.count(d.shop)) throw std::runtime_error("NPC " + d.id + " uses unknown shop " + d.shop);
+                NpcDef d = readNpc(n, t.id);
                 db.npcs_[d.id] = d;
                 t.npcs.push_back(std::move(d));
             }
             db.towns.push_back(std::move(t));
         }
+
+        // ── buildings.json: what is inside the houses, and who lives there ──
+        const json b = loadJson(dir + "buildings.json");
+        auto places = [](const json& arr) {
+            std::vector<PropPlace> out;
+            for (const auto& p : arr) out.push_back({p.at(0).get<std::string>(), p.at(1).get<int>(), p.at(2).get<int>()});
+            return out;
+        };
+        for (auto it = b.at("kinds").begin(); it != b.at("kinds").end(); ++it) {
+            InteriorDef k;
+            k.id = it.key();
+            const json& e = it.value();
+            k.label = e.value("label", k.id);
+            k.w = e.at("size").at(0);
+            k.h = e.at("size").at(1);
+            k.floor = e.value("floor", k.floor);
+            k.wall = e.value("wall", k.wall);
+            k.props = places(e.at("props"));
+            if (e.contains("hearth")) k.hearth = parsePos(e.at("hearth"));
+            k.hearthSprite = e.value("hearthSprite", k.hearthSprite);
+            for (const auto& p : k.props)
+                if (!db.props.count(p.prop)) throw std::runtime_error("Interior " + k.id + " uses unknown prop " + p.prop);
+            db.interiors[k.id] = std::move(k);
+        }
+        for (const auto& e : b.at("buildings")) {
+            BuildingDef d;
+            d.id = e.at("id");
+            d.town = e.at("town");
+            d.kind = e.at("kind");
+            d.name = e.at("name");
+            d.sign = e.value("sign", "");
+            d.floor = e.value("floor", "");
+            d.wall = e.value("wall", "");
+            if (e.contains("props")) d.props = places(e.at("props"));
+            if (e.contains("remove"))
+                for (const auto& r : e.at("remove")) d.remove.push_back(r);
+            if (!db.interiors.count(d.kind)) throw std::runtime_error("Building " + d.id + " has unknown kind " + d.kind);
+            for (const auto& p : d.props)
+                if (!db.props.count(p.prop)) throw std::runtime_error("Building " + d.id + " uses unknown prop " + p.prop);
+            TownDef* town = nullptr;
+            for (auto& t : db.towns)
+                if (t.id == d.town) town = &t;
+            if (!town) throw std::runtime_error("Building " + d.id + " is in unknown town " + d.town);
+            if (e.contains("npcs"))
+                for (const auto& n : e.at("npcs")) {
+                    NpcDef nd = readNpc(n, d.town);
+                    nd.building = d.id;
+                    d.npcs.push_back(nd.id);
+                    db.npcs_[nd.id] = nd;
+                }
+            town->buildings.push_back(d.id);
+            db.buildings.push_back(std::move(d));
+        }
+        for (auto& t : db.towns) t.houses = static_cast<int>(t.buildings.size());
         for (const auto& e : j.at("dungeons")) {
             DungeonDef d;
             d.id = e.at("id");
@@ -394,7 +458,16 @@ Database Database::load(const std::string& dir) {
             q.gold = r.value("gold", 0);
             q.rewardRarity = r.value("rarity", 0);
             if (r.contains("items")) q.items = parsePairs(r.at("items"));
+            if (r.contains("choice")) q.choice = parsePairs(r.at("choice"));
             for (const auto& [id, n] : q.items) db.item(id);
+            for (const auto& [id, n] : q.choice) db.item(id);
+            q.objectiveText = e.value("summary", "");
+            q.level = e.value("level", 0);
+            if (!q.level)   // by default, the lowest level of the region the quest giver lives in
+                if (const NpcDef* g = db.npc(q.giver))
+                    if (const TownDef* t = db.town(g->town))
+                        if (const ZoneDef* z = db.zone(t->zone)) q.level = z->levelMin;
+            q.level = std::max(1, q.level);
             if (!db.npc(q.giver)) throw std::runtime_error("Quest " + q.id + " has unknown giver " + q.giver);
             if (!db.npc(q.turnIn)) throw std::runtime_error("Quest " + q.id + " has unknown turn-in NPC " + q.turnIn);
             db.questIndex_[q.id] = db.quests.size();
@@ -440,6 +513,7 @@ Database Database::load(const std::string& dir) {
                 s.requiresRank = e.at("requires").at(1);
             }
             s.effects = parseWeights(e.at("effects"));
+            s.icon = e.value("icon", "");
             bool known = false;
             for (const auto& b : db.branches) known = known || b.id == s.branch;
             if (!known) throw std::runtime_error("Skill " + s.id + " is in unknown branch " + s.branch);
@@ -502,6 +576,15 @@ const AffixDef* Database::affix(const std::string& id) const {
     for (const auto& a : affixes)
         if (a.id == id) return &a;
     return nullptr;
+}
+const BuildingDef* Database::building(const std::string& id) const {
+    for (const auto& b : buildings)
+        if (b.id == id) return &b;
+    return nullptr;
+}
+const InteriorDef* Database::interior(const std::string& kind) const {
+    auto it = interiors.find(kind);
+    return it == interiors.end() ? nullptr : &it->second;
 }
 const SkillDef* Database::skill(const std::string& id) const {
     for (const auto& s : skills)

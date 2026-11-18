@@ -28,7 +28,9 @@ The music is unmodified apart from the file names. Attribution is required: it i
 
 | Folder | Work | Author | Licence | Used for |
 |---|---|---|---|---|
-| `armm1998-zelda-like/` | *Zelda-like tilesets and sprites* | ArMM1998 | CC0 1.0 — https://opengameart.org/content/zelda-like-tilesets-and-sprites | Houses, stalls, fountains, towers, statues, signs, graves, water tiles, town paving, dungeon entrances, quest marks, pots, the stumpling monster |
+| `armm1998-zelda-like/` | *Zelda-like tilesets and sprites* | ArMM1998 | CC0 1.0 — https://opengameart.org/content/zelda-like-tilesets-and-sprites | Houses, stalls, fountains, towers, statues, signs, graves, water tiles, town paving, dungeon entrances, quest marks, pots, the stumpling monster, and (`Inner.png`) the floors, walls and furniture inside every building |
+| `owlishmedia-rpg-icons/` | *RPG UI Icons* | OwlishMedia | CC0 1.0 — https://opengameart.org/content/rpg-ui-icons | Skill tree icons, building signs, conversation icons (packed into `generated/owl_icons.png` by `tools/pack_icons.py`) |
+| `keiffer-skill-tree-icons/` | *Misc. RPG Icons* | Keiffer | CC0 1.0 — https://opengameart.org/node/151805 | The octagonal frame around skill tree icons |
 | `craftpix-net-749505-…-medieval-fortress-…/` | *Free Medieval Fortress Top-Down Pixel Minigame Kit* | CraftPix.net | [CraftPix free licence](https://craftpix.net/file-licenses/) | Terrain tileset, trees, chests, torches, the gate, all human characters |
 | `craftpix-net-789196-…-hunt-animals-…/` | *Free Top-Down Hunt Animals Pixel Sprite Pack* | CraftPix.net | CraftPix free licence | Boar, fox, hare, deer, black grouse (and the mounts) |
 | `craftpix-net-974061-…-rocks-and-stones-…/` | *Free Rocks and Stones Top-Down Pixel Art* | CraftPix.net | CraftPix free licence | Boulders, ore and stone nodes |

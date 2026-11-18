@@ -200,67 +200,6 @@ void App::drawSign() {
     text("Close", X + W - 90 + kw + 8, Y + H - 21, pal::muted, 13, 0, Align::Left, Baseline::Middle);
 }
 
-void App::drawQuests() {
-    Sim& sim = *sim_;
-    dim(0.6);
-    const double W = std::min(900.0, uiW() - 40), H = std::min(560.0, uiH() - 40), X = std::round((uiW() - W) / 2), Y = std::round((uiH() - H) / 2);
-    panel(X, Y, W, H);
-    text("Quest log", X + 24, Y + 38, pal::text, 22, 1);
-    int doneCount = 0;
-    for (const auto& [id, st] : sim.quests) doneCount += st.state == 2;
-    text(std::to_string(doneCount) + " of " + std::to_string(db_.quests.size()) + " quests finished", X + W - 56, Y + 38, pal::faint, 13, 1, Align::Right);
-    closeButton(X + W - 40, Y + 14);
-    const auto list = sim.activeQuests();
-    const double LW = 300, rowH = 44, ly = Y + 60, lh = H - 60 - 46;
-    questSel_ = std::clamp(questSel_, 0, std::max(0, static_cast<int>(list.size()) - 1));
-    for (size_t i = 0; i < list.size() && i < static_cast<size_t>(lh / rowH); i++) {
-        const QuestDef& q = *list[i];
-        const double y = ly + i * rowH;
-        row(X + 24, y, LW, rowH - 6, static_cast<int>(i) == questSel_);
-        hit(X + 24, y, LW, rowH - 6, [this, i] { questSel_ = static_cast<int>(i); });
-        if (q.main) box(X + 30, y + 6, 4, rowH - 18, pal::gold);
-        text(q.title, X + 42, y + 14, pal::text, 14, 1, Align::Left, Baseline::Middle);
-        text(sim.questReady(q) ? "Ready to hand in" : q.main ? "Main quest" : "Side quest", X + 42, y + 29, sim.questReady(q) ? pal::ok : pal::faint, 11, 1, Align::Left, Baseline::Middle);
-    }
-    const double dx = X + 24 + LW + 20, dw = W - (dx - X) - 24;
-    box(dx, ly, dw, lh, pal::well, pal::line);
-    if (list.empty()) {
-        text("No quests yet.", dx + dw / 2, ly + 60, pal::muted, 15, 1, Align::Center);
-        text("People with a yellow mark over their heads have work for you.", dx + dw / 2, ly + 86, pal::faint, 13, 0, Align::Center);
-    } else {
-        const QuestDef& q = *list[questSel_];
-        const NpcDef* giver = db_.npc(q.giver);
-        const NpcDef* turnIn = db_.npc(q.turnIn);
-        const TownDef* town = turnIn ? db_.town(turnIn->town) : nullptr;
-        text(q.title, dx + 18, ly + 34, pal::gold, 19, 1);
-        text("From " + (giver ? giver->name : std::string("?")), dx + 18, ly + 54, pal::muted, 12, 1);
-        double ty = ly + 84;
-        for (const auto& l : wrap(q.offer, dw - 36, 14)) {
-            text(l, dx + 18, ty, pal::text, 14);
-            ty += 19;
-        }
-        ty += 14;
-        text("Objectives", dx + 18, ty, pal::muted, 13, 1);
-        ty += 22;
-        for (size_t i = 0; i < q.objectives.size(); i++) {
-            const QuestObjective& o = q.objectives[i];
-            const int have = sim.objectiveProgress(q, i);
-            const bool done = have >= o.count;
-            box(dx + 18, ty - 11, 12, 12, done ? pal::ok : pal::well, pal::line);
-            text(o.label, dx + 38, ty, done ? pal::ok : pal::text, 14, 1);
-            if (o.count > 1) text(std::to_string(have) + " / " + std::to_string(o.count), dx + dw - 18, ty, done ? pal::ok : pal::bad, 14, 1, Align::Right);
-            ty += 22;
-        }
-        text(std::string("Hand in to ") + (turnIn ? turnIn->name : "?") + (town ? " in " + town->name : ""), dx + 18, ty + 8, pal::muted, 13);
-        std::string reward = std::to_string(q.xp) + " xp";
-        if (q.gold) reward += "  ·  " + std::to_string(q.gold) + " gold";
-        for (const auto& [id, n] : q.items) reward += "  ·  " + (n > 1 ? std::to_string(n) + " " : std::string()) + db_.item(id).name;
-        text("Reward", dx + 18, ly + lh - 40, pal::muted, 13, 1);
-        text(reward, dx + 18, ly + lh - 20, pal::text, 13, 1);
-    }
-    text("Up / Down choose · " + bindLabel("map") + " world map · " + bindLabel("quests") + " or Esc close", X + W / 2, Y + H - 18, pal::muted, 12, 0, Align::Center);
-}
-
 // The whole realm, with fog over what you have not walked yet and marks for where your quests point.
 void App::drawWorldMap() {
     Sim& sim = *sim_;

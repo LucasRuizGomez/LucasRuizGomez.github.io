@@ -27,6 +27,8 @@ void Sim::buildWorld() {
     maps.emplace("over", generateOverworld(db));
     const Map& over = maps.at("over");
     for (const auto& d : db.dungeons) maps.emplace(d.id, generateDungeon(db, d, over));
+    for (const auto& b : db.buildings)
+        if (auto it = over.doors.find(b.id); it != over.doors.end()) maps.emplace("b_" + b.id, generateInterior(db, b, it->second));
     worldReady = true;
 }
 
@@ -52,6 +54,8 @@ void Sim::newGame(const std::string& heroName) {
     waypoints.clear();
     shrinesFound.clear();
     quests.clear();
+    chats_.clear();
+    talkNpc.clear();
     toasts.clear();
     floaters.clear();
     particles.clear();
@@ -71,6 +75,7 @@ void Sim::transition(std::function<void()> mid) {
 }
 
 void Sim::enterMap(const std::string& id, double x, double y) {
+    const bool fromInside = maps.count(mapId) && maps.at(mapId).interior;
     mapId = id;
     Map& m = map();
     P.x = x;
@@ -97,9 +102,12 @@ void Sim::enterMap(const std::string& id, double x, double y) {
             e.aggroT = 9999;
             e.kbx = e.kby = 0;
         }
-    zoneId.clear();
-    townId.clear();
-    if (!m.outdoor) area = AreaTitle{m.name, m.dungeon ? "Level " + std::to_string(m.dungeon->level) : "", 200};
+    if (m.interior) townId = m.town;   // still in town: town music, no monsters
+    else if (!(m.outdoor && fromInside)) {   // stepping back out of a house is not arriving somewhere new
+        zoneId.clear();
+        townId.clear();
+    }
+    if (!m.outdoor) area = AreaTitle{m.name, m.dungeon ? "Level " + std::to_string(m.dungeon->level) : m.subtitle, m.interior ? 110 : 200};
     updatePlace(m);
     updateCamera(true);
     focus = Focus();

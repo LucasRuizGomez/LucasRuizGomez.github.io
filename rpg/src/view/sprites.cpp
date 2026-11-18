@@ -89,6 +89,13 @@ void Sprites::build(Gfx& g, const Database& db, const std::string& root) {
         } else if (name.rfind("icon.", 0) == 0) icons_[name.substr(5)] = g.makeSprite(cut(0));
         else named_[name] = g.makeSprite(cut(0));
     }
+    {   // The second house model has no door in the art: give it the arched door of the first
+        const Image& ow = sheet("ow");
+        Image hb = ow.crop(176, 0, 80, 80);
+        hb.fill(30, 52, 20, 26, Color(0, 0, 0, 0));
+        hb.blitPart(ow, 96 + 30, 52, 20, 26, 30, 52);
+        named_["house_b_door"] = g.makeSprite(hb.trim());
+    }
     water = strips_["water"];
     for (const auto& f : strips_["waterb"]) water.push_back(f);
     waves = strips_["wave"];

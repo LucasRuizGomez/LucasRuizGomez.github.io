@@ -1,6 +1,6 @@
 # Hollow Crypt
 
-A top-down open-world action RPG that runs in the browser: six regions, six towns, seven dungeons, 21 quests, crafting, random gear on a drag-and-drop paper doll, a skill tree, mounts (one of them flies) and a day and night cycle. Written in C++20 on SDL2 and compiled to WebAssembly with Emscripten. The same code also builds as a desktop program.
+A top-down open-world action RPG that runs in the browser: six regions, six towns, seven dungeons, 21 quests, 39 buildings to walk into, over 60 townsfolk to talk to, 57 quests with rewards to choose from, crafting, random gear on a drag-and-drop paper doll, a skill tree, mounts (one of them flies) and a day and night cycle. Written in C++20 on SDL2 and compiled to WebAssembly with Emscripten. The same code also builds as a desktop program.
 
 Play it at [lukeda.me/rpg](https://lukeda.me/rpg/).
 
@@ -29,10 +29,11 @@ The game reads everything below at start-up. Changing a value and rebuilding is 
 | File | Defines |
 |---|---|
 | `game.json` | Global tuning: player speed and timings, levelling, day length, spawning, save slots |
-| `world.json` | Regions, towns and their people, dungeons, each town's shops, points of interest, world size and seed |
+| `world.json` | Regions, towns and the people in their streets, dungeons, each town's shops, furniture and other props, points of interest, world size and seed |
+| `buildings.json` | Every building's inside: the room of each kind (inn, bakery, home...), each building's own furniture, and the people who live there |
 | `items.json` | Items, rarities and the random bonuses gear can roll |
 | `enemies.json` | Monsters, bosses and elite variants |
-| `quests.json` | Quests, their objectives, rewards and the order they unlock in |
+| `quests.json` | Quests, their objectives, rewards (fixed and choose-one) and the order they unlock in |
 | `recipes.json` | Crafting recipes |
 | `skills.json` | The skill tree: branches, skills, their requirements and what each rank gives |
 | `controls.json` | Default key and gamepad bindings, default volumes |
@@ -87,6 +88,8 @@ Add these to the URL of a web build (`?autostart&kit&tp=128,40`), or pass them a
 | `reveal` | Uncover the whole world map and unlock every waypoint |
 | `screen=name` | Open a screen straight away: `inv`, `skills`, `craft`, `quests`, `map`, `pause`, `controls`, or on the title menu `load`, `new`, `settings` |
 | `fly` | Start in the air on a Great Roc |
+| `map=b_<building>` | Start inside a building (ids are in `config/buildings.json`) |
+| `talk=npc` | Open a conversation with someone in the current map; add `offer` to open their first quest offer |
 | `mute` | No sound |
 
 ## Deployment

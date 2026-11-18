@@ -566,3 +566,99 @@ TEST_CASE("flying mount: crosses water, cannot be hurt, lands only on open groun
     run(sim, 2);
     if (!sim.flying()) CHECK(sim.map().boxFree(sim.P.x, sim.P.y, 4, 3, false));   // never set down in the lake
 }
+
+TEST_CASE("buildings: every one has a door, an inside you can walk around, and its people within reach") {
+    Sim sim = freshGame();
+    const Map& over = sim.overworld();
+    for (const auto& b : sim.db.buildings) {
+        CAPTURE(b.id);
+        REQUIRE(over.doors.count(b.id) == 1);
+        const TilePos door = over.doors.at(b.id);
+        CHECK(over.get(door.c, door.r) == STAIRS_DOWN);
+        CHECK(over.tileFree(door.c, door.r + 1, false));   // you can stand in front of it
+        REQUIRE(sim.maps.count("b_" + b.id) == 1);
+        const Map& in = sim.maps.at("b_" + b.id);
+        CHECK(in.interior);
+        const auto reach = reachMask(in, in.start.c, in.start.r);
+        auto near = [&](int c, int r) {
+            for (int dr = -1; dr <= 1; dr++)
+                for (int dc = -1; dc <= 1; dc++)
+                    if (in.inside(c + dc, r + dr) && reach[in.idx(c + dc, r + dr)]) return true;
+            return false;
+        };
+        int people = 0;
+        for (const auto& o : in.objects)
+            if (o.kind == ObjKind::Npc || o.kind == ObjKind::Campfire) {
+                CAPTURE(o.id);
+                CHECK(near(o.c, o.r));
+                people += o.kind == ObjKind::Npc;
+            }
+        CHECK(people == static_cast<int>(b.npcs.size()));
+        // Floor tiles that cannot be reached would be wasted space hidden behind furniture: allow a few
+        int floor = 0, reached = 0;
+        for (int r = 0; r < in.h; r++)
+            for (int c = 0; c < in.w; c++)
+                if (in.get(c, r) == PLANKS && !in.block[in.idx(c, r)]) {
+                    floor++;
+                    reached += reach[in.idx(c, r)];
+                }
+        CHECK(reached * 10 >= floor * 8);
+    }
+    // In and out again
+    const BuildingDef& b = sim.db.buildings.front();
+    const TilePos door = over.doors.at(b.id);
+    sim.enterMap("over", door.c * TILE + 8, (door.r + 1) * TILE + 10);
+    SimInput up;
+    up.moveY = -1;
+    run(sim, 60, up);
+    CHECK(sim.mapId == "b_" + b.id);
+    CHECK(sim.townId == b.town);
+    SimInput down;
+    down.moveY = 1;
+    run(sim, 120, down);
+    CHECK(sim.mapId == "over");
+}
+
+TEST_CASE("everyone talks, and quests can be accepted, declined and handed in for a chosen reward") {
+    Sim sim = freshGame();
+    for (const auto& [id, m] : sim.maps)
+        for (const auto& o : m.objects)
+            if (o.kind == ObjKind::Npc) {
+                const NpcDef* n = sim.db.npc(o.id);
+                REQUIRE(n);
+                CHECK_FALSE(n->lines.empty());
+            }
+    // Talking opens the conversation and does not accept anything by itself
+    Map& m = sim.map();
+    Object* warden = nullptr;
+    for (auto& o : m.objects)
+        if (o.kind == ObjKind::Npc && o.id == "warden") warden = &o;
+    REQUIRE(warden);
+    sim.talkTo(*warden);
+    CHECK(sim.mode == Mode::Talk);
+    CHECK(sim.talkNpc == "warden");
+    CHECK_FALSE(sim.talkLine.empty());
+    REQUIRE_FALSE(sim.questsOffered("warden").empty());
+    CHECK(sim.quests.count("first_blade") == 0);   // declining = simply not accepting
+    CHECK(sim.acceptQuest("first_blade"));
+    CHECK(sim.quests.at("first_blade").state == 1);
+    CHECK(sim.questsUnderway("warden").size() == 1);
+    // Abandon puts it back on offer
+    CHECK(sim.abandonQuest("first_blade"));
+    CHECK(sim.questAvailable(*sim.db.quest("first_blade")));
+
+    // A quest with a reward to choose: the chosen item is the one you get
+    const QuestDef* joss = sim.db.quest("joss_hares");
+    REQUIRE(joss);
+    REQUIRE(joss->choice.size() == 2);
+    CHECK(sim.acceptQuest("joss_hares"));
+    for (int i = 0; i < 6; i++) sim.questEvent("kill", "hare");
+    CHECK(sim.questReady(*joss));
+    CHECK(sim.questsToHandIn("joss").size() == 1);
+    const std::string picked = joss->choice[1].first;
+    const int before = sim.countItem(picked);
+    CHECK(sim.turnInQuest("joss_hares", 1));
+    CHECK(sim.countItem(picked) == before + 1);
+    CHECK(sim.countItem(joss->choice[0].first) == 0);
+    CHECK(sim.quests.at("joss_hares").state == 2);
+}

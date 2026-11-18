@@ -114,11 +114,40 @@ struct PropDef {
     std::string id, sprite;
     int w = 1, h = 1, frames = 1;
     int ox = 0;   // horizontal shift in pixels when drawn, for sprites whose foot is not in the middle (a flag pole)
+    int oy = 0;   // vertical shift in pixels when drawn (negative = higher), for things that sit on a table
     bool solid = true, flat = false, arch = false;
 };
 
 struct NpcDef {
     std::string id, name, sprite, tint, role, shop, text, town;
+    std::string building;              // id of the building they live or work in, empty = out in the street
+    std::vector<std::string> lines;    // small talk, one per conversation in turn
+    TilePos at{-1, -1};                // indoors: where they stand
+};
+
+// Furniture and fittings of a building's inside: [prop, column, row] on the interior map.
+struct PropPlace {
+    std::string prop;
+    int c = 0, r = 0;
+};
+
+// A kind of building (inn, bakery, home...): the size of its room and how it is furnished.
+struct InteriorDef {
+    std::string id, label;
+    int w = 14, h = 10;
+    std::string floor = "wood", wall = "wood";   // floor: wood | tile | dark | stone   wall: wood | brick | yellow | stone
+    std::vector<PropPlace> props;
+    TilePos hearth{-1, -1};            // a fireplace or oven to rest and cook at
+    std::string hearthSprite = "oven";
+};
+
+// One enterable building of a town. Its own extra furniture makes it different from others of its kind.
+struct BuildingDef {
+    std::string id, town, kind, name, sign;
+    std::string floor, wall;           // empty = the kind's
+    std::vector<PropPlace> props;      // added to the kind's
+    std::vector<std::string> remove;   // props of the kind this building does without ("prop@c,r" or "prop")
+    std::vector<std::string> npcs;     // ids of the people inside
 };
 
 struct TownDef {
@@ -127,6 +156,7 @@ struct TownDef {
     int radius = 10, houses = 2, stalls = 0;
     std::vector<std::string> features;
     std::vector<NpcDef> npcs;
+    std::vector<std::string> buildings;   // building ids, in the order of the plots around the square
     bool has(const std::string& f) const { return std::find(features.begin(), features.end(), f) != features.end(); }
 };
 
@@ -160,8 +190,10 @@ struct QuestDef {
     bool main = false;
     std::vector<std::string> requires_;
     std::vector<QuestObjective> objectives;
-    int xp = 0, gold = 0, rewardRarity = 0;
+    int xp = 0, gold = 0, rewardRarity = 0, level = 1;
     std::vector<std::pair<std::string, int>> items;
+    std::vector<std::pair<std::string, int>> choice;   // the hero picks one of these on handing in
+    std::string objectiveText;                          // the short "what to do" line of the quest window
 };
 
 // One node of the skill tree. Every rank adds `effects` (stat -> amount) to the hero.
@@ -171,6 +203,7 @@ struct SkillDef {
     double col = 1, row = 0;         // position in its branch: columns 0..2, rows from the top
     std::string requires_;           // skill id that must be learned first
     int requiresRank = 1;
+    std::string icon;                // sprite name of its icon
     std::vector<std::pair<std::string, double>> effects;
 };
 
@@ -227,6 +260,8 @@ class Database {
     const PropDef* prop(const std::string& id) const;
     const AffixDef* affix(const std::string& id) const;
     const SkillDef* skill(const std::string& id) const;
+    const BuildingDef* building(const std::string& id) const;
+    const InteriorDef* interior(const std::string& kind) const;
     int xpForLevel(int level) const;   // xp needed to go from `level` to the next
 
     Tuning tuning;
@@ -243,6 +278,8 @@ class Database {
     std::vector<QuestDef> quests;
     std::vector<ActionDef> actions;
     std::vector<BranchDef> branches;
+    std::vector<BuildingDef> buildings;
+    std::map<std::string, InteriorDef> interiors;
     std::vector<SkillDef> skills;
     std::map<std::string, ShopDef> shops;
     std::map<std::string, PropDef> props;

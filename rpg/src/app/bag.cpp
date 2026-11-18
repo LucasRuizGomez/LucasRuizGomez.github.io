@@ -398,7 +398,7 @@ void App::drawSkills() {
     closeButton(X + W - 40, Y + 14);
 
     const int nb = std::max<int>(1, static_cast<int>(db_.branches.size()));
-    const double colW = (W - 48 - (nb - 1) * 12.0) / nb, top = Y + 58, rowH = 84, nodeW = std::min(100.0, colW / 3 - 8), nodeH = 58;
+    const double colW = (W - 48 - (nb - 1) * 12.0) / nb, top = Y + 58, rowH = 86, nodeW = std::min(100.0, colW / 3 - 8), nodeH = 70;
     skillPos_.assign(db_.skills.size(), Vec2{0, 0});
     std::map<std::string, Vec2> centre;
     skillSel_ = std::clamp(skillSel_, 0, std::max(0, static_cast<int>(db_.skills.size()) - 1));
@@ -449,8 +449,14 @@ void App::drawSkills() {
         const Color fill = rank >= s.maxRank ? (br ? br->color.alpha(0.55) : pal::slotSel) : rank > 0 ? (br ? br->color.alpha(0.3) : pal::slotSel) : open ? pal::slot : Color(214, 198, 160);
         box(nx, ny, nodeW, nodeH, fill, sel ? pal::sel : open ? pal::gold : pal::line, sel ? 3 : open ? 2 : 1);
         if (open && !sel) box(nx - 2, ny - 2, nodeW + 4, nodeH + 4, Color(0, 0, 0, 0), Color(255, 210, 90, static_cast<uint8_t>(90 + 80 * std::sin(sim.tickCount * 0.12))), 1);
-        const auto lines = wrap(s.name, nodeW - 10, 12, 1);
-        for (size_t l = 0; l < lines.size() && l < 2; l++) text(lines[l], c.x, ny + 18 + l * 14.0, rank || open ? pal::text : pal::faint, 12, 1, Align::Center, Baseline::Middle);
+        // Icon (OwlishMedia) in an octagonal frame (Keiffer); greyed out until it can be learned
+        box(c.x - 16, ny + 4, 32, 32, rank ? (br ? br->color.alpha(0.85) : pal::gold) : Color(58, 44, 34), Color(0, 0, 0, 0));
+        if (!rank && !open) g_.setAlpha(0.35);
+        if (!s.icon.empty()) drawSpr(spr_.get(s.icon), c.x - 12, ny + 8, 24);
+        g_.setAlpha(1);
+        drawSpr(spr_.get("skill_frame"), c.x - 19, ny + 1, 38);
+        const auto lines = wrap(s.name, nodeW - 6, 11, 1);
+        if (!lines.empty()) text(lines.front(), c.x, ny + 47, rank || open ? pal::text : pal::faint, 11, 1, Align::Center, Baseline::Middle);
         for (int r = 0; r < s.maxRank; r++) {   // one pip per rank
             const double px = c.x - s.maxRank * 6 + r * 12 + 2;
             box(px, ny + nodeH - 13, 8, 8, r < rank ? pal::gold : Color(0, 0, 0, 0), r < rank ? pal::text : pal::faint, 1);

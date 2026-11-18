@@ -44,7 +44,7 @@
   // Multi-tile and decorative objects. w / h is the blocked footprint in tiles (bottom row = the object's row).
   "props": {
     "house_a":   { "sprite": "house_a",   "w": 5, "h": 3, "solid": true },
-    "house_b":   { "sprite": "house_b",   "w": 5, "h": 3, "solid": true },
+    "house_b":   { "sprite": "house_b_door", "w": 5, "h": 3, "solid": true },
     "hut":       { "sprite": "hut",       "w": 1, "h": 1, "solid": true },
     "stall":     { "sprite": "stall",     "w": 3, "h": 2, "solid": true },
     "fountain":  { "sprite": "fountain",  "w": 3, "h": 2, "solid": true, "frames": 3 },
@@ -74,62 +74,109 @@
     "lily":      { "sprite": "lily",      "w": 1, "h": 1, "solid": false, "flat": true },
     "fence":     { "sprite": "fence",     "w": 1, "h": 1, "solid": true },
     "menhir":    { "sprite": "menhir",    "w": 1, "h": 1, "solid": true },
-    "anvil":     { "sprite": "anvil",     "w": 1, "h": 1, "solid": true }
+    "anvil":     { "sprite": "anvil",     "w": 1, "h": 1, "solid": true },
+    // ── furniture inside buildings (config/buildings.json) ──
+    "table_big": { "sprite": "table_big", "w": 3, "h": 2, "solid": true },
+    "table_cloth": { "sprite": "table_cloth", "w": 3, "h": 2, "solid": true },
+    "bed_yellow": { "sprite": "bed_yellow", "w": 3, "h": 2, "solid": true },
+    "bed_purple": { "sprite": "bed_purple", "w": 3, "h": 2, "solid": true },
+    "chair_heart": { "sprite": "chair_heart", "w": 1, "h": 1, "solid": true },
+    "chair_side": { "sprite": "chair_side", "w": 1, "h": 1, "solid": true },
+    "chair_high": { "sprite": "chair_high", "w": 1, "h": 1, "solid": true },
+    "chair_back": { "sprite": "chair_back", "w": 1, "h": 1, "solid": true },
+    "window_in": { "sprite": "window_in", "w": 2, "h": 1, "solid": false, "oy": -2 },
+    "painting_small": { "sprite": "painting_small", "w": 1, "h": 1, "solid": false, "oy": -4 },
+    "painting_green": { "sprite": "painting_green", "w": 2, "h": 1, "solid": false, "oy": -4 },
+    "painting_night": { "sprite": "painting_night", "w": 2, "h": 1, "solid": false, "oy": -4 },
+    "painting_land": { "sprite": "painting_land", "w": 2, "h": 1, "solid": false, "oy": -4 },
+    "painting_portrait": { "sprite": "painting_portrait", "w": 1, "h": 1, "solid": false, "oy": -4 },
+    "painting_still": { "sprite": "painting_still", "w": 1, "h": 1, "solid": false, "oy": -4 },
+    "painting_map": { "sprite": "painting_map", "w": 1, "h": 1, "solid": false, "oy": -4 },
+    "painting_lake": { "sprite": "painting_lake", "w": 1, "h": 1, "solid": false, "oy": -2 },
+    "bottles": { "sprite": "bottles", "w": 1, "h": 1, "solid": false, "oy": -20 },
+    "plate": { "sprite": "plate", "w": 1, "h": 1, "solid": false, "oy": -20 },
+    "candle_plate": { "sprite": "candle_plate", "w": 1, "h": 1, "solid": false, "oy": -20 },
+    "pie": { "sprite": "pie", "w": 1, "h": 1, "solid": false, "oy": -20 },
+    "plates": { "sprite": "plates", "w": 1, "h": 1, "solid": false, "oy": -20 },
+    "book_open": { "sprite": "book_open", "w": 1, "h": 1, "solid": false, "oy": -20 },
+    "books": { "sprite": "books", "w": 1, "h": 1, "solid": false, "oy": -14 },
+    "counter": { "sprite": "counter", "w": 3, "h": 2, "solid": true },
+    "long_table": { "sprite": "long_table", "w": 3, "h": 1, "solid": true },
+    "bench_in": { "sprite": "bench_in", "w": 3, "h": 1, "solid": true },
+    "cupboard": { "sprite": "cupboard", "w": 3, "h": 2, "solid": true },
+    "drawers": { "sprite": "drawers", "w": 3, "h": 2, "solid": true },
+    "bookshelf": { "sprite": "bookshelf", "w": 3, "h": 1, "solid": true },
+    "wardrobe": { "sprite": "wardrobe", "w": 2, "h": 2, "solid": true },
+    "plant_big": { "sprite": "plant_big", "w": 1, "h": 1, "solid": true },
+    "pot": { "sprite": "pot", "w": 1, "h": 1, "solid": true },
+    "potplant": { "sprite": "potplant", "w": 1, "h": 1, "solid": true },
+    "flower_pot": { "sprite": "flower_pot", "w": 1, "h": 1, "solid": true },
+    "small_plant": { "sprite": "small_plant", "w": 1, "h": 1, "solid": true },
+    "bread": { "sprite": "bread", "w": 2, "h": 1, "solid": true },
+    "rug_green": { "sprite": "rug_green", "w": 3, "h": 3, "solid": false, "flat": true },
+    "rug_dark": { "sprite": "rug_dark", "w": 2, "h": 2, "solid": false, "flat": true },
+    "in_carpet": { "sprite": "in_carpet", "w": 2, "h": 2, "solid": false, "flat": true },
+    "candle": { "sprite": "candle", "w": 1, "h": 1, "solid": false, "oy": -18 },
+    "stairs_in": { "sprite": "stairs_in", "w": 2, "h": 2, "solid": true }
   },
 
-  // role: quest | merchant | stable | smith | herbalist. "shop" names an entry in "shops" below.
+  // People in the streets (people inside buildings are in buildings.json, and so are the buildings themselves).
+  // role: quest | merchant | stable | smith | herbalist | villager (the default). "shop" names an entry in "shops" below.
+  // "lines": what they say, one line per conversation, in turn.
   // "sprite" is a fortress-kit character (ch1..ch9), "tint" recolours it.
   "towns": [
-    { "id": "greenhollow", "name": "Greenhollow", "at": [44, 152], "radius": 13, "houses": 4, "stalls": 1, "zone": "vale", "music": "town_a",
+    { "id": "greenhollow", "name": "Greenhollow", "at": [44, 152], "radius": 20, "stalls": 1, "zone": "vale", "music": "town_a",
       "features": ["campfire", "waypoint", "fence", "start"],
       "npcs": [
         { "id": "warden", "name": "Warden Aldric", "sprite": "ch6", "role": "quest",
-          "text": "Welcome to Greenhollow. Chop trees, mine rocks and pick herbs with the Use key, then open Crafting. The fire roasts meat and forges iron, and resting there heals you. The world is wide: follow the roads, and read the signposts." },
+          "lines": ["Welcome to Greenhollow. Chop trees, mine rocks and pick herbs with the Use key, then open Crafting. The fire roasts meat and forges iron, and resting there heals you.", "Every door in the village is open to you. Talk to people. Half of them need help, and the other half need someone to listen.", "The bell in Highwatch rang again, they say. I was a boy the last time it rang. That year the dead walked as far as the Heartlands.", "I am the Warden of a village of farmers. If the Hollow King comes, I will need more than farmers."] },
         { "id": "mira", "name": "Huntress Mira", "sprite": "ch7", "role": "quest",
-          "text": "The vale feeds us, if you know how to hunt it. Boars charge, so step aside. Foxes do not give up." },
-        { "id": "merchant", "name": "Tobin the Trader", "sprite": "ch2", "role": "merchant", "shop": "vale_trader", "text": "" },
-        { "id": "hobb", "name": "Stablemaster Hobb", "sprite": "ch2", "tint": "#c8a878", "role": "stable", "shop": "vale_stable", "text": "" }
+          "lines": ["The vale feeds us, if you know how to hunt it. Boars charge, so step aside. Foxes do not give up.", "The animals are frightened. They come down from the hills in herds, as if something up there is driving them.", "Pip thinks I am the bravest person in the vale. I let him. Somebody has to be."] },
+        { "id": "merchant", "name": "Tobin the Trader", "sprite": "ch2", "role": "merchant", "shop": "vale_trader", "lines": ["Good morning, good morning! Swords, shields, a hot roast. Everything for the young adventurer.", "My wife Marta runs the shop by the square. If I do not have it, she does. If she does not have it, nobody does.", "I put a little aside every week, in case we have to leave. I hope we never have to leave."] },
+        { "id": "hobb", "name": "Stablemaster Hobb", "sprite": "ch2", "tint": "#c8a878", "role": "stable", "shop": "vale_stable", "lines": ["A boar is the finest mount in the vale. Ugly, stubborn and fast. Like me, forty years ago.", "The animals smell it before we do, whatever it is. My boars will not sleep at night.", "Highwatch breeds frost stags. And they say Inga has a bird up there big enough to ride. I will believe it when I see it."] },
+        { "id": "nell", "name": "Nell", "sprite": "ch7", "tint": "#f8d8b8", "lines": ["Do you want to play hide and seek? I am very good. Nobody ever finds me.", "Mama says if I am bad the Hollow King will take me. Is that true? I am mostly good.", "I saw a wolf at the edge of the fields. It looked at me. Then it ran away. Maybe it was scared of me."] },
+        { "id": "ulric", "name": "Guard Ulric", "sprite": "ch9", "tint": "#c0c8a0", "lines": ["Move along. Nothing to see. Well, nothing yet.", "I am supposed to watch the north road. I mostly watch the dark and hope it does not watch back.", "Sergeant Brenna is in the watchhouse if you want work. She always has work."] }
       ] },
-    { "id": "thornwick", "name": "Thornwick", "at": [52, 62], "radius": 11, "houses": 3, "stalls": 1, "zone": "deepwood", "music": "town_b",
+    { "id": "thornwick", "name": "Thornwick", "at": [52, 62], "radius": 20, "stalls": 1, "zone": "deepwood", "music": "town_b",
       "features": ["fountain", "campfire", "waypoint", "fence"],
       "npcs": [
         { "id": "rowan", "name": "Elder Rowan", "sprite": "ch6", "tint": "#a8c890", "role": "quest",
-          "text": "Thornwick has stood under these boughs for three hundred years. Lately the wood itself has turned on us." },
-        { "id": "sela", "name": "Sela the Herbalist", "sprite": "ch7", "tint": "#c8e0a0", "role": "herbalist", "shop": "herbalist",
-          "text": "" },
+          "lines": ["Thornwick has stood under these boughs for three hundred years. Lately the wood itself has turned on us.", "The old trees whisper at night. I used to find it soothing. Now I hear a name in it, over and over.", "We are a stubborn people. We will not leave the forest. But I fear the forest may leave us."] },
         { "id": "scout", "name": "Scout Edda", "sprite": "ch7", "tint": "#e0c8a0", "role": "quest",
-          "text": "I keep watch on the old road. Fewer travellers every season, and more things that bite." }
+          "lines": ["I keep watch on the old road. Fewer travellers every season, and more things that bite.", "Something big lives in the Rootcellar Burrow now. Roots move down there. The ground breathes.", "If you see smoke to the east, it means the watch fires are lit. That has not happened in my lifetime."] },
+        { "id": "ivo", "name": "Forester Ivo", "sprite": "ch1", "tint": "#90b878", "lines": ["Mind the roots. They were not across that path yesterday.", "I mark the trees that walk. Red paint. I am running out of red paint.", "Bram the woodcutter has the right idea. Keep the axe sharp and the fire high."] }
       ] },
-    { "id": "crossroads", "name": "Wayfarers' Rest", "at": [118, 112], "radius": 9, "houses": 2, "stalls": 1, "zone": "heartlands", "music": "town_c",
+    { "id": "crossroads", "name": "Wayfarers' Rest", "at": [118, 112], "radius": 15, "stalls": 1, "zone": "heartlands", "music": "town_c",
       "features": ["campfire", "waypoint"],
       "npcs": [
         { "id": "oswin", "name": "Pilgrim Oswin", "sprite": "ch6", "tint": "#d8d0f0", "role": "quest",
-          "text": "Every road in the realm crosses here. I walk them all, from shrine to shrine. The old stones still answer, if you touch them." },
-        { "id": "peddler", "name": "Road Peddler", "sprite": "ch2", "tint": "#e0b0a0", "role": "merchant", "shop": "road_peddler", "text": "" }
+          "lines": ["Every road in the realm crosses here. I walk them all, from shrine to shrine. The old stones still answer, if you touch them.", "The shrines are the seal on the Hollow King's prison, scattered over the realm like nails in a coffin lid.", "My feet hurt and my faith is tired. But I walk."] },
+        { "id": "peddler", "name": "Road Peddler", "sprite": "ch2", "tint": "#e0b0a0", "role": "merchant", "shop": "road_peddler", "lines": ["Bits and bobs from every corner of the realm! Prices fair, more or less.", "I came up from Saltmere. The coast road is full of smugglers and worse. Much worse.", "Buy now, while I still have a cart to sell from."] },
+        { "id": "pell", "name": "Pell the Drover", "sprite": "ch2", "tint": "#b8a070", "lines": ["I drove forty head of cattle east to Highwatch. They would not go past the river. Stood there, bellowing at the hills.", "Turned around and came back. Lost my pay, kept my cattle. Smart cattle.", "Ask Dorian at the inn if you want news. He hears everything."] }
       ] },
-    { "id": "saltmere", "name": "Saltmere", "at": [160, 168], "radius": 13, "houses": 5, "stalls": 2, "zone": "coast", "music": "town_harbor",
+    { "id": "saltmere", "name": "Saltmere", "at": [160, 166], "radius": 20, "stalls": 2, "zone": "coast", "music": "town_harbor",
       "features": ["fountain", "campfire", "forge", "waypoint", "fence"],
       "npcs": [
         { "id": "brine", "name": "Captain Brine", "sprite": "ch1", "tint": "#a0c0e0", "role": "quest",
-          "text": "Saltmere lives by its harbour, and the harbour is being bled dry. Smugglers, lad. A whole nest of them down the coast." },
-        { "id": "dagna", "name": "Dagna the Smith", "sprite": "ch7", "tint": "#e0a080", "role": "smith", "shop": "smith",
-          "text": "" },
-        { "id": "fishmonger", "name": "Old Fishmonger", "sprite": "ch2", "tint": "#b0d0d0", "role": "merchant", "shop": "harbor_market", "text": "" }
+          "lines": ["Saltmere lives by its harbour, and the harbour is being bled dry. Smugglers. A whole nest of them down the coast.", "Smugglers I can fight. But the ships that come in from the east with nobody aboard... those I just burn.", "Vey's salt caravan? It left on time. If it never reached the Rest, the coast road ate it."] },
+        { "id": "fishmonger", "name": "Old Fishmonger", "sprite": "ch2", "tint": "#b0d0d0", "role": "merchant", "shop": "harbor_market", "lines": ["Fresh fish! Well. Fish. It was fresh this morning.", "Thirty years I have sold fish on this quay. Never once did a fish look at me the way they look at me now.", "Try the Salty Gull. Maeve makes a stew that could raise the dead. Poor choice of words, these days."] },
+        { "id": "dockhand", "name": "Dockhand Bert", "sprite": "ch9", "tint": "#a8b8c8", "lines": ["Crates on, crates off. Mostly off, these days. Folk are leaving.", "My cousin works the smugglers' boats. Says they will not sail past the black rocks at night any more. Even smugglers have limits.", "Harbourmaster Ilse is fair. Tough, but fair. Help her and she will remember it."] }
       ] },
-    { "id": "fenwatch", "name": "Fenwatch", "at": [200, 108], "radius": 8, "houses": 1, "stalls": 0, "zone": "marsh", "music": "town_c",
+    { "id": "fenwatch", "name": "Fenwatch", "at": [200, 108], "radius": 15, "stalls": 1, "zone": "marsh", "music": "town_c",
       "features": ["campfire", "waypoint", "fence"],
       "npcs": [
         { "id": "voss", "name": "Quartermaster Voss", "sprite": "ch1", "tint": "#b0c0a0", "role": "quest",
-          "text": "This is the last dry ground before the Ashen Marsh. Mind the reeds. What hunts there, hunts quietly." },
-        { "id": "sutler", "name": "Camp Sutler", "sprite": "ch2", "tint": "#a0b090", "role": "merchant", "shop": "fen_sutler", "text": "" }
+          "lines": ["This is the last dry ground before the Ashen Marsh. Mind the reeds. What hunts there, hunts quietly.", "The Bog Warden was a knight of the old order, they say. The marsh took him and kept him. Now he keeps it.", "Supplies come slower every week. One more bad month and Fenwatch is abandoned."] },
+        { "id": "sutler", "name": "Camp Sutler", "sprite": "ch2", "tint": "#a0b090", "role": "merchant", "shop": "fen_sutler", "lines": ["Potions cost more out here. Blame the marsh, not me.", "I sell to soldiers. Soldiers pay, or they die before they can. Either way, I keep good books.", "The day the lantern at the inn goes out, I am packing my cart. Fair warning."] },
+        { "id": "tam", "name": "Tam the Refugee", "sprite": "ch2", "tint": "#a0a0a0", "lines": ["We came from a village east of the marsh. There is no village there now.", "They came at night. They did not burn anything. They just took everyone with them.", "I sleep in the barracks doorway. Sergeant Hale lets me. I do not sleep much."] }
       ] },
-    { "id": "highwatch", "name": "Highwatch", "at": [128, 34], "radius": 12, "houses": 4, "stalls": 1, "zone": "frost", "music": "town_b",
+    { "id": "highwatch", "name": "Highwatch", "at": [128, 34], "radius": 20, "stalls": 1, "zone": "frost", "music": "town_b",
       "features": ["fountain", "campfire", "forge", "waypoint", "towers"],
       "npcs": [
         { "id": "yrsa", "name": "Commander Yrsa", "sprite": "ch1", "tint": "#d0e0ff", "role": "quest",
-          "text": "Highwatch guards the pass. Beyond it, in the eastern peaks, the Hollow King sits on his throne of bones. No one I have sent has come back." },
-        { "id": "armorer", "name": "Bjarn the Armorer", "sprite": "ch7", "tint": "#c0d0e0", "role": "smith", "shop": "armorer", "text": "" },
-        { "id": "stablehand", "name": "Stablemaster Inga", "sprite": "ch2", "tint": "#d0e0f0", "role": "stable", "shop": "peak_stable", "text": "" }
+          "lines": ["Highwatch guards the pass. Beyond it, in the eastern peaks, the Hollow King sits on his throne of bones. No one I have sent has come back.", "I have a garrison of frightened soldiers and a bell that will not stop ringing. Give me one hero, and I will give you a kingdom's thanks.", "The Watch was founded to keep the Hollow King in his crypt. For three hundred years we did. I will not be the Commander who failed."] },
+        { "id": "stablehand", "name": "Stablemaster Inga", "sprite": "ch2", "tint": "#d0e0f0", "role": "stable", "shop": "peak_stable", "lines": ["Frost stags, sure-footed in snow. And for the bravest, a Great Roc, if you can pay and do not mind heights.", "The rocs nest above the pass. Even they will not fly east over the crypt. They circle and come back.", "Feed them, brush them, and never let them see you are afraid. Good advice for soldiers too."] },
+        { "id": "brann", "name": "Sentry Brann", "sprite": "ch5", "tint": "#d0dcf0", "lines": ["Halt. Oh. You are alive. Good. Carry on.", "Twelve hours on the wall, twelve hours under it. I count the bell rings. Nine this year.", "If the Hollow King walks down that pass, I am supposed to ring the warning bell. Funny, that. Another bell."] }
       ] }
   ],
 
@@ -183,6 +230,10 @@
                        "sell": { "iron": 3, "coal": 2, "hide": 2, "frost_shard": 6 } },
     "armorer":       { "title": "Armorer", "buy": [["knight_blade", 1, 60], ["frost_brand", 1, 100], ["champion_shield", 1, 110], ["plate_armor", 1, 120], ["great_helm", 1, 95], ["frost_treads", 1, 100], ["signet", 1, 50], ["potion", 1, 16]],
                        "sell": { "iron": 3, "coal": 2, "hide": 2, "frost_shard": 6 } },
+    "vale_store":    { "title": "Marta's Provisions", "buy": [["bandage", 1, 3], ["herb", 1, 2], ["meat", 1, 2], ["torch", 1, 5], ["arrows", 10, 6], ["leather_boots", 1, 14]],
+                       "sell": { "meat": 1, "herb": 1, "wood": 1, "stone": 1, "hide": 2 } },
+    "chandlery":     { "title": "Saltmere Chandlery", "buy": [["torch", 1, 5], ["bandage", 1, 3], ["potion", 1, 15], ["arrows", 10, 6], ["leather_boots", 1, 14], ["iron_greaves", 1, 42]],
+                       "sell": { "hide": 2, "wood": 1, "coal": 2, "bark": 3 } },
     "vale_stable":   { "title": "Stable", "buy": [["mount_boar", 1, 60]], "sell": {} },
     "peak_stable":   { "title": "Highwatch Stable", "buy": [["mount_stag", 1, 180], ["mount_roc", 1, 450]], "sell": {} }
   }

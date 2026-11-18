@@ -56,12 +56,8 @@ void Sim::updateFocus(Map& m) {
         std::string label;
         switch (o.kind) {
             case ObjKind::Chest: label = "Open"; break;
-            case ObjKind::Campfire: label = isNight() && m.outdoor ? "Sleep" : "Rest"; break;
-            case ObjKind::Npc: {
-                const NpcDef* n = db.npc(o.id);
-                label = n && !n->shop.empty() && npcMarker(o.id) != 1 && npcMarker(o.id) != 3 ? "Trade" : "Talk";
-                break;
-            }
+            case ObjKind::Campfire: label = isNight() && (m.outdoor || m.interior) ? "Sleep" : "Rest"; break;
+            case ObjKind::Npc: label = "Talk"; break;
             case ObjKind::Node: label = o.res == "stone" ? "Mine" : o.res == "iron" ? "Mine iron" : o.res == "coal" ? "Mine coal" : "Pick herb"; break;
             case ObjKind::Shrine: label = "Awaken"; break;
             case ObjKind::Waypoint: label = "Travel"; break;
@@ -131,7 +127,7 @@ void Sim::interact(Map& m) {
             P.hp = maxHp();
             play("heal");
             burst(o.c * TILE + 8, o.r * TILE + 4, Color(255, 179, 71), 12, 0.8, -0.03);
-            if (isNight() && m.outdoor)
+            if (isNight() && (m.outdoor || m.interior))
                 transition([this] {
                     sleepUntilMorning();
                     wantSave = true;

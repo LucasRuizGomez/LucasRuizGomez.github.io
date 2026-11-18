@@ -187,6 +187,57 @@ bool WorldView::propFor(Map& m, MapView& v, int c, int r, Prop& out) {
     return true;
 }
 
+// Inside a building: wooden boards, tiles or carpet underfoot, a two-tile wall face along the back,
+// dark wall tops elsewhere, and a doormat at the way out.
+void WorldView::drawInteriorTile(Map& m, const TileSet& T, int c, int r) {
+    const uint8_t t = m.get(c, r), below = m.get(c, r + 1), below2 = m.get(c, r + 2);
+    const double x = c * TILE, y = r * TILE, hv = hash2(c, r, 5);
+    auto floor = [&] {
+        const std::string& f = m.floorStyle;
+        if (f == "tile") g_.draw(spr_.get("in_floor_tile"), x, y);
+        else if (f == "dark") g_.drawPart(spr_.get("in_floor_dark"), {(c & 1) * 16, (r & 1) * 16, 16, 16}, x, y, 16, 16);
+        else if (f == "carpet") g_.drawPart(spr_.get("in_carpet"), {(c & 1) * 16, (r & 1) * 16, 16, 16}, x, y, 16, 16);
+        else if (f == "stone") g_.draw(T.slab[static_cast<int>(hv * 9)], x, y);
+        else {   // boards in rows of four, joints staggered
+            g_.fillRect(x, y, 16, 16, Color(146, 100, 62));
+            for (int k = 0; k < 4; k++) {
+                const double py = y + k * 4;
+                g_.fillRect(x, py + 3, 16, 1, Color(108, 70, 42));
+                const int joint = static_cast<int>(hash2(c, r * 4 + k, 77) * 16);
+                g_.fillRect(x + joint, py, 1, 3, Color(116, 78, 48));
+                if (hash2(c, r * 4 + k, 78) < 0.35) g_.fillRect(x + (joint + 7) % 14, py + 1, 2, 1, Color(166, 118, 76));
+            }
+        }
+    };
+    if (t == WALL) {
+        const bool lower = below != WALL && r + 1 < m.h, upper = below == WALL && below2 != WALL && r + 2 < m.h;
+        if ((lower || upper) && c > 0 && c < m.w - 1) {
+            const std::string& w = m.wallStyle;
+            if (w == "wood") g_.drawPart(spr_.get("in_wall_wood"), {(c % 3) * 16, upper ? 0 : 16, 16, 16}, x, y, 16, 16);
+            else if (w == "stone") g_.draw(upper ? T.brickHi[static_cast<int>(hv * 4)] : T.brickLo[static_cast<int>(hv * 4)], x, y);
+            else {
+                g_.draw(spr_.get(w == "yellow" ? "in_wall_yellow" : "in_wall_brick"), x, y);
+                if (lower) g_.fillRect(x, y + 13, 16, 3, Color(92, 62, 40));
+            }
+            if (upper) g_.fillRect(x, y, 16, 1, Color(30, 20, 16));
+            return;
+        }
+        g_.fillRect(x, y, 16, 16, Color(48, 34, 28));
+        const Color trim(96, 68, 48);
+        if (r + 1 < m.h && below != WALL) g_.fillRect(x, y + 13, 16, 3, trim);
+        if (c + 1 < m.w && m.get(c + 1, r) != WALL && r >= 3) g_.fillRect(x + 13, y, 3, 16, trim);
+        if (c > 0 && m.get(c - 1, r) != WALL && r >= 3) g_.fillRect(x, y, 3, 16, trim);
+        if (r > 0 && m.get(c, r - 1) != WALL) g_.fillRect(x, y, 16, 3, trim);
+        return;
+    }
+    floor();
+    if (t == STAIRS_DOWN) {   // the way out
+        g_.fillRect(x + 2, y + 2, 12, 12, Color(98, 36, 30));
+        g_.fillRect(x + 3, y + 3, 10, 10, Color(150, 58, 44));
+        g_.fillRect(x + 3, y + 7, 10, 1, Color(190, 120, 70));
+    }
+}
+
 void WorldView::bakeChunk(Map& m, MapView& v, int cx, int cy) {
     const size_t i = static_cast<size_t>(cy) * v.cw + cx;
     // Keep texture memory bounded on the big overworld: drop chunks far from this one
@@ -217,6 +268,10 @@ void WorldView::drawTile(Map& m, MapView& v, int c, int r) {
     const TileSet& T = tilesAt(m, v, c, r);
     const uint8_t below = m.get(c, r + 1), below2 = m.get(c, r + 2);
     auto solidWall = [](uint8_t w) { return w == WALL || w == DOOR; };
+    if (m.interior) {
+        drawInteriorTile(m, T, c, r);
+        return;
+    }
     switch (t) {
         case GRASS:
         case FLOWERS:
@@ -384,7 +439,7 @@ void WorldView::render(Sim& sim, int zoom, bool withActors) {
     g_.setTarget(nullptr);
     g_.setTransform(1);
     g_.setAlpha(1);
-    g_.clear(m.dark ? Color(7, 6, 11) : Color(33, 72, 42));
+    g_.clear(m.dark ? Color(7, 6, 11) : m.interior ? Color(20, 14, 12) : Color(33, 72, 42));
     g_.setTransform(zoom, offX, offY);
     for (int cy = r0 / CHUNK; cy <= (r1 - 1) / CHUNK && cy < v.ch; cy++)
         for (int cx = c0 / CHUNK; cx <= (c1 - 1) / CHUNK && cx < v.cw; cx++) g_.draw(v.chunks[static_cast<size_t>(cy) * v.cw + cx], cx * CHUNK * TILE, cy * CHUNK * TILE);
@@ -528,8 +583,8 @@ void WorldView::render(Sim& sim, int zoom, bool withActors) {
     // ── light and time of day ──
     if (m.dark) drawLighting(sim, m, zoom, 0.94, Color(6, 5, 12));
     else {
-        const double dk = sim.darkness(), h = sim.hourOfDay();
-        const double warm = std::max(0.0, 1 - std::abs(h - 18.6) / 1.4) + std::max(0.0, 1 - std::abs(h - 5.8) / 1.0);   // dusk and dawn
+        const double dk = m.interior ? 0 : sim.darkness(), h = sim.hourOfDay();   // lamps are lit indoors
+        const double warm = m.interior ? 0 : std::max(0.0, 1 - std::abs(h - 18.6) / 1.4) + std::max(0.0, 1 - std::abs(h - 5.8) / 1.0);   // dusk and dawn
         if (warm > 0.01) {
             g_.setTransform(1);
             g_.fillRect(0, 0, DW, DH, Color(255, 130, 60, static_cast<uint8_t>(255 * 0.12 * std::min(1.0, warm))));
@@ -571,7 +626,16 @@ void WorldView::drawObject(Sim& sim, Map& m, const Object& o) {
             const Sprite& img = fr.size() > 1 ? anim(fr, tick + o.c * 7, 9) : spr_.get(o.sprite);
             const PropDef* pd = db_.prop(o.id);
             if (pd && pd->flat) g_.draw(img, x + 8 - img.w / 2, y + 8 - img.h / 2);
-            else drawAt(img, x + 8 + (pd ? pd->ox : 0), y + 16 + (o.h > 1 ? 2 : 0));
+            else drawAt(img, x + 8 + (pd ? pd->ox : 0), y + 16 + (o.h > 1 && !m.interior ? 2 : 0) + (pd ? pd->oy : 0));
+            if (!o.text.empty() && m.outdoor) {   // a house's sign board: what the building is
+                const Sprite& ic = spr_.get(o.text).w ? spr_.get(o.text) : spr_.icon(o.text);
+                const double bx = x + 8 + 13, by = y - 13;
+                g_.fillRect(bx - 1, by - 3, 1, 3, Color(60, 40, 26));
+                g_.fillRect(bx + 13, by - 3, 1, 3, Color(60, 40, 26));
+                g_.fillRect(bx - 2, by, 17, 14, Color(60, 40, 26));
+                g_.fillRect(bx - 1, by + 1, 15, 12, Color(176, 128, 82));
+                if (ic.w) g_.draw(ic, bx, by + 1, 13, 12);
+            }
             break;
         }
         case ObjKind::Sign:
@@ -599,6 +663,14 @@ void WorldView::drawObject(Sim& sim, Map& m, const Object& o) {
             break;
         }
         case ObjKind::Campfire:
+            if (!o.sprite.empty()) {   // an oven or hearth indoors, with a fire in its mouth
+                const Sprite& ov = spr_.get(o.sprite);
+                drawAt(ov, x + 8, y + 16);
+                const Frames& fire = spr_.frames("fire");
+                if (!fire.empty()) g_.draw(anim(fire, tick, 7), x, y - 3);
+                if (tick % 11 == 0) sim.particles.push_back({x + 6 + frand() * 4, y - 2, (frand() - 0.5) * 0.2, -0.4, 0, 26, 1, Color(255, 179, 71)});
+                break;
+            }
             g_.draw(anim(spr_.campMeat, tick, 7), x - 8, y - 16);
             if (tick % 9 == 0) sim.particles.push_back({x + 6 + frand() * 4, y + 2, (frand() - 0.5) * 0.2, -0.4, 0, 30, 1, Color(255, 179, 71)});
             break;

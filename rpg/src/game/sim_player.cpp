@@ -115,6 +115,13 @@ void Sim::updatePlayer() {
         P.y = std::clamp(P.y + my * sp, 16.0, m.h * TILE - 8.0);
         P.animT++;
     } else if (P.moving) {
+        // Walking up to a doorway: ease the hero sideways into it so a door one tile wide is easy to hit
+        if (std::abs(my) > 0.5 && std::abs(mx) < 0.5)
+            for (const auto& l : m.links) {
+                const double dx = l.c * TILE + 8 - P.x;
+                const int tr = ifloor((P.y - 4) / TILE), ahead = my < 0 ? tr - 1 : tr + 1;
+                if ((l.r == ahead || l.r == tr) && std::abs(dx) < 11 && std::abs(dx) > 0.2 && m.get(l.c, l.r) == STAIRS_DOWN) P.x += std::clamp(dx, -1.0, 1.0);
+            }
         m.moveBox(P.x, P.y, mx * sp, my * sp, 4, 3, false);
         P.animT++;
         if (!P.mount.empty() && P.animT % 12 == 0) burst(P.x, P.y, Color(184, 154, 112), 2, 0.5, 0.03);

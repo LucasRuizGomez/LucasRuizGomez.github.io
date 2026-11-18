@@ -142,6 +142,9 @@ struct Map {
     int w = 0, h = 0;
     bool dark = false, outdoor = false;
     bool populated = false;   // dungeons: monsters were placed and stay put (dead ones too) until the hero goes back outside
+    bool interior = false;            // the inside of a town building
+    std::string floorStyle, wallStyle, town, subtitle;   // interiors: how they look, which town they belong to
+    std::map<std::string, TilePos> doors;                // overworld: building id -> its door tile
     const DungeonDef* dungeon = nullptr;
     std::vector<uint8_t> t, block, explored, zone, reach;
     std::vector<Object> objects;
@@ -200,6 +203,8 @@ struct WorldGenResult {
 };
 Map generateOverworld(const Database& db);
 Map generateDungeon(const Database& db, const DungeonDef& def, const Map& overworld);
+// The inside of a town building; `door` is its door tile on the overworld (the way back out is just below it).
+Map generateInterior(const Database& db, const BuildingDef& def, TilePos door);
 // Zone that a tile of the overworld belongs to.
 const ZoneDef& zoneAt(const Database& db, const Map& over, int c, int r);
 // Town whose grounds contain the tile, or null.

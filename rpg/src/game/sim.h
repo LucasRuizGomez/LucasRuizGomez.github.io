@@ -12,7 +12,7 @@
 
 namespace hc {
 
-enum class Mode { Title, Play, Pause, Inv, Craft, Shop, Sign, Quests, WorldMap, Travel, Dead, Victory, Skills };
+enum class Mode { Title, Play, Pause, Inv, Craft, Shop, Sign, Quests, WorldMap, Travel, Dead, Victory, Skills, Talk };
 enum class EquipSlot { Weapon, Shield, Armor, Trinket, Helm, Boots };
 constexpr int EQUIP_SLOTS = 6;
 
@@ -217,6 +217,16 @@ class Sim {
     std::vector<const QuestDef*> activeQuests() const;
     void questEvent(const std::string& type, const std::string& target, const std::string& alt = "");
     void talkTo(Object& npc);
+    // The conversation window: what this person has for you
+    std::vector<const QuestDef*> questsOffered(const std::string& npcId) const;    // new, can be accepted
+    std::vector<const QuestDef*> questsToHandIn(const std::string& npcId) const;   // done, reward waiting
+    std::vector<const QuestDef*> questsUnderway(const std::string& npcId) const;   // accepted, not finished yet
+    bool acceptQuest(const std::string& id);
+    bool turnInQuest(const std::string& id, int choice);                       // choice: index into QuestDef::choice
+    bool abandonQuest(const std::string& id);
+    void openShop(const std::string& npcId);
+    std::string talkNpc, talkLine;                    // who the hero is talking to, and what they just said
+    std::string questGiverTown(const QuestDef& q) const;
 
     // ── levels and the skill tree ──
     void gainXp(int amount);
@@ -296,7 +306,8 @@ class Sim {
     void sleepUntilMorning();
     bool land(bool quiet);                                        // leave a flying mount on the nearest free ground
     void addHeartShard();
-    void completeQuest(const QuestDef& q);
+    void completeQuest(const QuestDef& q, int choice = -1);
+    std::map<std::string, int> chats_;   // how often each person has been spoken to (they cycle through their lines)
     void autoEquip(const Item& it);
     Item* findUid(int uid);
     const Item* findUid(int uid) const;

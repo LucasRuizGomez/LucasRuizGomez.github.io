@@ -123,6 +123,17 @@ void App::runDebugSwitches() {
         sim_->setMountPick("mount_roc");
         sim_->P.mount = "mount_roc";
     }
+    if (const std::string who = param("talk"); !who.empty())   // open a conversation (add "offer" to see a quest offer)
+        for (auto& o : sim_->map().objects)
+            if (o.kind == ObjKind::Npc && o.id == who) {
+                sim_->talkTo(o);
+                prevMode_ = Mode::Talk;
+                const auto offered = sim_->questsOffered(who);
+                if (!param("offer").empty() && !offered.empty()) {
+                    talkView_ = TalkView::Offer;
+                    talkQuest_ = offered.front()->id;
+                }
+            }
     if (screen == "inv") sim_->mode = Mode::Inv;
     else if (screen == "skills") sim_->mode = Mode::Skills;
     else if (screen == "craft") sim_->mode = Mode::Craft;
@@ -409,10 +420,13 @@ void App::handleKey(const std::string& code, bool shift) {
         case Mode::Sign:
             if (enter || act == "interact" || code == "Escape" || code == "Space") sim.mode = Mode::Play;
             break;
+        case Mode::Talk: talkKey(code, dir, enter); break;
         case Mode::Quests: {
             const int n = static_cast<int>(sim.activeQuests().size());
             if (dir == "down") questSel_ = std::min(std::max(0, n - 1), questSel_ + 1);
             if (dir == "up") questSel_ = std::max(0, questSel_ - 1);
+            if (!dir.empty()) confirmAbandon_ = false;
+            if (code == "KeyX" || code == "Delete") questKeyAbandon();
             if (act == "map") setMode(Mode::WorldMap);
             else if (act == "quests" || code == "Escape" || enter) sim.mode = Mode::Play;
             break;
@@ -529,7 +543,7 @@ void App::handleInput() {
     for (const auto& c : in_.clicks) handleClick(c);
     for (const auto& r : in_.releases)
         if (sim.mode == Mode::Inv && !sim.fade) invRelease(r.x / ui_, r.y / ui_);
-    if (in_.wheel != 0 && (sim.mode == Mode::Craft || sim.mode == Mode::Shop || sim.mode == Mode::Quests || sim.mode == Mode::Travel || sim.mode == Mode::Pause || sim.mode == Mode::Title))
+    if (in_.wheel != 0 && (sim.mode == Mode::Talk || sim.mode == Mode::Craft || sim.mode == Mode::Shop || sim.mode == Mode::Quests || sim.mode == Mode::Travel || sim.mode == Mode::Pause || sim.mode == Mode::Title))
         handleKey(in_.wheel < 0 ? "ArrowDown" : "ArrowUp", false);
     if (in_.lostFocus && sim.mode == Mode::Play && !sim.fade && platform::queryParam("shot").empty() && platform::queryParam("autostart").empty()) openPause();
 }
@@ -632,6 +646,7 @@ void App::render() {
             if (sim.mode == Mode::Inv) drawInventory();
             if (sim.mode == Mode::Craft) drawCrafting();
             if (sim.mode == Mode::Skills) drawSkills();
+            if (sim.mode == Mode::Talk) drawTalk();
             if (sim.mode == Mode::Shop) drawShop();
             if (sim.mode == Mode::Sign) drawSign();
             if (sim.mode == Mode::Quests) drawQuests();
@@ -676,6 +691,12 @@ void App::frame() {
         n++;
     }
     if (n == 6) acc_ = 0;
+    if (sim_->mode == Mode::Talk && prevMode_ != Mode::Talk) {   // a new conversation starts at its menu
+        talkView_ = TalkView::Menu;
+        talkSel_ = 0;
+    }
+    if (sim_->mode == Mode::Quests && prevMode_ != Mode::Quests) confirmAbandon_ = false;
+    prevMode_ = sim_->mode;
     for (const auto& s : sim_->sfx) audio_.play(s);
     sim_->sfx.clear();
     if (sim_->wantSave) {

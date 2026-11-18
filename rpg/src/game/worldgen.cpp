@@ -190,14 +190,27 @@ struct OverworldGen {
             m.addObject(std::move(wp));
         }
 
-        // Houses around the square, each with a cobbled path from its door
-        static const int HOUSE[5][2] = {{-8, -4}, {8, -4}, {-9, 6}, {9, 6}, {0, -8}};
-        for (int i = 0; i < std::min(t.houses, 5); i++) {
-            const int hc = tc + HOUSE[i][0], hr = tr + HOUSE[i][1];
+        // Buildings around the square, nearest plots first, each with a cobbled path from its door.
+        // The door tile is a way in: it links to the building's own interior map.
+        static const int PLOT[9][2] = {{0, -9}, {-9, -4}, {9, -4}, {-10, 6}, {10, 6}, {-16, -3}, {16, -3}, {-12, 12}, {12, 12}};
+        int plot = 0;
+        for (size_t bi = 0; bi < t.buildings.size(); bi++) {
+            const BuildingDef* bd = db.building(t.buildings[bi]);
+            if (!bd) continue;
+            while (plot < 9 && hypot2(PLOT[plot][0], PLOT[plot][1]) + 3 > R) plot++;
+            if (plot >= 9) break;
+            const int hc = tc + PLOT[plot][0], hr = tr + PLOT[plot][1];
+            plot++;
             for (int r = hr - 5; r <= hr + 1; r++)
                 for (int c = hc - 3; c <= hc + 3; c++)
                     if (inner(c, r) && m.get(c, r) != PLAZA) m.set(c, r, GRASS);
-            if (!placeProp(i % 2 ? "house_b" : "house_a", hc, hr)) continue;
+            if (!placeProp(bi % 2 ? "house_b" : "house_a", hc, hr)) continue;
+            m.objects.back().text = bd->sign;   // the little board over the door
+            m.objects.back().res = bd->id;
+            m.set(hc, hr, STAIRS_DOWN);
+            m.block[m.idx(hc, hr)] = 0;
+            m.links.push_back({hc, hr, "b_" + bd->id, -1, -1, Dir::Up});
+            m.doors[bd->id] = {hc, hr};
             int c = hc, r = hr + 1;
             for (int guard = 0; guard < 40 && (std::abs(c - tc) > pw || std::abs(r - tr) > ph); guard++) {
                 if (m.get(c, r) == GRASS) m.set(c, r, COBBLE);
@@ -205,7 +218,7 @@ struct OverworldGen {
                 else if (r != tr) r += sign(tr - r);
                 else c += sign(tc - c);
             }
-            placeProp(i % 2 ? "barrel" : "crate", hc + 3, hr);
+            placeProp(bi % 2 ? "barrel" : "crate", hc + 3, hr);
             if (hash2(hc, hr, S + 70) < 0.6) placeProp("plant", hc - 3, hr);
         }
 

@@ -171,6 +171,26 @@ class App {
     void drawSkills();
     void skillMove(const std::string& dir);
 
+    // ── conversations and the quest log (talk.cpp) ──
+    enum class TalkView { Menu, Offer, Progress, Complete } talkView_ = TalkView::Menu;
+    struct TalkOption {
+        std::string icon, label;
+        Color col;
+        std::function<void()> act;
+    };
+    std::string talkQuest_;
+    int talkSel_ = 0, rewardPick_ = 0, questScroll_ = 0;
+    bool confirmAbandon_ = false;
+    Mode prevMode_ = Mode::Title;
+    std::vector<TalkOption> talkOptions();
+    void talkKey(const std::string& code, const std::string& dir, bool enter);
+    void drawTalk();
+    std::string questStatus(const QuestDef& q) const;
+    double drawObjectives(const QuestDef& q, double x, double y, double w, bool progress);
+    double drawRewards(const QuestDef& q, double x, double y, double w, int pick, bool choosing);
+    std::vector<const QuestDef*> questLogList() const;
+    void questKeyAbandon();
+
     // ── menus (menus.cpp) ──
     enum class TitleView { Main, Load, NewGame, Settings, Credits } titleView_ = TitleView::Main;
     enum class PauseView { Main, Settings, Controls } pauseView_ = PauseView::Main;

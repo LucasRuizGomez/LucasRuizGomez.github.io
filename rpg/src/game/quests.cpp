@@ -73,7 +73,7 @@ void Sim::questEvent(const std::string& type, const std::string& target, const s
     }
 }
 
-void Sim::completeQuest(const QuestDef& q) {
+void Sim::completeQuest(const QuestDef& q, int choice) {
     for (const auto& o : q.objectives)
         if (o.type == "collect") removeItem(o.item, o.count);
     quests[q.id].state = 2;
@@ -82,11 +82,16 @@ void Sim::completeQuest(const QuestDef& q) {
         addItem({"gold", q.gold});
         got += "+" + std::to_string(q.gold) + " gold";
     }
-    for (const auto& [id, qty] : q.items) {
+    auto give = [&](const std::string& id, int qty) {
         const ItemDef& def = db.item(id);
         Item it = def.isGear() ? makeGear(id, q.rewardRarity, 1.5) : Item{id, qty};
         got += (got.empty() ? "+" : ", +") + (qty > 1 ? std::to_string(qty) + " " : std::string()) + itemName(it);
         if (!addItem(it)) dropItem(map(), it, P.x, P.y + 6);
+    };
+    for (const auto& [id, qty] : q.items) give(id, qty);
+    if (!q.choice.empty()) {
+        const auto& [id, qty] = q.choice[std::clamp(choice, 0, static_cast<int>(q.choice.size()) - 1)];
+        give(id, qty);
     }
     play("questDone");
     toast("Quest complete: " + q.title + (got.empty() ? "" : " · " + got), Color(123, 224, 138));
@@ -94,55 +99,90 @@ void Sim::completeQuest(const QuestDef& q) {
     wantSave = true;
 }
 
+std::vector<const QuestDef*> Sim::questsOffered(const std::string& npcId) const {
+    std::vector<const QuestDef*> out;
+    for (const auto& q : db.quests)
+        if (q.giver == npcId && questAvailable(q)) out.push_back(&q);
+    return out;
+}
+
+std::vector<const QuestDef*> Sim::questsToHandIn(const std::string& npcId) const {
+    std::vector<const QuestDef*> out;
+    for (const auto& q : db.quests)
+        if (q.turnIn == npcId && questReady(q)) out.push_back(&q);
+    return out;
+}
+
+std::vector<const QuestDef*> Sim::questsUnderway(const std::string& npcId) const {
+    std::vector<const QuestDef*> out;
+    for (const auto& q : db.quests) {
+        auto it = quests.find(q.id);
+        if (it != quests.end() && it->second.state == 1 && !questReady(q) && (q.turnIn == npcId || q.giver == npcId)) out.push_back(&q);
+    }
+    return out;
+}
+
+bool Sim::acceptQuest(const std::string& id) {
+    const QuestDef* q = db.quest(id);
+    if (!q || !questAvailable(*q)) return false;
+    QuestState st;
+    st.state = 1;
+    st.counts.assign(q->objectives.size(), 0);
+    quests[q->id] = st;
+    toast("Quest accepted: " + q->title, Color(242, 210, 122));
+    play("quest");
+    wantSave = true;
+    // Already where the quest sends you, or talking to the person it wants you to meet? Count it now.
+    if (!townId.empty()) questEvent("visit", townId);
+    if (!talkNpc.empty()) questEvent("talk", talkNpc);
+    return true;
+}
+
+bool Sim::turnInQuest(const std::string& id, int choice) {
+    const QuestDef* q = db.quest(id);
+    if (!q || !questReady(*q)) return false;
+    completeQuest(*q, choice);
+    return true;
+}
+
+bool Sim::abandonQuest(const std::string& id) {
+    const QuestDef* q = db.quest(id);
+    auto it = quests.find(id);
+    if (!q || it == quests.end() || it->second.state != 1) return false;
+    quests.erase(it);
+    toast("Quest abandoned: " + q->title + ". Its giver will offer it again.", Color(200, 190, 170));
+    play("deny");
+    wantSave = true;
+    return true;
+}
+
+void Sim::openShop(const std::string& npcId) {
+    const NpcDef* def = db.npc(npcId);
+    if (!def || def->shop.empty()) return;
+    shopId = def->shop;
+    signTitle = def->name;
+    mode = Mode::Shop;
+    play("uiOpen");
+}
+
+std::string Sim::questGiverTown(const QuestDef& q) const {
+    if (const NpcDef* n = db.npc(q.giver))
+        if (const TownDef* t = db.town(n->town)) return t->name;
+    return "";
+}
+
+// Speaking to someone opens the conversation window: a line of their own, then what they have for you
 void Sim::talkTo(Object& npc) {
     const NpcDef* def = db.npc(npc.id);
     if (!def) return;
     npc.face = P.x < npc.c * TILE + 8 ? -1 : 1;
+    talkNpc = npc.id;
     questEvent("talk", npc.id);
     signTitle = def->name;
-    // 1. a quest to hand in here
-    for (const auto& q : db.quests)
-        if (q.turnIn == npc.id && questReady(q)) {
-            completeQuest(q);
-            signText = q.done;
-            mode = Mode::Sign;
-            return;
-        }
-    // 2. a new quest on offer
-    for (const auto& q : db.quests)
-        if (q.giver == npc.id && questAvailable(q)) {
-            QuestState st;
-            st.state = 1;
-            st.counts.assign(q.objectives.size(), 0);
-            quests[q.id] = st;
-            toast("New quest: " + q.title, Color(242, 210, 122));
-            play("quest");
-            signText = q.offer;
-            mode = Mode::Sign;
-            wantSave = true;
-            // Already somewhere the quest sends you? Count it straight away.
-            if (!townId.empty()) questEvent("visit", townId);
-            return;
-        }
-    // 3. shops open directly once there is nothing new to say
-    if (!def->shop.empty()) {
-        shopId = def->shop;
-        mode = Mode::Shop;
-        play("uiOpen");
-        return;
-    }
-    // 4. a quest in progress
-    for (const auto& q : db.quests) {
-        auto it = quests.find(q.id);
-        if (it == quests.end() || it->second.state != 1 || (q.turnIn != npc.id && q.giver != npc.id)) continue;
-        signText = q.turnIn == npc.id || q.progress.empty() ? q.progress : q.progress;
-        for (size_t i = 0; i < q.objectives.size(); i++)
-            signText += " (" + q.objectives[i].label + ": " + std::to_string(objectiveProgress(q, i)) + " / " + std::to_string(q.objectives[i].count) + ")";
-        mode = Mode::Sign;
-        return;
-    }
-    signText = def->text.empty() ? "..." : def->text;
-    mode = Mode::Sign;
+    const int n = chats_[npc.id]++;
+    talkLine = def->lines.empty() ? (def->text.empty() ? "..." : def->text) : def->lines[static_cast<size_t>(n) % def->lines.size()];
+    mode = Mode::Talk;
+    play("uiOpen");
 }
 
 }   // namespace hc

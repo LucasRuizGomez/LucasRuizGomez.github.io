@@ -30,7 +30,8 @@ The simulation never calls into the app. Everything it wants to tell the outside
 |---|---|
 | `defs.h/.cpp` | `Database`: the contents of `config/*.json` as structs. Loaded once, never changed |
 | `world.h`, `map.cpp` | `Map` and what lives on it (objects, enemies, projectiles, drops), plus collision and pathfinding |
-| `worldgen.cpp` | Builds the overworld and every dungeon from a seed |
+| `worldgen.cpp` | Builds the overworld (towns with a door on every building) and every dungeon from a seed |
+| `interiors.cpp` | Builds the inside of each town building from `buildings.json` |
 | `sim.h` | `Sim`: the whole running game. The methods are implemented across the `sim_*.cpp` files below |
 | `sim_core.cpp` | Lifecycle, the tick, camera, spawning (dungeons refill only after the hero has been outside), day and night, the skill tree |
 | `sim_player.cpp` | Movement, attacks, rolling, Whirlwind, mounts (including flight) |
@@ -38,7 +39,7 @@ The simulation never calls into the app. Everything it wants to tell the outside
 | `sim_interact.cpp` | Chests, gathering, shrines, doors, traps |
 | `inventory.cpp` | Bag, the six equipment slots, throwing things away, stats, crafting, shops |
 | `loot.cpp` | Gear rarity and random bonuses |
-| `quests.cpp` | Quest availability, progress and rewards |
+| `quests.cpp` | Conversations, quest availability, accepting, abandoning, progress and rewards |
 | `save.cpp` | Saves as JSON, with a version number; older versions are refused rather than half-loaded |
 
 **Determinism.** World generation only uses `Rng` (mulberry32) and the integer noise in `core/rng.cpp`, so a seed gives the same world on every platform. The seed is in `config/game.json`.

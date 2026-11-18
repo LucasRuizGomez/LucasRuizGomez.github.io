@@ -2,7 +2,7 @@
   // The skill tree. Every level gives "skillPointsPerLevel" points (game.json); each rank of a skill costs one.
   // branch: one of "branches". pos: [column 0..2, row from the top] inside the branch.
   // requires: [skill, rank] that must be learned first. level: hero level needed for the first rank.
-  // effects: what each rank adds. Stats:
+  // icon: sprite shown on the node (config/sprites.json). effects: what each rank adds. Stats:
   //   dmg (melee and crossbow damage), hp (half hearts), ward (damage blocked from strong hits),
   //   speed (% movement), crit (% chance of a double hit), leech (% chance to heal half a heart on a kill),
   //   bow (crossbow damage), roll (% shorter dodge cooldown), heal (% more from healing items),
@@ -15,43 +15,43 @@
     { "id": "wild",   "label": "Cunning",   "color": "#4fae5a", "desc": "Speed, the crossbow, and a nose for loot." }
   ],
   "skills": [
-    { "id": "strength",    "branch": "might", "pos": [1, 0], "name": "Strength",    "ranks": 3, "effects": { "dmg": 1 },
+    { "id": "strength", "icon": "owl_strengthen",    "branch": "might", "pos": [1, 0], "name": "Strength",    "ranks": 3, "effects": { "dmg": 1 },
       "desc": "+1 damage with every blow and bolt." },
-    { "id": "whirlwind",   "branch": "might", "pos": [0, 1], "name": "Whirlwind",   "ranks": 1, "requires": ["strength", 1], "effects": { "whirl": 1 },
+    { "id": "whirlwind", "icon": "owl_shuriken",   "branch": "might", "pos": [0, 1], "name": "Whirlwind",   "ranks": 1, "requires": ["strength", 1], "effects": { "whirl": 1 },
       "desc": "Learn the spinning attack: one blow that hits everything around you." },
-    { "id": "precision",   "branch": "might", "pos": [2, 1], "name": "Precision",   "ranks": 2, "requires": ["strength", 1], "effects": { "crit": 6 },
+    { "id": "precision", "icon": "owl_eagle_eye",   "branch": "might", "pos": [2, 1], "name": "Precision",   "ranks": 2, "requires": ["strength", 1], "effects": { "crit": 6 },
       "desc": "+6% chance to strike twice as hard." },
-    { "id": "cyclone",     "branch": "might", "pos": [0, 2], "name": "Cyclone",     "ranks": 2, "requires": ["whirlwind", 1], "level": 5, "effects": { "whirlcd": 20, "whirldmg": 25 },
+    { "id": "cyclone", "icon": "owl_wind",     "branch": "might", "pos": [0, 2], "name": "Cyclone",     "ranks": 2, "requires": ["whirlwind", 1], "level": 5, "effects": { "whirlcd": 20, "whirldmg": 25 },
       "desc": "Whirlwind recharges 20% faster and hits 25% harder." },
-    { "id": "bloodlust",   "branch": "might", "pos": [2, 2], "name": "Bloodlust",   "ranks": 1, "requires": ["precision", 1], "level": 6, "effects": { "leech": 25 },
+    { "id": "bloodlust", "icon": "owl_berserk",   "branch": "might", "pos": [2, 2], "name": "Bloodlust",   "ranks": 1, "requires": ["precision", 1], "level": 6, "effects": { "leech": 25 },
       "desc": "25% chance to heal half a heart on every kill." },
-    { "id": "warlord",     "branch": "might", "pos": [1, 3], "name": "Warlord",     "ranks": 1, "requires": ["strength", 3], "level": 9, "effects": { "dmg": 2, "crit": 5 },
+    { "id": "warlord", "icon": "owl_brave",     "branch": "might", "pos": [1, 3], "name": "Warlord",     "ranks": 1, "requires": ["strength", 3], "level": 9, "effects": { "dmg": 2, "crit": 5 },
       "desc": "+2 damage and +5% critical chance." },
 
-    { "id": "vitality",    "branch": "guard", "pos": [1, 0], "name": "Vitality",    "ranks": 3, "effects": { "hp": 2 },
+    { "id": "vitality", "icon": "owl_heal",    "branch": "guard", "pos": [1, 0], "name": "Vitality",    "ranks": 3, "effects": { "hp": 2 },
       "desc": "+1 heart of maximum health." },
-    { "id": "bulwark",     "branch": "guard", "pos": [0, 1], "name": "Bulwark",     "ranks": 2, "requires": ["vitality", 1], "effects": { "ward": 1 },
+    { "id": "bulwark", "icon": "owl_shield",     "branch": "guard", "pos": [0, 1], "name": "Bulwark",     "ranks": 2, "requires": ["vitality", 1], "effects": { "ward": 1 },
       "desc": "Block 1 more damage from strong hits." },
-    { "id": "herbalism",   "branch": "guard", "pos": [2, 1], "name": "Field Medic", "ranks": 2, "requires": ["vitality", 1], "effects": { "heal": 25 },
+    { "id": "herbalism", "icon": "owl_medicine",   "branch": "guard", "pos": [2, 1], "name": "Field Medic", "ranks": 2, "requires": ["vitality", 1], "effects": { "heal": 25 },
       "desc": "Bandages, food and potions heal 25% more." },
-    { "id": "regen",       "branch": "guard", "pos": [0, 2], "name": "Second Wind", "ranks": 2, "requires": ["bulwark", 1], "level": 5, "effects": { "regen": 1 },
+    { "id": "regen", "icon": "owl_regen",       "branch": "guard", "pos": [0, 2], "name": "Second Wind", "ranks": 2, "requires": ["bulwark", 1], "level": 5, "effects": { "regen": 1 },
       "desc": "Out of combat, slowly heal half a heart at a time." },
-    { "id": "ironhide",    "branch": "guard", "pos": [2, 2], "name": "Iron Hide",   "ranks": 1, "requires": ["herbalism", 1], "level": 7, "effects": { "hp": 1, "ward": 1 },
+    { "id": "ironhide", "icon": "owl_cuirass",    "branch": "guard", "pos": [2, 2], "name": "Iron Hide",   "ranks": 1, "requires": ["herbalism", 1], "level": 7, "effects": { "hp": 1, "ward": 1 },
       "desc": "+half a heart and block 1 more damage." },
-    { "id": "colossus",    "branch": "guard", "pos": [1, 3], "name": "Colossus",    "ranks": 1, "requires": ["vitality", 3], "level": 10, "effects": { "hp": 2, "ward": 1 },
+    { "id": "colossus", "icon": "owl_stone",    "branch": "guard", "pos": [1, 3], "name": "Colossus",    "ranks": 1, "requires": ["vitality", 3], "level": 10, "effects": { "hp": 2, "ward": 1 },
       "desc": "+1 heart and block 1 more damage." },
 
-    { "id": "fleetfoot",   "branch": "wild",  "pos": [1, 0], "name": "Fleet Foot",  "ranks": 2, "effects": { "speed": 5 },
+    { "id": "fleetfoot", "icon": "owl_boots",   "branch": "wild",  "pos": [1, 0], "name": "Fleet Foot",  "ranks": 2, "effects": { "speed": 5 },
       "desc": "+5% movement speed." },
-    { "id": "marksman",    "branch": "wild",  "pos": [0, 1], "name": "Marksman",    "ranks": 3, "requires": ["fleetfoot", 1], "effects": { "bow": 1 },
+    { "id": "marksman", "icon": "owl_crossbow",    "branch": "wild",  "pos": [0, 1], "name": "Marksman",    "ranks": 3, "requires": ["fleetfoot", 1], "effects": { "bow": 1 },
       "desc": "+1 crossbow damage." },
-    { "id": "tumbler",     "branch": "wild",  "pos": [2, 1], "name": "Tumbler",     "ranks": 2, "requires": ["fleetfoot", 1], "effects": { "roll": 25 },
+    { "id": "tumbler", "icon": "owl_swift",     "branch": "wild",  "pos": [2, 1], "name": "Tumbler",     "ranks": 2, "requires": ["fleetfoot", 1], "effects": { "roll": 25 },
       "desc": "Dodge again 25% sooner." },
-    { "id": "scavenger",   "branch": "wild",  "pos": [2, 2], "name": "Scavenger",   "ranks": 2, "requires": ["tumbler", 1], "level": 4, "effects": { "gold": 25, "loot": 40 },
+    { "id": "scavenger", "icon": "owl_pouch",   "branch": "wild",  "pos": [2, 2], "name": "Scavenger",   "ranks": 2, "requires": ["tumbler", 1], "level": 4, "effects": { "gold": 25, "loot": 40 },
       "desc": "Monsters drop 25% more gold and gear more often." },
-    { "id": "sharpshooter","branch": "wild",  "pos": [0, 2], "name": "Sharpshooter","ranks": 1, "requires": ["marksman", 2], "level": 6, "effects": { "bow": 2, "crit": 4 },
+    { "id": "sharpshooter", "icon": "owl_eye","branch": "wild",  "pos": [0, 2], "name": "Sharpshooter","ranks": 1, "requires": ["marksman", 2], "level": 6, "effects": { "bow": 2, "crit": 4 },
       "desc": "+2 crossbow damage and +4% critical chance." },
-    { "id": "windrunner",  "branch": "wild",  "pos": [1, 3], "name": "Windrunner",  "ranks": 1, "requires": ["fleetfoot", 2], "level": 9, "effects": { "speed": 10, "roll": 15 },
+    { "id": "windrunner", "icon": "owl_lightning",  "branch": "wild",  "pos": [1, 3], "name": "Windrunner",  "ranks": 1, "requires": ["fleetfoot", 2], "level": 9, "effects": { "speed": 10, "roll": 15 },
       "desc": "+10% movement speed and dodge 15% sooner." }
   ]
 }

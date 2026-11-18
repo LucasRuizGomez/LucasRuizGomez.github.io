@@ -1,0 +1,332 @@
+{
+  // What is inside every town building, and who is there.
+  //
+  // kinds: the room of each kind of building. size [w, h] in tiles, walls included: the back wall is rows 0..2,
+  //   the floor runs from row 3 to h-2, and the door out is in the middle of the bottom row (column w/2).
+  //   floor: wood | tile | dark | carpet | stone      wall: wood | brick | yellow | stone
+  //   props: [prop, column, row] with props from world.json (row = the bottom row of the prop's footprint;
+  //   pictures and windows go on row 2, the wall). Things that sit on tables come after the table.
+  //   hearth: [column, row] of an oven or fireplace (rest, sleep at night, cook and forge).
+  //
+  // buildings: in each town's list, the order is the order of the plots around the square (nearest first).
+  //   sign: icon on the board over the door. props: extra furniture; remove: kind props it does without.
+  //   npcs: the people inside, like the NPCs in world.json plus "at": [column, row].
+  //   Everyone talks: "lines" are said one per conversation, in turn.
+  "kinds": {
+    "home": { "label": "Home", "size": [14, 10], "floor": "wood", "wall": "wood", "hearth": [11, 7],
+      "props": [["window_in", 4, 2], ["painting_land", 10, 2], ["bed_yellow", 2, 4], ["drawers", 11, 4], ["rug_green", 5, 7],
+                ["table_big", 5, 6], ["plate", 5, 6], ["chair_side", 3, 6], ["plant_big", 1, 8], ["pot", 12, 8]] },
+    "inn": { "label": "Inn", "size": [18, 11], "floor": "wood", "wall": "brick", "hearth": [14, 3],
+      "props": [["window_in", 4, 2], ["painting_night", 9, 2], ["window_in", 11, 2], ["barrel", 1, 3], ["barrel2", 2, 3],
+                ["counter", 4, 5], ["bottles", 3, 5], ["plates", 5, 5], ["rug_dark", 9, 6],
+                ["long_table", 12, 6], ["pie", 12, 6], ["plate", 13, 6], ["bench_in", 12, 7],
+                ["table_cloth", 5, 8], ["candle_plate", 5, 8], ["chair_side", 3, 8], ["chair_back", 7, 8],
+                ["bed_purple", 15, 9], ["plant_big", 16, 5]] },
+    "bakery": { "label": "Bakery", "size": [14, 10], "floor": "tile", "wall": "brick", "hearth": [3, 3],
+      "props": [["window_in", 7, 2], ["painting_still", 11, 2], ["bread", 6, 3], ["sack", 9, 3], ["sack", 10, 3], ["barrel", 12, 3],
+                ["counter", 9, 6], ["pie", 8, 6], ["plate", 10, 6], ["table_big", 3, 7], ["plates", 3, 7], ["flower_pot", 12, 8]] },
+    "smithy": { "label": "Forge", "size": [14, 10], "floor": "stone", "wall": "stone", "hearth": [3, 3],
+      "props": [["barrel", 6, 3], ["crate", 7, 3], ["crate2", 8, 3], ["long_table", 10, 5], ["books", 10, 5],
+                ["barrel2", 1, 8], ["drawers", 11, 8]] },
+    "store": { "label": "Shop", "size": [16, 10], "floor": "wood", "wall": "wood",
+      "props": [["window_in", 6, 2], ["painting_map", 10, 2], ["bookshelf", 3, 3], ["barrel", 6, 3], ["barrel2", 10, 3], ["crate", 11, 3],
+                ["bookshelf", 13, 3], ["counter", 8, 5], ["bottles", 7, 5], ["books", 9, 5], ["cupboard", 3, 7], ["drawers", 13, 7],
+                ["sack", 1, 8], ["crate2", 14, 8]] },
+    "herbalist": { "label": "Apothecary", "size": [14, 10], "floor": "dark", "wall": "wood", "hearth": [11, 3],
+      "props": [["painting_lake", 5, 2], ["bookshelf", 3, 3], ["potplant", 6, 3], ["flower_pot", 7, 3], ["small_plant", 8, 3],
+                ["in_carpet", 9, 6], ["table_cloth", 5, 7], ["bottles", 4, 7], ["candle_plate", 6, 7], ["potplant", 12, 5],
+                ["plant_big", 1, 8], ["plant_big", 12, 8]] },
+    "chapel": { "label": "Chapel", "size": [16, 12], "floor": "stone", "wall": "yellow",
+      "props": [["painting_portrait", 4, 2], ["painting_lake", 12, 2], ["flower_pot", 6, 3], ["flower_pot", 10, 3], ["statue", 8, 4],
+                ["pillar", 4, 5], ["pillar", 12, 5], ["rug_dark", 8, 7], ["bench_in", 5, 7], ["bench_in", 11, 7],
+                ["bench_in", 5, 9], ["bench_in", 11, 9]] },
+    "barracks": { "label": "Barracks", "size": [16, 10], "floor": "stone", "wall": "stone", "hearth": [8, 3],
+      "props": [["painting_map", 5, 2], ["window_in", 11, 2], ["bed_purple", 3, 4], ["bed_purple", 12, 4],
+                ["long_table", 4, 7], ["plate", 4, 7], ["bench_in", 4, 8], ["crate2", 14, 6], ["barrel", 13, 8], ["crate", 14, 8]] },
+    "fishery": { "label": "Fish house", "size": [14, 10], "floor": "wood", "wall": "wood", "hearth": [3, 3],
+      "props": [["painting_lake", 5, 2], ["barrel", 6, 3], ["barrel2", 7, 3], ["barrel", 8, 3], ["sack", 11, 3], ["crate", 12, 3],
+                ["long_table", 10, 6], ["pie", 9, 6], ["plate", 11, 6], ["crate2", 1, 8], ["barrel2", 12, 8]] },
+    "library": { "label": "Library", "size": [14, 10], "floor": "dark", "wall": "wood",
+      "props": [["painting_map", 5, 2], ["painting_portrait", 9, 2], ["bookshelf", 3, 3], ["bookshelf", 7, 3], ["bookshelf", 11, 3],
+                ["table_cloth", 7, 6], ["book_open", 6, 6], ["candle_plate", 8, 6], ["chair_high", 5, 6], ["chair_heart", 9, 6],
+                ["drawers", 2, 8], ["plant_big", 12, 8]] }
+  },
+
+  "buildings": [
+    // ───────────── Greenhollow ─────────────
+    { "id": "gh_inn", "town": "greenhollow", "kind": "inn", "name": "The Mossy Tankard", "sign": "owl_rest",
+      "npcs": [
+        { "id": "bess", "name": "Innkeeper Bess", "sprite": "ch7", "tint": "#e8c0a0", "at": [6, 4],
+          "lines": ["Sit, sit. A warm seat and a cold ale, that is what the Tankard is for.",
+                    "Three families came down from the north road this week. They would not say what they ran from, only that the nights up there have gone wrong.",
+                    "I keep the fire high until dawn now. Folk say the Hollow King's riders hate the light. I do not know if that is true, but it costs me only wood.",
+                    "My larder is half empty. Hunters will not go far from the village since the howling started."] },
+        { "id": "corwin", "name": "Old Corwin", "sprite": "ch6", "tint": "#b8b0a8", "at": [10, 6],
+          "lines": ["When I was a boy the Hollow King was a story to make children eat their turnips. Now the turnips do not grow.",
+                    "My son went to Highwatch to join the Watch. He writes that the bell in the pass rings by itself at midnight.",
+                    "Drink with me, stranger. Nobody else will, since I started talking about the crown in my dreams."] } ] },
+    { "id": "gh_bakery", "town": "greenhollow", "kind": "bakery", "name": "Hearth & Crust", "sign": "bread",
+      "npcs": [
+        { "id": "hilde", "name": "Hilde the Baker", "sprite": "ch7", "tint": "#f4dcc0", "at": [6, 5],
+          "lines": ["Mind the oven, it bites. Fresh loaves at dawn, if the wood holds out.",
+                    "The flour cart from the Heartlands is late again. Bandits, they say. I say it is something worse that makes bandits run.",
+                    "I bake a little extra every night and leave it on the step. For whoever is still out there. You never know."] } ] },
+    { "id": "gh_chapel", "town": "greenhollow", "kind": "chapel", "name": "Chapel of the Dawn", "sign": "owl_light",
+      "npcs": [
+        { "id": "anselm", "name": "Brother Anselm", "sprite": "ch6", "tint": "#e0dcf4", "at": [8, 5],
+          "lines": ["Peace be on you. The Dawn keeps no locks on its door.",
+                    "The old texts say the Hollow King was a good king once. He feared death so much that he made a bargain with it. Now death wears his crown.",
+                    "Every night more candles. Every morning fewer people come to light them. Fear is a heavier thing than faith.",
+                    "The shrines along the roads were raised against him, long ago. If they wake again, perhaps so will our courage."] } ] },
+    { "id": "gh_miller", "town": "greenhollow", "kind": "home", "name": "The Miller's Cottage",
+      "props": [["sack", 9, 3], ["sack", 9, 8], ["painting_still", 7, 2]],
+      "npcs": [
+        { "id": "joss", "name": "Farmer Joss", "sprite": "ch2", "tint": "#c8a878", "at": [9, 5],
+          "lines": ["Hares. A plague of hares. They have had half my cabbages and laughed at me doing it.",
+                    "My grandfather said the animals go mad when the Hollow King stirs. I used to think that was the ale talking.",
+                    "If the harvest fails this year, the whole vale goes hungry by spring."] } ] },
+    { "id": "gh_weaver", "town": "greenhollow", "kind": "home", "name": "Ottilie's Loom House", "sign": "owl_scroll",
+      "remove": ["bed_yellow"], "props": [["bed_purple", 2, 4], ["in_carpet", 9, 7], ["painting_portrait", 7, 2]],
+      "npcs": [
+        { "id": "ottilie", "name": "Ottilie the Weaver", "sprite": "ch7", "tint": "#d0b8e8", "at": [8, 4],
+          "lines": ["Wool, linen, leather if I can get it. Everyone wants thick cloaks this year.",
+                    "I wove a banner for the Warden with the old sun on it. He laughed, then hung it anyway. Folk need something to look at that is not the dark.",
+                    "My hands shake when I hear wolves. I keep weaving. It is that or sit and shake."] } ] },
+    { "id": "gh_tobin", "town": "greenhollow", "kind": "home", "name": "Tobin's House",
+      "remove": ["drawers"], "props": [["wardrobe", 11, 4], ["potplant", 12, 5], ["painting_green", 7, 2]],
+      "npcs": [
+        { "id": "pip", "name": "Little Pip", "sprite": "ch2", "tint": "#f0e0b0", "at": [9, 5],
+          "lines": ["Are you a knight? You have a sword. Knights have swords.",
+                    "Papa sells things in the square. Mama says not to talk about the skeleton king or I will have bad dreams. I already have bad dreams.",
+                    "Mira the huntress is the bravest person in the whole vale. Even braver than you, probably."] } ] },
+    { "id": "gh_hall", "town": "greenhollow", "kind": "barracks", "name": "Warden's Watchhouse", "sign": "owl_shield",
+      "npcs": [
+        { "id": "brenna", "name": "Sergeant Brenna", "sprite": "ch9", "tint": "#c8d0a8", "at": [10, 6],
+          "lines": ["Six spears to guard a whole vale. Six. The rest went north to Highwatch and did not come back.",
+                    "Bandits on the east road are getting bolder. Either they are desperate, or something is driving them our way.",
+                    "If the Hollow King's dead ever reach the vale, this watchhouse is the last wall. It is a very thin wall."] } ] },
+    { "id": "gh_store", "town": "greenhollow", "kind": "store", "name": "Marta's Provisions", "sign": "owl_shop",
+      "npcs": [
+        { "id": "marta", "name": "Marta the Grocer", "sprite": "ch7", "tint": "#e0b8a0", "role": "merchant", "shop": "vale_store", "at": [10, 6],
+          "lines": ["Bandages, herbs, torches. Everything a sensible person carries. Most people are not sensible.",
+                    "Torches sell out every evening now. Nobody wants to walk home in the dark.",
+                    "My Tobin works the stall outside; I keep the shop. Between us we keep Pip in boots."] } ] },
+    { "id": "gh_gaffer", "town": "greenhollow", "kind": "home", "name": "Old Wendel's Hut",
+      "remove": ["table_big", "plate", "chair_side", "rug_green"], "props": [["bookshelf", 6, 3], ["table_cloth", 6, 7], ["candle_plate", 6, 7], ["chair_high", 4, 7]],
+      "npcs": [
+        { "id": "wendel", "name": "Gaffer Wendel", "sprite": "ch6", "tint": "#b8a890", "at": [9, 5],
+          "lines": ["Sit down, sit down. I have a story, and you have legs that need resting.",
+                    "Three hundred years ago King Aurel ruled from the eastern peaks. He found a crown in the deep vaults, a crown that never let its wearer die. That was the end of King Aurel and the start of the Hollow King.",
+                    "His knights followed him into death. They guard the crypt still, they say, in rusted armour, waiting for orders that only he can give.",
+                    "My knees ache when the cold comes down from the peaks. They have ached all year."] } ] },
+
+    // ───────────── Thornwick ─────────────
+    { "id": "th_inn", "town": "thornwick", "kind": "inn", "name": "The Rootbound Inn", "sign": "owl_rest",
+      "remove": ["painting_night"], "props": [["painting_green", 9, 2], ["potplant", 1, 9]],
+      "npcs": [
+        { "id": "fenna", "name": "Innkeeper Fenna", "sprite": "ch7", "tint": "#b0d098", "at": [6, 4],
+          "lines": ["Welcome to the Rootbound. Watch your head on the beams; the forest grows into the walls.",
+                    "Wolves took the Hadley's goat right off its tether. In daylight. Wolves were never that bold.",
+                    "Elder Rowan says the trees themselves are restless. I believe him. The floorboards creak at night as if something walks beneath them."] } ] },
+    { "id": "th_apothecary", "town": "thornwick", "kind": "herbalist", "name": "Sela's Apothecary", "sign": "owl_leaf",
+      "npcs": [
+        { "id": "sela", "name": "Sela the Herbalist", "sprite": "ch7", "tint": "#c8e0a0", "role": "herbalist", "shop": "herbalist", "at": [9, 5],
+          "lines": ["Every root and leaf in Deepwood has a use. Most of them are poison.",
+                    "Nightshade is blooming in winter. That is not right. Something is poisoning the soil from far away, from the east.",
+                    "Bring me herbs and I will turn them into something that keeps you breathing."] } ] },
+    { "id": "th_lodge", "town": "thornwick", "kind": "home", "name": "Woodcutter's Lodge", "sign": "owl_axe",
+      "props": [["crate", 9, 3], ["barrel2", 8, 8]],
+      "npcs": [
+        { "id": "bram", "name": "Bram the Woodcutter", "sprite": "ch1", "tint": "#a88868", "at": [9, 5],
+          "lines": ["Thirty years I have cut these woods. Never once did a stump stand up and walk away.",
+                    "The stumplings came the same week the bell rang in Highwatch. Coincidence, the Elder says. I say the dead king is waking the dead wood.",
+                    "I sharpen my axe every evening now. Not for trees."] } ] },
+    { "id": "th_library", "town": "thornwick", "kind": "library", "name": "The Elder's Archive", "sign": "owl_book",
+      "npcs": [
+        { "id": "maelis", "name": "Archivist Maelis", "sprite": "ch6", "tint": "#c8b8e8", "at": [10, 5],
+          "lines": ["Quiet, please. These books are older than the forest outside.",
+                    "The wayside shrines are not decorations. They are wards, raised by the knights who sealed the Hollow King away. Some have gone dark.",
+                    "Every chronicle ends the same way: the crown cannot be destroyed, only its bearer. And its bearer cannot die. You see the problem."] } ] },
+    { "id": "th_cabin", "town": "thornwick", "kind": "home", "name": "Hunter's Cabin",
+      "remove": ["painting_land"], "props": [["painting_lake", 10, 2], ["crate2", 9, 8]],
+      "npcs": [
+        { "id": "gideon", "name": "Gideon the Hunter", "sprite": "ch3", "tint": "#a8b888", "at": [9, 5],
+          "lines": ["Wolf tracks all round the village every morning. They are circling. Wolves circle when they are hungry, or when they are herded.",
+                    "I put an arrow in a wolf last week. It kept coming. Its eyes were white as frost.",
+                    "If you are heading into the deep wood, go in daylight and come back before dark. That is not advice. That is a rule."] } ] },
+    { "id": "th_kiln", "town": "thornwick", "kind": "smithy", "name": "The Charcoal Kiln", "sign": "owl_hammer",
+      "npcs": [
+        { "id": "odo", "name": "Odo the Charcoal Burner", "sprite": "ch2", "tint": "#8a7a68", "at": [5, 5],
+          "lines": ["Wood and stone in, charcoal out. Smoky work, honest work.",
+                    "Highwatch buys every sack of coal I make. They burn fires all night along the wall up there.",
+                    "My kiln has not gone out in a month. I am afraid of what the dark might bring if it did."] } ] },
+
+    // ───────────── Wayfarers' Rest ─────────────
+    { "id": "wr_inn", "town": "crossroads", "kind": "inn", "name": "The Crossed Roads", "sign": "owl_rest",
+      "remove": ["bed_purple"], "props": [["bed_yellow", 15, 9]],
+      "npcs": [
+        { "id": "dorian", "name": "Innkeep Dorian", "sprite": "ch1", "tint": "#d8b890", "at": [6, 4],
+          "lines": ["Every road meets here, and every rumour too. I hear them all, whether I want to or not.",
+                    "Fewer travellers each month. The ones who come are going west, away from the peaks. Nobody goes east any more.",
+                    "Bandits stopped a wagon of mine a mile from here. Took the barrels and left the driver tied to a tree. Bold."] },
+        { "id": "lysa", "name": "Lysa the Bard", "sprite": "ch7", "tint": "#f0b8c8", "at": [10, 6],
+          "lines": ["Shall I sing of the Hollow King? No? Nobody wants that one any more. It used to be my best song.",
+                    "I am writing a new ballad. It needs a hero. Are you applying for the position?",
+                    "In Saltmere they say the sea gives up its dead when the bell rings. That is a better story than anything I have written."] } ] },
+    { "id": "wr_post", "town": "crossroads", "kind": "store", "name": "The Caravan Post", "sign": "owl_chest",
+      "npcs": [
+        { "id": "vey", "name": "Caravan Master Vey", "sprite": "ch2", "tint": "#c8a8d8", "at": [10, 6],
+          "lines": ["Goods in, goods out, and a fee for the trouble. That is the caravan trade.",
+                    "My salt caravan from Saltmere is overdue by nine days. Nine. Captain Brine would know if it left.",
+                    "Merchants are hoarding iron. When merchants hoard iron, they expect a war."] } ] },
+    { "id": "wr_chapel", "town": "crossroads", "kind": "chapel", "name": "Wayside Chapel", "sign": "owl_light",
+      "remove": ["bench_in@5,9", "bench_in@11,9"], "props": [["potplant", 2, 9], ["potplant", 14, 9]],
+      "npcs": [
+        { "id": "morwen", "name": "Sister Morwen", "sprite": "ch7", "tint": "#ecebff", "at": [8, 5],
+          "lines": ["Rest your feet, pilgrim. The road is long and the light is short.",
+                    "Pilgrim Oswin walks shrine to shrine. He says three have gone cold since spring. Each cold shrine is a door the dark can walk through.",
+                    "I pray for the soldiers at Highwatch every night. And for the Hollow King. Someone should."] } ] },
+    { "id": "wr_ferry", "town": "crossroads", "kind": "home", "name": "The Ferryman's House",
+      "props": [["barrel2", 9, 3], ["painting_lake", 7, 2]],
+      "npcs": [
+        { "id": "tull", "name": "Tull the Ferryman", "sprite": "ch6", "tint": "#98b0b8", "at": [9, 5],
+          "lines": ["I ferried folk across the river for forty years. Now the river is shallow enough to wade and nobody needs me.",
+                    "The deer have gone strange, running in herds through the fields at night as if chased. Good meat on them, though.",
+                    "Saw a light under the water last week, cold and blue. I did not go closer. I am old, not stupid."] } ] },
+    { "id": "wr_mason", "town": "crossroads", "kind": "smithy", "name": "The Mason's Yard", "sign": "owl_hammer",
+      "remove": ["books"], "props": [["sack", 12, 3]],
+      "npcs": [
+        { "id": "agna", "name": "Agna the Mason", "sprite": "ch7", "tint": "#b8a890", "at": [5, 5],
+          "lines": ["Stone does not lie, does not rot, does not run. Good stone outlives kings.",
+                    "Highwatch wants their wall raised two more courses. I need stone, and lots of it.",
+                    "I carved the crest on the old crypt gate when I was an apprentice. My master made me swear never to go back. I never have."] } ] },
+
+    // ───────────── Saltmere ─────────────
+    { "id": "sm_inn", "town": "saltmere", "kind": "inn", "name": "The Salty Gull", "sign": "owl_rest",
+      "floor": "dark", "props": [["barrel", 16, 7]],
+      "npcs": [
+        { "id": "maeve", "name": "Maeve of the Gull", "sprite": "ch7", "tint": "#a8c8e8", "at": [6, 4],
+          "lines": ["Fish stew, sea shanties and a roof that only leaks a little. Welcome to the Gull.",
+                    "Smugglers drink here sometimes. I do not ask, they do not tell, and they pay in silver.",
+                    "The tide came in black last full moon. Black as ink. The old fishers would not put out to sea for three days."] } ] },
+    { "id": "sm_forge", "town": "saltmere", "kind": "smithy", "name": "Dagna's Forge", "sign": "owl_sword",
+      "npcs": [
+        { "id": "dagna", "name": "Dagna the Smith", "sprite": "ch7", "tint": "#e0a080", "role": "smith", "shop": "smith", "at": [5, 5],
+          "lines": ["Iron, coal and a strong arm. The rest is patience.",
+                    "Highwatch sends for more spearheads every week. I do not like what that says.",
+                    "Steel cuts bandits. Does it cut the dead? Ask me again when someone comes back to tell me."] } ] },
+    { "id": "sm_fish", "town": "saltmere", "kind": "fishery", "name": "Net & Hook", "sign": "owl_water",
+      "npcs": [
+        { "id": "oskar", "name": "Oskar the Fisher", "sprite": "ch2", "tint": "#b8d8d8", "at": [5, 6],
+          "lines": ["Smell that? That is the smell of honest work. And of fish. Mostly fish.",
+                    "My nets come up empty, or worse, full of bones. Old bones, wrapped in old armour.",
+                    "The grouse on the dunes have gone vicious. They go for the eyes. Never seen birds like it."] } ] },
+    { "id": "sm_harbour", "town": "saltmere", "kind": "home", "name": "Harbourmaster's House",
+      "remove": ["bed_yellow"], "props": [["bed_purple", 2, 4], ["painting_map", 7, 2], ["drawers", 3, 8]],
+      "npcs": [
+        { "id": "ilse", "name": "Harbourmaster Ilse", "sprite": "ch1", "tint": "#a0b8d8", "at": [9, 5],
+          "lines": ["Every ship in and out of Saltmere goes in my ledger. The ledger has been very thin this year.",
+                    "We need iron to mend the harbour chains. Without them, the smugglers' boats slip in and out as they please.",
+                    "A ship came in from the east with no crew. Sails set, rudder tied. Captain Brine burned it in the bay."] } ] },
+    { "id": "sm_tides", "town": "saltmere", "kind": "chapel", "name": "Shrine of the Tides", "sign": "owl_light",
+      "floor": "dark", "props": [["barrel2", 2, 9]],
+      "npcs": [
+        { "id": "corin", "name": "Tidepriest Corin", "sprite": "ch6", "tint": "#a0e0d0", "at": [8, 5],
+          "lines": ["The sea gives, the sea takes. Lately it has been giving back what it took. Drowned men walk the vaults to the east.",
+                    "The Hollow King's power is death that will not end. The drowned are his, now. Every one of them.",
+                    "Pray with me, or fight for me. Either helps."] } ] },
+    { "id": "sm_widow", "town": "saltmere", "kind": "home", "name": "The Net-Mender's Cottage",
+      "remove": ["table_big", "plate", "rug_green"], "props": [["table_cloth", 5, 6], ["candle_plate", 5, 6], ["in_carpet", 8, 7]],
+      "npcs": [
+        { "id": "agathe", "name": "Widow Agathe", "sprite": "ch7", "tint": "#c8c8c8", "at": [9, 5],
+          "lines": ["Mend nets, mend sails, mend hearts. Only the first two pay.",
+                    "My Henrick sailed with Captain Brine's convoy last winter. Smugglers took the ship. They say he went over the side.",
+                    "Sometimes I see a man on the beach at night who walks like Henrick. I do not go down there. I am afraid of what I would find."] } ] },
+    { "id": "sm_chandlery", "town": "saltmere", "kind": "store", "name": "Saltmere Chandlery", "sign": "owl_shop",
+      "npcs": [
+        { "id": "rufus", "name": "Rufus the Chandler", "sprite": "ch2", "tint": "#d8b890", "role": "merchant", "shop": "chandlery", "at": [10, 6],
+          "lines": ["Rope, lamp oil, tar, boots. Everything a sailor needs and nothing a sailor can afford.",
+                    "Business is good, which is how you know times are bad. Everyone is buying torches and leaving town.",
+                    "I sell boots to people walking west. Nobody buys boots to walk east."] } ] },
+
+    // ───────────── Fenwatch ─────────────
+    { "id": "fw_barracks", "town": "fenwatch", "kind": "barracks", "name": "Fenwatch Barracks", "sign": "owl_shield",
+      "npcs": [
+        { "id": "hale", "name": "Sergeant Hale", "sprite": "ch9", "tint": "#98a888", "at": [10, 6],
+          "lines": ["Fenwatch was built to watch the marsh. Now the marsh is watching us.",
+                    "Stalkers. Pale things in the reeds. They wait until you are knee-deep in mud, then they come.",
+                    "I had twelve men. I have seven. Every one I lost, the marsh kept."] } ] },
+    { "id": "fw_inn", "town": "fenwatch", "kind": "inn", "name": "The Last Lantern", "sign": "owl_rest",
+      "wall": "wood", "remove": ["window_in"], "props": [["painting_land", 4, 2]],
+      "npcs": [
+        { "id": "rook", "name": "Rook the Innkeeper", "sprite": "ch1", "tint": "#a8a888", "at": [6, 4],
+          "lines": ["The Last Lantern. Last dry bed, last hot meal, last friendly face before the marsh.",
+                    "We keep a lantern in the window all night. The day it goes out is the day we leave.",
+                    "The walking trees out there shed a bark that burns slow and warm. Worth more than gold this close to the fen."] } ] },
+    { "id": "fw_hut", "town": "fenwatch", "kind": "herbalist", "name": "Mother Bryn's Hut", "sign": "owl_leaf",
+      "floor": "wood", "npcs": [
+        { "id": "bryn", "name": "Mother Bryn", "sprite": "ch7", "tint": "#90a878", "at": [9, 5],
+          "lines": ["Come in, come in, mind the cat. There is no cat. I just like to say it.",
+                    "Marsh herbs keep the fever off. The soldiers need every leaf I can brew.",
+                    "The Hollow King? I knew a woman who saw him once, in a dream. She woke with frost in her hair. In summer."] } ] },
+    { "id": "fw_bunk", "town": "fenwatch", "kind": "home", "name": "Scouts' Bunkhouse",
+      "remove": ["bed_yellow", "table_big", "plate", "chair_side"], "props": [["bed_purple", 2, 4], ["bed_purple", 6, 4], ["long_table", 5, 7], ["crate", 9, 8]],
+      "npcs": [
+        { "id": "ash", "name": "Scout Ash", "sprite": "ch3", "tint": "#a8b898", "at": [9, 5],
+          "lines": ["Crows. Big ones. They follow the dead like gulls follow a fishing boat.",
+                    "I mapped the way to the drowned vaults. Took three tries. Lost a good bow on the second.",
+                    "Some nights I hear marching out in the fen. Iron boots in the mud. Nobody is there."] } ] },
+
+    // ───────────── Highwatch ─────────────
+    { "id": "hw_hall", "town": "highwatch", "kind": "barracks", "name": "Commander's Hall", "sign": "owl_shield",
+      "props": [["painting_portrait", 8, 2]],
+      "npcs": [
+        { "id": "torvald", "name": "Captain Torvald", "sprite": "ch9", "tint": "#d0e0ff", "at": [10, 6],
+          "lines": ["The Commander holds the pass. I hold the Commander's patience. Both are wearing thin.",
+                    "Hollow knights came down the ridge two nights ago. Rusted armour, empty helms, and they did not stop when we cut them.",
+                    "If you are going to the crypt, you will pass their patrols. Thin them out and you save my sentries a long night."] } ] },
+    { "id": "hw_armoury", "town": "highwatch", "kind": "smithy", "name": "Bjarn's Armoury", "sign": "owl_helm",
+      "npcs": [
+        { "id": "armorer", "name": "Bjarn the Armorer", "sprite": "ch7", "tint": "#c0d0e0", "role": "smith", "shop": "armorer", "at": [5, 5],
+          "lines": ["Plate, mail, a good helm. The dead hit hard and do not tire.",
+                    "Frost shards from the peaks make the finest edges. Cold steel for cold enemies.",
+                    "I armoured three hundred soldiers this year. I buried forty of them. Make your armour count."] } ] },
+    { "id": "hw_inn", "town": "highwatch", "kind": "inn", "name": "The Frozen Flagon", "sign": "owl_rest",
+      "wall": "stone", "props": [["barrel2", 16, 7]],
+      "npcs": [
+        { "id": "sigrun", "name": "Sigrun of the Flagon", "sprite": "ch7", "tint": "#e0e8ff", "at": [6, 4],
+          "lines": ["Mead, hot and spiced. The only warm thing within twenty miles.",
+                    "The soldiers drink and do not talk. When they do talk, it is about the bell.",
+                    "My brother went into the Frostpeak Mine to dig for shards. The miners came back wrong. He did not come back at all."] } ] },
+    { "id": "hw_chapel", "town": "highwatch", "kind": "chapel", "name": "Chapel of the Last Light", "sign": "owl_light",
+      "npcs": [
+        { "id": "elowen", "name": "Priestess Elowen", "sprite": "ch6", "tint": "#f4e8ff", "at": [8, 5],
+          "lines": ["This chapel was built by the knights who first sealed the crypt. Their names are on the walls, and below the floor.",
+                    "The seal is failing. Every shrine that goes dark, the Hollow King grows stronger.",
+                    "I do not sleep any more. When I close my eyes I see a throne of bones, and it is empty, and it is waiting."] } ] },
+    { "id": "hw_miner", "town": "highwatch", "kind": "home", "name": "Miners' Rest",
+      "props": [["crate", 9, 3], ["barrel", 9, 8], ["sack", 12, 6]],
+      "npcs": [
+        { "id": "gunnar", "name": "Gunnar the Miner", "sprite": "ch2", "tint": "#b8c8d8", "at": [9, 5],
+          "lines": ["Forty years down the Frostpeak Mine. I know every tunnel by the sound of my boots.",
+                    "We broke into an old chamber in spring. Cold came out. Then the lads started changing. Pale. Quiet. Hungry.",
+                    "They are not my friends any more. Whatever wears their faces, put it to rest. Please."] } ] },
+    { "id": "hw_archive", "town": "highwatch", "kind": "library", "name": "The Watch Archive", "sign": "owl_book",
+      "npcs": [
+        { "id": "aldous", "name": "Scribe Aldous", "sprite": "ch6", "tint": "#c8d0e8", "at": [10, 5],
+          "lines": ["The Watch has kept records for three centuries. Every death, every sighting, every bell.",
+                    "The bell in the pass was forged from the Hollow King's own armour. It rings when he stirs. It has rung nine times this year.",
+                    "Ice hawks carry messages for the dead, the old soldiers say. Nonsense, of course. Though they do circle the crypt."] } ] },
+    { "id": "hw_lodge", "town": "highwatch", "kind": "home", "name": "Trapper's Lodge",
+      "remove": ["painting_land"], "props": [["painting_night", 10, 2], ["crate2", 9, 3]],
+      "npcs": [
+        { "id": "kari", "name": "Kari the Trapper", "sprite": "ch3", "tint": "#d8e4f4", "at": [9, 5],
+          "lines": ["Frost wolves are bigger than the forest kind, and they hunt in packs of six.",
+                    "My traps come up full of wolves that should be dead already. Frost in their fur that does not melt by the fire.",
+                    "Highwatch eats what I trap. If I stop, the garrison starves."] },
+        { "id": "hedda", "name": "Old Hedda", "sprite": "ch7", "tint": "#d8d8d8", "at": [4, 7],
+          "lines": ["I was born in Highwatch, and I will die in Highwatch. Not today, if you keep the fire lit.",
+                    "Coal for the hearths, that is what we need. The cold up here kills more people than the dead do.",
+                    "When I was young we sang songs to the Hollow King to keep him asleep. Nobody remembers the words now."] } ] }
+  ]
+}
