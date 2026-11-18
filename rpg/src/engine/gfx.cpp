@@ -138,7 +138,14 @@ void Gfx::destroy(Sprite& s) {
     s = Sprite();
 }
 
-void Gfx::setTarget(const Sprite* target) { SDL_SetRenderTarget(ren_, target ? target->tex : nullptr); }
+void Gfx::setTarget(const Sprite* target) { SDL_SetRenderTarget(ren_, target ? target->tex : base_); }
+void Gfx::setBaseTarget(const Sprite* target) {
+    base_ = target ? target->tex : nullptr;
+    SDL_SetRenderTarget(ren_, base_);
+}
+void Gfx::setSmooth(const Sprite& s, bool on) {
+    if (s.tex) SDL_SetTextureScaleMode(s.tex, on ? SDL_ScaleModeLinear : SDL_ScaleModeNearest);
+}
 
 void Gfx::setTransform(double scale, double ox, double oy) {
     scale_ = scale;

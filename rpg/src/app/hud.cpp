@@ -18,6 +18,7 @@ void App::drawHud() {
     struct Slot {
         std::string key, icon, label, count;
         double cool = 0;
+        int cdTicks = 0;
         bool locked = false, ready = false, dim = false;
     };
     std::vector<Slot> slots;
@@ -34,6 +35,15 @@ void App::drawHud() {
         s.locked = !sim.whirlwindUnlocked();
         s.cool = static_cast<double>(P.whirlCd) / std::max(1, sim.whirlCooldown());
         s.ready = !s.locked && P.whirlCd <= 0;
+        s.cdTicks = P.whirlCd;
+        slots.push_back(s);
+    }
+    for (const auto& ab : Sim::abilities()) {   // the other active skills from the tree
+        Slot s{btnLabel(ab.id), ab.icon, "", ""};
+        s.locked = !sim.abilityKnown(ab.id);
+        s.cdTicks = sim.abilityCooldown(ab.id);
+        s.cool = static_cast<double>(s.cdTicks) / std::max(1, ab.cooldown);
+        s.ready = !s.locked && s.cdTicks <= 0;
         slots.push_back(s);
     }
     {
@@ -62,7 +72,7 @@ void App::drawHud() {
         slots.push_back(s);
     }
 
-    const double SS = 46, GAP = 6, ORB = 96;
+    const double SS = 42, GAP = 5, ORB = 96;
     const double barW = slots.size() * (SS + GAP) - GAP + 28, barH = SS + 24;
     const double totalW = barW + ORB * 2 - 24;
     const double bx0 = std::round((uiW() - totalW) / 2) + ORB - 12, by0 = std::round(uiH() - barH - 8);
@@ -85,7 +95,7 @@ void App::drawHud() {
         } else if (!s.label.empty()) text(s.label, x + SS / 2, sy + SS / 2 + 1, pal::faint, 11, 1, Align::Center, Baseline::Middle);
         if (s.cool > 0 && !s.locked) {   // cooldown: a shadow drains away from the top
             g_.fillRect(x + 3, sy + 3, SS - 6, std::round((SS - 6) * s.cool), Color(6, 4, 4, 170));
-            text(std::to_string(static_cast<int>(std::ceil(P.whirlCd / 60.0))), x + SS / 2, sy + SS / 2 + 1, pal::text, 15, 2, Align::Center, Baseline::Middle);
+            text(std::to_string(static_cast<int>(std::ceil(s.cdTicks / 60.0))), x + SS / 2, sy + SS / 2 + 1, pal::text, 15, 2, Align::Center, Baseline::Middle);
         }
         if (s.ready) box(x + 2, sy + 2, SS - 4, SS - 4, Color(0, 0, 0, 0), Color(255, 210, 120, static_cast<uint8_t>(90 + 70 * std::sin(tick * 0.1))), 1);
         if (!s.key.empty()) keycap(s.key, x - 3, sy - 7, 15);

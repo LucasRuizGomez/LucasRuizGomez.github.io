@@ -90,6 +90,8 @@ class App {
     SimInput buildSimInput();
     void updateMusic();
     void render();
+    Sprite sceneTex_, blurTex_, blurTex2_;   // the world drawn off-screen, and small soft copies of it for depth of field
+    void depthOfField(int DW, int DH);
     void runDebugSwitches();
     void openPause();
     void closePause();

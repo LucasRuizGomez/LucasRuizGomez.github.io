@@ -60,7 +60,8 @@ struct CategoryDef {
 };
 
 enum class Ai { Charger, Chaser, Flee, Flier, Guard, Archer, Boss };
-enum class Look { Animal, Human, Treant, Mimic };
+// static: one still picture (Dungeon Crawl monsters), brought to life by the renderer with a gait and a lean
+enum class Look { Animal, Human, Treant, Mimic, Static };
 
 struct DropDef {
     std::string item;
@@ -102,6 +103,7 @@ struct EliteDef {
 
 struct ZoneDef {
     std::string id, name, tree, music;
+    std::string gate;   // dungeon whose boss opens the way in (empty = open from the start)
     int index = 0, levelMin = 1, levelMax = 1;
     std::vector<TilePos> centers;
     double water = 0.25, trees = 0.6, rocks = 0.9, flowers = 0.04, density = 10;
@@ -227,8 +229,8 @@ struct Tuning {
     int recallTicks = 210, mountCastTicks = 45, combatLockTicks = 240;
     int fistDmg = 1, fistReach = 9, fistCd = 18;
     int maxLevel = 12, heartEvery = 0, damageEvery = 3, discoverZoneXp = 25;   // heartEvery 0 = levels give no hearts
-    int skillPointsPerLevel = 1, heartShards = 3;
-    double xpBase = 40, xpGrowth = 1.5;
+    int skillPointsPerLevel = 1, heartShards = 3, skillPointEvery = 1, xpLateFrom = 9999;
+    double xpBase = 40, xpGrowth = 1.5, xpLateDiv = 100;
     int whirlLevel = 3, whirlCooldown = 360;
     double whirlRadius = 30, whirlMul = 1.5;
     int dayLength = 28800;
@@ -252,6 +254,7 @@ class Database {
     const ItemDef& item(const std::string& id) const;
     const ItemDef* findItem(const std::string& id) const;
     const EnemyDef& enemy(const std::string& id) const;
+    const EnemyDef* findEnemy(const std::string& id) const { auto it = enemyIndex_.find(id); return it == enemyIndex_.end() ? nullptr : &enemies[it->second]; }
     const ZoneDef* zone(const std::string& id) const;
     const TownDef* town(const std::string& id) const;
     const DungeonDef* dungeon(const std::string& id) const;

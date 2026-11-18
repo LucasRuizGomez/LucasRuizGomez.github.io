@@ -577,11 +577,11 @@ struct OverworldGen {
 
     std::vector<Item> stash(const ZoneDef& z, int kind) {
         std::vector<Item> loot;
-        loot.push_back({"gold", 3 + z.levelMin * 2 + rnd.range(6)});
+        loot.push_back({"gold", 3 + z.levelMin / 4 + rnd.range(6)});
         static const char* extra[5] = {"bandage", "arrows", "roast", "herb", "wood"};
         const char* e = extra[rnd.range(5)];
         loot.push_back({e, std::string(e) == "arrows" ? 8 : 2});
-        if (kind > 0 && z.levelMin >= 4) loot.push_back({"potion", 1});
+        if (kind > 0 && z.levelMin >= 25) loot.push_back({"potion", 1});
         return loot;
     }
 
@@ -639,7 +639,7 @@ struct OverworldGen {
                     if (edge && !gap) m.set(c + dc, r + dr, WALL);
                     else if (!edge) m.set(c + dc, r + dr, PLANKS);
                 }
-            addChest(c, r - 2, stash(z, 1), z.levelMin + 1);
+            addChest(c, r - 2, stash(z, 1), z.levelMin + 8);
             for (int k = 0; k < 3; k++) {
                 Object pot;
                 pot.kind = ObjKind::Pot;
@@ -668,7 +668,7 @@ struct OverworldGen {
         });
         each("cache", 1, [&](int c, int r, const ZoneDef& z) {
             clearGround(c, r, 1);
-            addChest(c, r, stash(z, 0), z.levelMin, hash2(c, r, S + 84) < 0.08 && z.levelMin >= 4);
+            addChest(c, r, stash(z, 0), z.levelMin, hash2(c, r, S + 84) < 0.08 && z.levelMin >= 25);
         });
         each("stones", 4, [&](int c, int r, const ZoneDef& z) {
             clearGround(c, r, 4);
@@ -677,7 +677,7 @@ struct OverworldGen {
                 const double a = k / 8.0 * PI * 2;
                 placeProp("menhir", c + static_cast<int>(std::lround(std::cos(a) * 3.4)), r + static_cast<int>(std::lround(std::sin(a) * 2.6)));
             }
-            addChest(c, r, stash(z, 1), z.levelMin + 2);
+            addChest(c, r, stash(z, 1), z.levelMin + 16);
             m.set(c, r + 1, FLOWERS);
             addSpawn(c, r + 5, z.spawns.front().first, true);
         });
@@ -741,6 +741,153 @@ struct OverworldGen {
             if (k == ObjKind::Chest || k == ObjKind::Shrine) ensureReach(m, from, m.objects[i].c, m.objects[i].r, &mask);
         }
         m.reach = mask;
+    }
+
+    // ── 9b. Regions walled off from each other (the Diablo way): a ridge of rock along every border, and an iron
+    // gate where a road crosses into a region that is still closed. The gate remembers which boss opens it.
+    void borders() {
+        auto zi = [&](int c, int r) { return m.zone[m.idx(c, r)]; };
+        auto gateOf = [&](int a, int b) {   // the later of the two regions' gates
+            const std::string& ga = db.zones[a].gate;
+            const std::string& gb = db.zones[b].gate;
+            if (ga.empty()) return gb;
+            if (gb.empty()) return ga;
+            const DungeonDef* da = nullptr;
+            const DungeonDef* dbb = nullptr;
+            for (const auto& d : db.dungeons) {
+                if (d.id == ga) da = &d;
+                if (d.id == gb) dbb = &d;
+            }
+            return da && dbb && da->level >= dbb->level ? ga : gb;
+        };
+        std::vector<uint8_t> band(static_cast<size_t>(W) * H, 0);
+        std::vector<std::string> need(static_cast<size_t>(W) * H);
+        for (int r = 1; r < H - 1; r++)
+            for (int c = 1; c < W - 1; c++)
+                for (int dr = -1; dr <= 1; dr++)
+                    for (int dc = -1; dc <= 1; dc++) {
+                        const int a = zi(c, r), b = zi(c + dc, r + dr);
+                        if (a == b) continue;
+                        const std::string g = gateOf(a, b);
+                        if (g.empty()) continue;   // two open regions: no wall between them
+                        band[m.idx(c, r)] = 1;
+                        need[m.idx(c, r)] = g;
+                    }
+        // roads through the band become gates (one visible portcullis per crossing, the rest of it barred unseen)
+        std::vector<uint8_t> seen(band.size(), 0);
+        for (int r = 1; r < H - 1; r++)
+            for (int c = 1; c < W - 1; c++) {
+                const int i = m.idx(c, r);
+                if (!band[i] || seen[i]) continue;
+                const uint8_t t = m.get(c, r);
+                if (t != PATH && t != BRIDGE && t != COBBLE) continue;
+                std::vector<TilePos> crossing;
+                std::vector<int> stack{i};
+                seen[i] = 1;
+                while (!stack.empty()) {
+                    const int k = stack.back();
+                    stack.pop_back();
+                    crossing.push_back({k % W, k / W});
+                    for (int d = 0; d < 4; d++) {
+                        const int nc = k % W + DC4[d], nr = k / W + DR4[d];
+                        if (!m.inside(nc, nr)) continue;
+                        const int ni = m.idx(nc, nr);
+                        const uint8_t nt = m.get(nc, nr);
+                        if (seen[ni] || !band[ni] || (nt != PATH && nt != BRIDGE && nt != COBBLE)) continue;
+                        seen[ni] = 1;
+                        stack.push_back(ni);
+                    }
+                }
+                double sc = 0, sr = 0;
+                for (const auto& p : crossing) sc += p.c, sr += p.r;
+                sc /= crossing.size();
+                sr /= crossing.size();
+                size_t best = 0;
+                for (size_t k = 1; k < crossing.size(); k++)
+                    if (std::hypot(crossing[k].c - sc, crossing[k].r - sr) < std::hypot(crossing[best].c - sc, crossing[best].r - sr)) best = k;
+                for (size_t k = 0; k < crossing.size(); k++) {
+                    Object g;
+                    g.kind = ObjKind::Gate;
+                    g.c = crossing[k].c;
+                    g.r = crossing[k].r;
+                    g.solid = true;
+                    g.id = "zone_gate";
+                    g.res = need[m.idx(crossing[k].c, crossing[k].r)];
+                    g.text = k == best ? "" : "hidden";
+                    m.addObject(std::move(g));
+                }
+            }
+        // everything else in the band turns to rock and is barred for good (no tunnelling through it)
+        for (int r = 1; r < H - 1; r++)
+            for (int c = 1; c < W - 1; c++) {
+                const int i = m.idx(c, r);
+                if (!band[i] || m.block[i]) continue;
+                const uint8_t t = m.get(c, r);
+                if (t == WATER || t == STAIRS_DOWN || t == PATH || t == BRIDGE || t == COBBLE || t == PLAZA) continue;
+                if (m.objectAt(c, r)) continue;
+                m.set(c, r, ROCK);
+                m.block[i] = 1;
+            }
+        // Wherever a wall cut something off (a region no road crosses into), dig a gated pass through it
+        auto gatesOpen = [&](bool open) {
+            for (auto& o : m.objects)
+                if (o.kind == ObjKind::Gate && o.id == "zone_gate") m.setBlock(o, !open);
+        };
+        gatesOpen(true);
+        std::vector<uint8_t> mask = reachMask(m, m.start.c, m.start.r);
+        std::vector<TilePos> targets;
+        for (const auto& t : db.towns) targets.push_back({t.at.c, t.at.r + 3});
+        for (const auto& d : db.dungeons)
+            if (d.under.empty()) targets.push_back({d.at.c, d.at.r + 1});
+        for (const auto& o : m.objects)
+            if (o.kind == ObjKind::Chest || o.kind == ObjKind::Shrine) targets.push_back({o.c, o.r});
+        for (const auto& p : highGround) targets.push_back(p);
+        auto near = [&](TilePos p) {
+            for (int dr = -1; dr <= 1; dr++)
+                for (int dc = -1; dc <= 1; dc++)
+                    if (m.inside(p.c + dc, p.r + dr) && mask[m.idx(p.c + dc, p.r + dr)]) return true;
+            return false;
+        };
+        for (const auto& goal : targets) {
+            if (near(goal)) continue;
+            const auto path = astar(m, m.start, goal, [&](int nc, int nr) -> double {
+                if (nc == goal.c && nr == goal.r) return 1;
+                const int i = m.idx(nc, nr);
+                if (band[i]) return m.get(nc, nr) == WATER ? -1 : 12;
+                if (m.block[i]) return -1;
+                const uint8_t t = m.get(nc, nr);
+                if (walkable(t)) return 1;
+                return t == TREE ? 3 : t == ROCK ? 4 : t == WATER ? 5 : t == CLIFF ? 6 : -1;
+            });
+            bool first = true;
+            for (const auto& p : path) {
+                if (p.c == goal.c && p.r == goal.r) continue;
+                const int i = m.idx(p.c, p.r);
+                const uint8_t t = m.get(p.c, p.r);
+                if (band[i]) {
+                    m.set(p.c, p.r, PATH);
+                    m.block[i] = 0;
+                    if (!m.objectAt(p.c, p.r)) {
+                        Object g;
+                        g.kind = ObjKind::Gate;
+                        g.c = p.c;
+                        g.r = p.r;
+                        g.id = "zone_gate";
+                        g.res = need[i];
+                        g.text = first ? "" : "hidden";
+                        first = false;
+                        m.objects.push_back(std::move(g));   // open for now; shut below with the rest
+                    }
+                } else if (t == TREE || t == ROCK) m.set(p.c, p.r, GRASS);
+                else if (t == WATER) m.set(p.c, p.r, BRIDGE);
+                else if (t == CLIFF) m.set(p.c, p.r, RAMP);
+            }
+            if (!path.empty()) mask = reachMask(m, m.start.c, m.start.r);
+        }
+        for (auto& o : m.objects)
+            if (o.kind == ObjKind::Gate && o.id == "zone_gate") o.solid = true;
+        gatesOpen(false);
+        m.reach = mask;   // where monsters may live: everything reachable once the gates are open
     }
 
     void spawns() {
@@ -812,6 +959,7 @@ struct OverworldGen {
         plateaus();
         nodes();
         connectivity();
+        borders();
         spawns();
         whirlpool();
         return std::move(m);
@@ -970,17 +1118,17 @@ Map buildGenerated(const Database& db, const DungeonDef& def) {
     m.bossRoom = last;
     std::vector<Item> reward;
     for (const auto& [id, q] : def.reward) reward.push_back({id, q});
-    m.addObject(chest(def.id + "_reward", last.center().c, last.y, std::move(reward), def.level + 1));
+    m.addObject(chest(def.id + "_reward", last.center().c, last.y, std::move(reward), def.level + 8));
     auto chestIn = [&](size_t i, const char* tag, std::vector<Item> loot, bool mimic) {
         if (i >= chain.size() - 1) return;
         const Room& R = chain[i];
         const int c = R.center().c + 2;
         if (m.get(c, R.y) == FLOOR && !m.objectAt(c, R.y)) m.addObject(chest(def.id + "_" + tag, c, R.y, std::move(loot), def.level, mimic));
     };
-    chestIn(2, "gold", {{"gold", 6 + def.level * 3}, {"roast", 1}}, false);
-    chestIn(4, "mimic", {}, def.level >= 4);
+    chestIn(2, "gold", {{"gold", 6 + def.level / 8 * 3}, {"roast", 1}}, false);
+    chestIn(4, "mimic", {}, def.level >= 25);
     chestIn(5, "supplies", {{"arrows", 12}, {"bandage", 2}}, false);
-    chestIn(7, "cache", {{"gold", 10 + def.level * 3}, {"potion", 1}}, false);
+    chestIn(7, "cache", {{"gold", 10 + def.level / 8 * 3}, {"potion", 1}}, false);
     // Breakable pots in room corners, idols flanking the last room
     for (size_t i = 1; i < chain.size(); i++) {
         const Room& R = chain[i];

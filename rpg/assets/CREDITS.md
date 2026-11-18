@@ -36,6 +36,9 @@ The music is unmodified apart from the file names. Attribution is required: it i
 | `craftpix-net-974061-…-rocks-and-stones-…/` | *Free Rocks and Stones Top-Down Pixel Art* | CraftPix.net | CraftPix free licence | Boulders, ore and stone nodes |
 | `craftpix-net-255216-…-basic-pixel-art-ui-for-rpg/` | *Free Basic Pixel Art UI for RPG* | CraftPix.net | CraftPix free licence | Panels, buttons, slots, item icons |
 | `craftpix-net-523429-…-water-effects-…/` | *Free Water Effects Sprite Pack* | CraftPix.net | CraftPix free licence | Source for `generated/water_*.png` (see `tools/pixelize_water.py`) |
+| `undead/` | *Free Undead Tileset Top Down Pixel Art* | CraftPix.net | CraftPix free licence | Big dead and dark trees, boulders, ruins, graves, bones, thorns (copied by `tools/import_dark_art.py`) |
+| `generated/vampires/` | *Free Vampire 4-Direction Pixel Character Sprite Pack* | CraftPix.net | CraftPix free licence | The three vampires, cut to 32x32 frames by `tools/import_dark_art.py` |
+| `dcss/` | *Dungeon Crawl Stone Soup* tiles | The Dungeon Crawl Stone Soup artists ([OpenGameArt](https://opengameart.org/content/dungeon-crawl-32x32-tiles)) | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) | Rats, jackals, ravens, cultists, the risen dead, spiders, bats, wights, ghouls, wraiths and more |
 
 ## Typeface
 

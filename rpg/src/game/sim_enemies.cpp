@@ -73,7 +73,9 @@ void Sim::killEnemy(Map& m, Enemy& e) {
         floater(P.x, P.y - 20, "+0.5", Color(123, 224, 138));
     }
     int xp = def.xp * (e.elite ? 3 : 1);
-    if (P.level >= def.level + 5) xp = std::max(1, xp / 10);
+    // Experience follows the gap in levels: little from monsters far beneath you, a bonus for those above
+    if (const int gap = P.level - def.level; gap > 6) xp = std::max(1, static_cast<int>(xp * std::max(0.05, 1 - (gap - 6) * 0.07)));
+    else if (gap < 0) xp = static_cast<int>(xp * (1 + std::min(0.5, -gap * 0.03)));
     gainXp(xp);
     questEvent("kill", def.id, def.tag);
 
@@ -86,6 +88,7 @@ void Sim::killEnemy(Map& m, Enemy& e) {
         if (m.dungeon) {
             bossesDefeated.insert(m.dungeon->id);
             questEvent("boss", m.dungeon->id);
+            openZoneGates(true);
         }
         if (def.boss.final) {
             dropItem(m, {"crown", 1}, e.x - 10, e.y + 4);

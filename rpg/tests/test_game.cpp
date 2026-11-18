@@ -85,10 +85,12 @@ TEST_CASE("pathfinding goes around obstacles") {
 
 TEST_CASE("overworld: towns, dungeons and chests are reachable from the start") {
     const Database& db = database();
-    const Map over = generateOverworld(db);
+    Map over = generateOverworld(db);
     CHECK(over.w == db.tuning.worldW);
     CHECK(over.h == db.tuning.worldH);
     REQUIRE(over.tileFree(over.start.c, over.start.r, false));
+    for (auto& o : over.objects)   // every boss slain: the region gates stand open
+        if (o.kind == ObjKind::Gate && o.id == "zone_gate") over.setBlock(o, false);
     const auto mask = reachMask(over, over.start.c, over.start.r);
     auto near = [&](int c, int r) {
         for (int dr = -1; dr <= 1; dr++)
@@ -255,7 +257,7 @@ TEST_CASE("killing monsters gives xp, levels and quest credit") {
     CHECK(sim.questReady(*q));
     CHECK(sim.npcMarker("mira") == 3);
     CHECK((sim.P.level > level || sim.P.xp > 0));
-    sim.gainXp(100000);
+    sim.gainXp(100000000);
     CHECK(sim.P.level == sim.db.tuning.maxLevel);
 }
 
@@ -446,7 +448,7 @@ TEST_CASE("max health: levels give skill points, not hearts; enough shards make 
     sim.gainXp(sim.db.xpForLevel(1) + sim.db.xpForLevel(2));
     CHECK(sim.P.level == 3);
     CHECK(sim.maxHp() == hp);
-    CHECK(sim.skillPoints() == 2 * sim.db.tuning.skillPointsPerLevel);
+    CHECK(sim.skillPoints() == 2 / sim.db.tuning.skillPointEvery * sim.db.tuning.skillPointsPerLevel);
     for (int i = 1; i < sim.db.tuning.heartShards; i++) sim.addItem({"heart_shard", 1});
     CHECK(sim.P.heartCrystals == 0);
     CHECK(sim.maxHp() == hp);
@@ -459,9 +461,11 @@ TEST_CASE("max health: levels give skill points, not hearts; enough shards make 
 TEST_CASE("skill tree: requirements, points and effects") {
     Sim sim = freshGame();
     CHECK_FALSE(sim.learnSkill("strength"));   // no points at level 1
-    sim.gainXp(sim.db.xpForLevel(1) + sim.db.xpForLevel(2) + sim.db.xpForLevel(3));
-    REQUIRE(sim.P.level == 4);
-    REQUIRE(sim.skillPoints() == 3);
+    int need = 0;
+    for (int l = 1; l < 7; l++) need += sim.db.xpForLevel(l);
+    sim.gainXp(need);
+    REQUIRE(sim.P.level == 7);
+    REQUIRE(sim.skillPoints() == 3);   // one every two levels
     CHECK_FALSE(sim.whirlwindUnlocked());
     CHECK_FALSE(sim.learnSkill("whirlwind"));   // needs Strength first
     const int dmg = sim.weaponDamage();
@@ -665,8 +669,10 @@ TEST_CASE("everyone talks, and quests can be accepted, declined and handed in fo
 
 TEST_CASE("high ground: plateaus are ringed by cliffs and every one has a way up") {
     const Database& db = database();
-    const Map over = generateOverworld(db);
+    Map over = generateOverworld(db);
     REQUIRE(over.height.size() == over.t.size());
+    for (auto& o : over.objects)
+        if (o.kind == ObjKind::Gate && o.id == "zone_gate") over.setBlock(o, false);
     const auto mask = reachMask(over, over.start.c, over.start.r);
     int high = 0, ramps = 0, unreachable = 0;
     for (int r = 1; r < over.h - 1; r++)
@@ -710,4 +716,59 @@ TEST_CASE("armour never blocks more than half of a hit") {
     const int full = sim.P.hp;
     sim.hurtPlayer(6, 0, 0);
     CHECK(sim.P.hp == full - 3);
+}
+
+TEST_CASE("levels run to 99, slowly, and open new active skills") {
+    Sim sim = freshGame();
+    CHECK(sim.db.tuning.maxLevel == 99);
+    // each level costs more than the last, and the final stretch far more
+    for (int l = 2; l < 99; l++) CHECK(sim.db.xpForLevel(l) >= sim.db.xpForLevel(l - 1));
+    CHECK(sim.db.xpForLevel(95) > 20 * sim.db.xpForLevel(40));
+    // War Cry needs level 17
+    sim.P.skills["strength"] = 1;
+    CHECK_FALSE(sim.learnSkill("warcry"));
+    int need = 0;
+    for (int l = 1; l < 17; l++) need += sim.db.xpForLevel(l);
+    sim.gainXp(need);
+    REQUIRE(sim.P.level == 17);
+    CHECK(sim.learnSkill("warcry"));
+    sim.useAbility("warcry");
+    CHECK(sim.hasBuff("frenzy"));
+    CHECK(sim.abilityCooldown("warcry") > 0);
+    // monsters far beneath you are worth little
+    sim.P.level = 60;
+    const int before = sim.P.xp;
+    Map& m = sim.map();
+    m.enemies.push_back(sim.makeEnemy(sim.db.enemy("boar"), sim.P.x + 200, sim.P.y, false));
+    sim.damageEnemy(m.enemies.back(), 99, 0, 0);
+    CHECK(sim.P.xp - before <= sim.db.enemy("boar").xp / 10);
+}
+
+TEST_CASE("regions: walled off, and their gates open as the bosses fall") {
+    const Database& db = database();
+    const Map over = generateOverworld(db);
+    int gates = 0;
+    for (const auto& o : over.objects) gates += o.kind == ObjKind::Gate && o.id == "zone_gate";
+    CHECK(gates > 0);
+    // with every gate shut, the hero cannot leave the regions open from the start
+    const auto mask = reachMask(over, over.start.c, over.start.r);
+    int leaks = 0;
+    for (int i = 0; i < over.w * over.h; i++)
+        if (mask[i] && !db.zones[over.zone[i]].gate.empty()) leaks++;
+    CHECK(leaks == 0);
+    // the first boss opens the way to the next regions
+    Sim sim = freshGame();
+    Map& m = sim.maps.at("over");
+    int closed = 0;
+    for (const auto& o : m.objects) closed += o.kind == ObjKind::Gate && o.id == "zone_gate" && !o.gone && o.res == "cellar";
+    REQUIRE(closed > 0);
+    sim.bossesDefeated.insert("cellar");
+    sim.openZoneGates(false);
+    for (const auto& o : m.objects)
+        if (o.kind == ObjKind::Gate && o.id == "zone_gate" && o.res == "cellar") CHECK(o.gone);
+    // and the opening survives a save
+    Sim other(sim.db, 3);
+    REQUIRE(other.loadGame(sim.saveGame()));
+    for (const auto& o : other.maps.at("over").objects)
+        if (o.kind == ObjKind::Gate && o.id == "zone_gate" && o.res == "cellar") CHECK(o.gone);
 }

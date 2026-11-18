@@ -106,6 +106,12 @@ void App::runDebugSwitches() {
     if (const std::string tp = param("tp"); !tp.empty()) {
         int c = 0, r = 0;
         if (std::sscanf(tp.c_str(), "%d,%d", &c, &r) == 2) sim_->enterMap(sim_->mapId, c * TILE + 8, r * TILE + 10);
+        else if (tp == "gate")   // stand before the first region gate
+            for (const auto& o : sim_->map().objects)
+                if (o.kind == ObjKind::Gate && o.id == "zone_gate" && o.text.empty()) {
+                    sim_->enterMap(sim_->mapId, o.c * TILE + 8, (o.r + 3) * TILE + 10);
+                    break;
+                }
     }
     if (const std::string map = param("map"); !map.empty() && sim_->maps.count(map)) {
         const Map& m = sim_->maps.at(map);
@@ -124,6 +130,18 @@ void App::runDebugSwitches() {
         sim_->addItem({"mount_roc", 1}, true);
         sim_->setMountPick("mount_roc");
         sim_->P.mount = "mount_roc";
+    }
+    if (const std::string ids = param("spawn"); !ids.empty()) {   // monsters in a ring around the hero: spawn=id,id
+        std::vector<std::string> list;
+        for (size_t i = 0, j; i < ids.size(); i = j + 1) {
+            j = ids.find(',', i);
+            if (j == std::string::npos) j = ids.size();
+            if (db_.findEnemy(ids.substr(i, j - i))) list.push_back(ids.substr(i, j - i));
+        }
+        for (size_t i = 0; i < list.size(); i++) {
+            const double a = i * 2 * PI / list.size();
+            sim_->map().enemies.push_back(sim_->makeEnemy(db_.enemy(list[i]), sim_->P.x + std::cos(a) * 56, sim_->P.y + std::sin(a) * 40, false));
+        }
     }
     if (const std::string ids = param("accept"); !ids.empty())   // accept quests: accept=id,id
         for (size_t i = 0, j; i < ids.size(); i = j + 1) {
@@ -645,10 +663,57 @@ void App::resize() {
     sim_->viewH = static_cast<double>(DH) / zoom_;
 }
 
+void App::depthOfField(int DW, int DH) {
+    g_.setTransform(1);
+    g_.setAlpha(1);
+    g_.draw(sceneTex_, 0, 0, DW, DH);
+    // two steps down make a soft copy; it is laid over the top and bottom bands, fading out toward the middle
+    g_.setTarget(&blurTex_);
+    g_.clear(Color(0, 0, 0, 0));
+    g_.draw(sceneTex_, 0, 0, blurTex_.w, blurTex_.h);
+    g_.setTarget(&blurTex2_);
+    g_.clear(Color(0, 0, 0, 0));
+    g_.draw(blurTex_, 0, 0, blurTex2_.w, blurTex2_.h);
+    g_.setTarget(nullptr);
+    const int N = 24;
+    const double band = DH * 0.3;
+    for (int i = 0; i < N; i++) {
+        const double k = 1 - static_cast<double>(i) / N, a = k * k * 0.9;
+        const double y0 = band * i / N, h = band / N + 1;
+        for (int side = 0; side < 2; side++) {
+            const double y = side ? DH - y0 - h : y0;
+            const int sy = static_cast<int>(y / DH * blurTex2_.h), sh = std::max(1, static_cast<int>(std::ceil(h / DH * blurTex2_.h)));
+            g_.setAlpha(a);
+            g_.drawPart(blurTex2_, {0, std::min(sy, blurTex2_.h - sh), blurTex2_.w, sh}, 0, y, DW, h);
+        }
+    }
+    g_.setAlpha(1);
+}
+
 void App::render() {
     Sim& sim = *sim_;
     world_->showTargetMark = scheme_ != Scheme::Mouse && std::hypot(in_.padRX, in_.padRY) <= 0.4;
+    // The world is drawn off-screen first, so the top and bottom of the view can be softened (tilt-shift, the
+    // HD-2D look): sharp where the hero stands, blurring toward the far ground and the near foreground.
+    const int DW = g_.width(), DH = g_.height();
+    if (sceneTex_.w != DW || sceneTex_.h != DH) {
+        g_.destroy(sceneTex_);
+        g_.destroy(blurTex_);
+        g_.destroy(blurTex2_);
+        sceneTex_ = g_.makeTarget(DW, DH);
+        blurTex_ = g_.makeTarget(std::max(1, DW / 3), std::max(1, DH / 3));
+        blurTex2_ = g_.makeTarget(std::max(1, DW / 8), std::max(1, DH / 8));
+        g_.setSmooth(sceneTex_, true);
+        g_.setSmooth(blurTex_, true);
+        g_.setSmooth(blurTex2_, true);
+    }
+    const bool dof = sceneTex_ && blurTex_ && blurTex2_ && sim.mode != Mode::Title;
+    if (dof) g_.setBaseTarget(&sceneTex_);
     world_->render(sim, zoom_, sim.mode != Mode::Title);
+    if (dof) {
+        g_.setBaseTarget(nullptr);
+        depthOfField(DW, DH);
+    }
     g_.setTransform(ui_);
     g_.setAlpha(1);
     hits_.clear();

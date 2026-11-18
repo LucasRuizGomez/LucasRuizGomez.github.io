@@ -1,6 +1,6 @@
 # Hollow Crypt
 
-A top-down open-world action RPG that runs in the browser: six regions with high ground and cliffs, six towns, seven dungeons, 39 buildings to walk into, over 60 townsfolk to talk to, 57 quests with rewards to choose from, crafting, random gear on a drag-and-drop paper doll that shows on the hero, sword swings in any direction, a skill tree, mounts (one of them flies) and a day and night cycle, all in a grim, washed-out look. Written in C++20 on SDL2 and compiled to WebAssembly with Emscripten. The same code also builds as a desktop program.
+A top-down open-world action RPG that runs in the browser: six regions walled off from each other and opened one by one as their bosses fall (the Diablo way), high ground and cliffs, over 50 kinds of monster, six towns, seven dungeons, 39 buildings to walk into, over 60 townsfolk to talk to, 57 quests with rewards to choose from, crafting, random gear on a drag-and-drop paper doll that shows on the hero, sword swings in any direction, levels up to 99, a skill tree of 33 skills with five active ones, mounts (one of them flies) and a day and night cycle, all in a grim, washed-out look. Written in C++20 on SDL2 and compiled to WebAssembly with Emscripten. The same code also builds as a desktop program.
 
 Play it at [lukeda.me/rpg](https://lukeda.me/rpg/).
 
@@ -92,6 +92,8 @@ Add these to the URL of a web build (`?autostart&kit&tp=128,40`), or pass them a
 | `talk=npc` | Open a conversation with someone in the current map; add `offer` to open their first quest offer, or `handin=quest` for the hand-in window of a quest |
 | `accept=quest,quest` | Accept quests straight away (to see the quest tracker) |
 | `swing=degrees,frame` | Freeze a sword swing at an angle and frame, to look at it |
+| `spawn=id,id` | Put monsters in a ring around the hero (ids are in `config/enemies.json`) |
+| `tp=gate` | Stand before the first region gate |
 | `mute` | No sound |
 
 ## Deployment

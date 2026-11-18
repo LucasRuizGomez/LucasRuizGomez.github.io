@@ -3,6 +3,7 @@
 #include "app/app.h"
 #include "app/palette.h"
 
+#include <algorithm>
 #include <cmath>
 
 namespace hc {
@@ -390,15 +391,17 @@ void App::skillMove(const std::string& dir) {
 void App::drawSkills() {
     Sim& sim = *sim_;
     dim(0.65);
-    const double W = std::min(1060.0, uiW() - 40), H = std::min(610.0, uiH() - 40), X = std::round((uiW() - W) / 2), Y = std::round((uiH() - H) / 2);
+    const double W = std::min(1060.0, uiW() - 40), H = std::min(680.0, uiH() - 30), X = std::round((uiW() - W) / 2), Y = std::round((uiH() - H) / 2);
     panel(X, Y, W, H);
     text("Skill tree", X + 24, Y + 38, pal::text, 22, 1);
     const int pts = sim.skillPoints();
-    text(pts > 0 ? std::to_string(pts) + (pts == 1 ? " point to spend" : " points to spend") : "No points to spend · one more every level", X + W - 56, Y + 38, pts > 0 ? pal::gold : pal::faint, 14, 1, Align::Right);
+    text(pts > 0 ? std::to_string(pts) + (pts == 1 ? " point to spend" : " points to spend") : "No points to spend · one more every " + std::to_string(db_.tuning.skillPointEvery) + " levels", X + W - 56, Y + 38, pts > 0 ? pal::gold : pal::faint, 14, 1, Align::Right);
     closeButton(X + W - 40, Y + 14);
 
     const int nb = std::max<int>(1, static_cast<int>(db_.branches.size()));
-    const double colW = (W - 48 - (nb - 1) * 12.0) / nb, top = Y + 58, rowH = 86, nodeW = std::min(100.0, colW / 3 - 8), nodeH = 70;
+    int rows = 1;
+    for (const auto& s : db_.skills) rows = std::max(rows, static_cast<int>(s.row) + 1);
+    const double colW = (W - 48 - (nb - 1) * 12.0) / nb, top = Y + 58, rowH = 58, nodeW = std::min(104.0, colW / 3 - 6), nodeH = 46;
     skillPos_.assign(db_.skills.size(), Vec2{0, 0});
     std::map<std::string, Vec2> centre;
     skillSel_ = std::clamp(skillSel_, 0, std::max(0, static_cast<int>(db_.skills.size()) - 1));
@@ -415,7 +418,7 @@ void App::drawSkills() {
     for (int k = 0; k < nb; k++) {
         const BranchDef& br = db_.branches[k];
         const double bx = X + 24 + k * (colW + 12);
-        box(bx, top, colW, 52 + 4 * rowH, pal::well, pal::line);
+        box(bx, top, colW, 52 + rows * rowH, pal::well, pal::line);
         box(bx, top, colW, 4, br.color);
         int spent = 0;
         for (const auto& s : db_.skills)
@@ -449,18 +452,21 @@ void App::drawSkills() {
         const Color fill = rank >= s.maxRank ? (br ? br->color.alpha(0.55) : pal::slotSel) : rank > 0 ? (br ? br->color.alpha(0.3) : pal::slotSel) : open ? pal::slot : pal::well;
         box(nx, ny, nodeW, nodeH, fill, sel ? pal::sel : open ? pal::gold : pal::line, sel ? 3 : open ? 2 : 1);
         if (open && !sel) box(nx - 2, ny - 2, nodeW + 4, nodeH + 4, Color(0, 0, 0, 0), Color(255, 210, 90, static_cast<uint8_t>(90 + 80 * std::sin(sim.tickCount * 0.12))), 1);
-        // Icon (OwlishMedia) in an octagonal frame (Keiffer); greyed out until it can be learned
-        box(c.x - 16, ny + 4, 32, 32, rank ? (br ? br->color.alpha(0.85) : pal::gold) : Color(58, 44, 34), Color(0, 0, 0, 0));
+        // Icon (OwlishMedia) in an octagonal frame (Keiffer), greyed out until it can be learned; name and rank pips beside it
+        box(nx + 7, ny + 7, 32, 32, rank ? (br ? br->color.alpha(0.85) : pal::gold) : Color(40, 32, 26), Color(0, 0, 0, 0));
         if (!rank && !open) g_.setAlpha(0.35);
-        if (!s.icon.empty()) drawSpr(spr_.get(s.icon), c.x - 12, ny + 8, 24);
+        if (!s.icon.empty()) drawSpr(spr_.get(s.icon), nx + 11, ny + 11, 24);
         g_.setAlpha(1);
-        drawSpr(spr_.get("skill_frame"), c.x - 19, ny + 1, 38);
-        const auto lines = wrap(s.name, nodeW - 6, 11, 1);
-        if (!lines.empty()) text(lines.front(), c.x, ny + 47, rank || open ? pal::text : pal::faint, 11, 1, Align::Center, Baseline::Middle);
+        drawSpr(spr_.get("skill_frame"), nx + 4, ny + 4, 38);
+        const auto lines = wrap(s.name, nodeW - 48, 11, 1);
+        for (size_t l = 0; l < lines.size() && l < 2; l++) text(lines[l], nx + 45, ny + 15 + l * 12.0, rank || open ? pal::text : pal::faint, 11, 1);
         for (int r = 0; r < s.maxRank; r++) {   // one pip per rank
-            const double px = c.x - s.maxRank * 6 + r * 12 + 2;
-            box(px, ny + nodeH - 13, 8, 8, r < rank ? pal::gold : Color(0, 0, 0, 0), r < rank ? pal::text : pal::faint, 1);
+            const double px = nx + 45 + r * 10;
+            box(px, ny + nodeH - 11, 7, 7, r < rank ? pal::gold : Color(0, 0, 0, 0), r < rank ? pal::text : pal::faint, 1);
         }
+        if (s.level > 1 && sim.P.level < s.level) text(std::to_string(s.level), nx + nodeW - 4, ny + nodeH - 4, pal::bad, 10, 1, Align::Right);
+        if (std::any_of(s.effects.begin(), s.effects.end(), [](const auto& e) { return e.first == "whirl" || e.first == "warcry" || e.first == "leap" || e.first == "stoneskin" || e.first == "volley"; }))
+            g_.fillRect(nx + nodeW - 9, ny + 3, 6, 6, Color(236, 196, 110));   // a gold corner marks an active skill
         const int idx = static_cast<int>(i);
         hit(nx, ny, nodeW, nodeH, [this, idx] {
             if (skillSel_ == idx) sim_->learnSkill(db_.skills[idx].id);
@@ -468,7 +474,7 @@ void App::drawSkills() {
         }, [this, idx] { skillSel_ = idx; });
     }
     // Details of the selected skill
-    const double dy = top + 52 + 4 * rowH + 10, dh = Y + H - 40 - dy;
+    const double dy = top + 52 + rows * rowH + 10, dh = Y + H - 40 - dy;
     box(X + 24, dy, W - 48, dh, pal::well, pal::line);
     if (!db_.skills.empty()) {
         const SkillDef& s = db_.skills[skillSel_];

@@ -26,10 +26,10 @@ std::string App::questStatus(const QuestDef& q) const {
 
 Color App::questLevelColor(int level) const {
     const int d = level - sim_->P.level;
-    if (d >= 3) return Color(226, 84, 64);
-    if (d >= 1) return Color(232, 146, 64);
-    if (d >= -1) return Color(230, 204, 92);
-    if (d >= -4) return Color(122, 194, 102);
+    if (d >= 10) return Color(226, 84, 64);
+    if (d >= 4) return Color(232, 146, 64);
+    if (d >= -4) return Color(230, 204, 92);
+    if (d >= -15) return Color(122, 194, 102);
     return Color(140, 132, 120);
 }
 
@@ -424,7 +424,7 @@ void App::drawQuests() {
             confirmAbandon_ = false;
         });
         const bool ready = sim.questReady(q);
-        text("[" + std::to_string(q.level) + "]", X + 40, y + 18, q.level > sim.P.level + 2 ? pal::bad : q.level + 3 < sim.P.level ? pal::faint : pal::muted, 12, 1, Align::Left, Baseline::Middle);
+        text("[" + std::to_string(q.level) + "]", X + 40, y + 18, q.level > sim.P.level + 8 ? pal::bad : q.level + 15 < sim.P.level ? pal::faint : pal::muted, 12, 1, Align::Left, Baseline::Middle);
         const auto t = wrap(q.title, LW - 150, 13, 1);
         text(t.empty() ? q.title : t.front(), X + 72, y + 18, pal::text, 13, 1, Align::Left, Baseline::Middle);
         text(ready ? "Done" : questStatus(q), X + 24 + LW - 14, y + 18, ready ? pal::ok : pal::faint, 11, 1, Align::Right, Baseline::Middle);

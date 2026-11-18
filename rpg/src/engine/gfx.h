@@ -39,7 +39,9 @@ class Gfx {
     Sprite makeStreaming(int w, int h, bool smooth);
     void update(const Sprite& s, const uint8_t* rgba);   // streaming sprites: w*h*4 bytes
     void destroy(Sprite& s);
-    void setTarget(const Sprite* target);                // nullptr = the screen
+    void setTarget(const Sprite* target);                // nullptr = the base target (normally the screen)
+    void setBaseTarget(const Sprite* target);            // where setTarget(nullptr) draws: a full-screen texture, or the screen
+    void setSmooth(const Sprite& s, bool on);            // linear filtering when the sprite is scaled
 
     // screen = value * scale - offset
     void setTransform(double scale, double ox = 0, double oy = 0);
@@ -58,6 +60,7 @@ class Gfx {
     bool screenshot(const std::string& path);
 
     SDL_Renderer* renderer() const { return ren_; }
+    SDL_Texture* base_ = nullptr;
 
   private:
     SDL_Window* win_ = nullptr;

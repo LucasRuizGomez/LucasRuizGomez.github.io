@@ -37,10 +37,10 @@ Item Sim::makeGear(const std::string& id, int minRarity, double luck) {
 Item Sim::randomGear(int level, int minRarity) {
     std::vector<const ItemDef*> pool;
     for (const auto& d : db.items)
-        if (d.isGear() && d.level <= level + 1 && d.level >= level - 4 && d.id != "kings_edge") pool.push_back(&d);
+        if (d.isGear() && d.level <= level + 8 && d.level >= level - 32 && d.id != "kings_edge") pool.push_back(&d);
     if (pool.empty())
         for (const auto& d : db.items)
-            if (d.isGear() && d.level <= level + 1) pool.push_back(&d);
+            if (d.isGear() && d.level <= level + 8) pool.push_back(&d);
     if (pool.empty()) return {"bandage", 1};
     return makeGear(pool[rng.range(static_cast<int>(pool.size()))]->id, minRarity, 1.0 + level * 0.08);
 }

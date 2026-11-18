@@ -291,6 +291,7 @@ bool Sim::loadGame(const json& s) {
     }
     if (!mount.empty() && db.findItem(mount) && hasItem(mount) && map().outdoor) P.mount = mount;
     mode = Mode::Play;
+    openZoneGates(false);
     return true;
 }
 

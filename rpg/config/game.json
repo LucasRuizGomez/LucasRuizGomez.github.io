@@ -19,18 +19,23 @@
   },
   "fists": { "dmg": 1, "reach": 9, "cd": 18 },
   "leveling": {
-    "maxLevel": 12,
+    // Levels run to 99. Experience for the next level: xpBase * xpGrowth^(level-1), multiplied past "xpLateFrom"
+    // by 1 + (level - xpLateFrom)^2 / xpLateDiv, so the last levels are a long climb. The story ends around 80-89.
+    // Monsters well below your level give little experience; those above give a bonus (sim_enemies.cpp).
+    "maxLevel": 99,
     "xpBase": 40,
-    "xpGrowth": 1.5,
-    // Levels no longer give hearts: they give skill points to spend in the skill tree (skills.json).
+    "xpGrowth": 1.05,
+    "xpLateFrom": 60,
+    "xpLateDiv": 150,
+    // Levels no longer give hearts: every "skillPointEvery" levels give a point to spend in the skill tree (skills.json).
     // Max health grows with the Vitality skills, armour and helms, and Heart Crystals forged from the
     // shards bosses drop ("heartShardsPerHeart" shards make one crystal).
     // Armour ("ward") can never block more than half of a hit.
     "heartEveryLevels": 0,
-    "skillPointsPerLevel": 1,
+    "skillPointEvery": 2,
     "heartShardsPerHeart": 4,
-    "damageEveryLevels": 3,
-    "discoverZoneXp": 25
+    "damageEveryLevels": 12,
+    "discoverZoneXp": 250
   },
   "skills": {
     // Whirlwind is learned in the skill tree; these are its base numbers.

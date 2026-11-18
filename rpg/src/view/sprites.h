@@ -45,6 +45,8 @@ class Sprites {
     // The kit's painted sword is taken out, so the real weapon can be drawn in the hand.
     const CharSet& hero(const std::string& helm, const std::string& body, const std::string& feet, const std::string& shield);
     const AnimalSet& animal(const std::string& sprite, const std::string& tint);
+    const Sprite& monster(const std::string& name, const std::string& tint);   // assets/dcss/<name>.png, tinted
+    const Sprite& undead(const std::string& name);                               // assets/undead/<name>.png
     const std::array<Frames, 4>& treant(const std::string& tint);   // down, right, up, left
     const TileSet& tiles(const std::string& tint);
     const TreeSet& trees(const std::string& tint);
@@ -60,6 +62,8 @@ class Sprites {
 
   private:
     Gfx* g_ = nullptr;
+    std::string root_;
+    std::map<std::string, Sprite> loose_;   // monster and undead pictures, loaded on first use
     std::map<std::string, Sprite> named_;
     std::map<std::string, Frames> strips_;
     std::map<std::string, Sprite> icons_;

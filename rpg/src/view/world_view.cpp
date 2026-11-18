@@ -1,5 +1,7 @@
 #include "view/world_view.h"
 
+#include "core/rng.h"
+
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -141,6 +143,7 @@ void WorldView::refreshProps(Map& m, MapView& v, int c, int r) {
 // Trees and boulders overlap the tiles above them, so they are drawn with the actors, sorted by their base.
 bool WorldView::propFor(Map& m, MapView& v, int c, int r, Prop& out) {
     const uint8_t t = m.get(c, r);
+    if (t == GRASS && m.outdoor) return decorFor(m, c, r, out);
     if (t != TREE && !(t == ROCK && m.outdoor)) return false;
     auto allSame = [&](uint8_t want) { return m.get(c + 1, r) == want && m.get(c - 1, r) == want && m.get(c, r + 1) == want && m.get(c, r - 1) == want; };
     const double hv = hash2(c, r, 21);
@@ -151,6 +154,28 @@ bool WorldView::propFor(Map& m, MapView& v, int c, int r, Prop& out) {
     const ZoneDef* z = m.outdoor ? &zoneAt(db_, m, c, r) : nullptr;
     out.c = c;
     out.base = (r + 1) * TILE - 2;
+    // Old giants from the Undead pack: two to four times the hero's height, spaced so their crowns do not pile up.
+    // Dead and broken ones in the marsh and the north, dark-leaved ones elsewhere.
+    if (m.outdoor && z && ((c * 7 + r * 13) % 5 == 0 || (t == ROCK && (c * 5 + r * 11) % 6 == 0))) {
+        const double roll = hash2(c, r, 27);
+        const bool dead = z->id == "marsh" || z->id == "frost" || z->tree == "dead";
+        static const char* LEAFY[] = {"tree_1", "tree_1", "tree_2", "tree_2", "tree_3", "dead_tree_2"};
+        static const char* DEAD[] = {"dead_tree_1", "dead_tree_2", "dead_tree_3", "broken_tree_1", "broken_tree_4", "dead_tree_1"};
+        static const char* ROCKS[] = {"rock_1", "rock_2", "rock_3", "rock_2"};
+        const char* name = nullptr;
+        if (t == TREE && roll < (z->id == "deepwood" ? 0.95 : 0.75)) name = (dead ? DEAD : LEAFY)[static_cast<int>(hash2(c, r, 28) * 6)];
+        else if (t == ROCK && !z->snow && roll < 0.6) name = ROCKS[static_cast<int>(hash2(c, r, 28) * 4)];
+        if (name) {
+            const Sprite& big = spr_.undead(name);
+            if (big) {
+                out.img = &big;
+                out.tree = t == TREE;
+                out.x = c * TILE + 8 - big.w / 2 + static_cast<int>(hash2(c, r, 29) * 5) - 2;
+                out.y = (r + 1) * TILE + 3 - big.h;
+                return true;
+            }
+        }
+    }
     if (t == TREE) {
         const bool deep = allSame(TREE);
         if (deep && stagger) return false;
@@ -197,6 +222,44 @@ bool WorldView::propFor(Map& m, MapView& v, int c, int r, Prop& out) {
     out.tree = false;
     out.x = c * TILE + 8 - out.img->w / 2 + (deep ? jx : 0);
     out.y = (r + 1) * TILE + (big ? 4 : 2) - out.img->h;
+    return true;
+}
+
+// Small things standing on open ground, region by region: grave markers in old burial grounds, bones, thorns,
+// weeds, stumps, the arms of the drowned in the marsh, ice crystals in the north. Walked through, never blocking.
+bool WorldView::decorFor(Map& m, int c, int r, Prop& out) {
+    if (m.objectAt(c, r) || m.block[m.idx(c, r)] || m.heightAt(c, r) != m.heightAt(c, r + 1)) return false;
+    for (const auto& t : db_.towns)
+        if (std::abs(t.at.c - c) < t.radius + 3 && std::abs(t.at.r - r) < t.radius + 3) return false;
+    const std::string& z = zoneAt(db_, m, c, r).id;
+    const double roll = hash2(c, r, 140);
+    // burial grounds: patches where the dead were laid, thick with markers
+    const bool graves = (z == "heartlands" || z == "marsh" || z == "vale" || z == "coast") && fbm(c / 9.0, r / 9.0, 141) > 0.7;
+    const char* name = nullptr;
+    if (m.heightAt(c, r) > 0 && roll > 0.93) {   // high ground keeps the ruins of old watchposts
+        static const char* R[] = {"ruin_3", "ruin_4", "ruin_5", "ruin_5", "pile_sculls", "ruin_4"};
+        name = R[static_cast<int>(hash2(c, r, 145) * 6)];
+    } else if (graves && roll < 0.22) {
+        static const char* G[] = {"grave_1", "grave_2", "grave_3", "grave_4", "grave_10", "grave_11", "grave_12", "bones_1"};
+        name = G[static_cast<int>(hash2(c, r, 142) * 8)];
+    } else if (roll < 0.035) {
+        static const char* VALE[] = {"plant_3", "plant_4", "plant_5", "broken_tree_2", "broken_tree_3", "bones_1"};
+        static const char* WOOD[] = {"thorn_plant_3", "thorn_plant_6", "plant_2", "plant_3", "broken_tree_2", "bones_3"};
+        static const char* COAST[] = {"bones_3", "bones_5", "rock_4", "rock_5", "plant_5", "bones_4"};
+        static const char* MARSH[] = {"dead_arm_3", "dead_arm_4", "thorn_plant_5", "bones_6", "bones_7", "plant_4"};
+        static const char* FROST[] = {"crystal_3", "rock_4", "rock_5", "bones_15", "bones_16", "broken_tree_3"};
+        const char* const* set = z == "deepwood" ? WOOD : z == "coast" ? COAST : z == "marsh" ? MARSH : z == "frost" ? FROST : VALE;
+        name = set[static_cast<int>(hash2(c, r, 143) * 6)];
+    } else if (roll > 0.9993) name = "pile_sculls";
+    if (!name) return false;
+    const Sprite& img = spr_.undead(name);
+    if (!img) return false;
+    out.img = &img;
+    out.tree = false;
+    out.c = c;
+    out.base = r * TILE + 8;
+    out.x = c * TILE + 8 - img.w / 2 + static_cast<int>(hash2(c, r, 144) * 7) - 3;
+    out.y = r * TILE + 13 - img.h;
     return true;
 }
 
@@ -474,11 +537,80 @@ void WorldView::drawElevation(Map& m, int c, int r) {
     const double x = c * TILE, y = r * TILE;
     const int here = m.heightAt(c, r);
     if (cliffFace(m, c, r)) return;
+    const uint8_t t = m.get(c, r);
+    const bool ground = t == GRASS || t == FLOWERS || t == SAND || t == PATH || t == TREE;
+    if (ground) {
+        // Rolling ground: a gentle height field, lit from the upper left, shades every 4x4 patch. Small rises
+        // and hollows read as relief without any cliff.
+        auto H = [](double px, double py) { return fbm(px / 150.0, py / 150.0, 913) * 1.0 + fbm(px / 45.0, py / 45.0, 917) * 0.25; };
+        for (int by = 0; by < 4; by++)
+            for (int bx = 0; bx < 4; bx++) {
+                const double px = x + bx * 4 + 2, py = y + by * 4 + 2;
+                const double gx = H(px + 3, py) - H(px - 3, py), gy = H(px, py + 3) - H(px, py - 3);
+                const double lit = std::clamp((gx + gy) * -55.0, -1.0, 1.0);   // facing the light: brighter
+                if (std::abs(lit) < 0.08) continue;
+                g_.fillRect(x + bx * 4, y + by * 4, 4, 4, lit > 0 ? Color(255, 240, 210, static_cast<uint8_t>(lit * 26)) : Color(10, 8, 14, static_cast<uint8_t>(-lit * 46)));
+            }
+        drawDetail(m, c, r);
+    }
     if (here > 0) g_.fillRect(x, y, 16, 16, Color(255, 236, 196, static_cast<uint8_t>(14 * here)));
     if (cliffFace(m, c, r - 1))
         for (int i = 0; i < 7; i++) g_.fillRect(x, y + i, 16, 1, Color(0, 0, 0, static_cast<uint8_t>(120 - i * 17)));
     if (m.heightAt(c - 1, r) > here || cliffFace(m, c - 1, r))
         for (int i = 0; i < 5; i++) g_.fillRect(x + i, y, 1, 16, Color(0, 0, 0, static_cast<uint8_t>(80 - i * 16)));
+}
+
+// Small things on the ground that keep the land from repeating: stones, twigs, leaf litter, mud, bones,
+// puddles and reeds in the marsh, cracked ice in the north. Which ones, and how many, depends on the region.
+void WorldView::drawDetail(Map& m, int c, int r) {
+    const double x = c * TILE, y = r * TILE;
+    const uint8_t t = m.get(c, r);
+    if (t == TREE || (t == GRASS && m.objectAt(c, r))) return;
+    const std::string& z = zoneAt(db_, m, c, r).id;
+    const double roll = hash2(c, r, 71), rx = hash2(c, r, 72) * 11, ry = hash2(c, r, 73) * 11;
+    const Color stone(112, 106, 98), stoneDk(62, 58, 54), twig(78, 58, 40), leaf(118, 84, 44), leaf2(92, 70, 40), mud(52, 44, 36);
+    auto pebbles = [&](int n) {
+        for (int i = 0; i < n; i++) {
+            const double px = x + 1 + hash2(c, r, 80 + i) * 13, py = y + 1 + hash2(c, r, 90 + i) * 13;
+            g_.fillRect(px, py, 2, 1, stone);
+            g_.fillRect(px, py + 1, 2, 1, stoneDk);
+        }
+    };
+    if (t == PATH || t == SAND) {   // ruts and stones on roads
+        if (roll < 0.35) pebbles(1 + static_cast<int>(hash2(c, r, 74) * 3));
+        if (t == PATH && roll > 0.85) g_.fillRect(x + rx, y + ry, 4, 2, Color(60, 48, 38, 120));
+        return;
+    }
+    const bool forest = z == "deepwood", marsh = z == "marsh", frost = z == "frost";
+    if (roll < (forest ? 0.30 : 0.10)) {   // leaf litter
+        for (int i = 0; i < 4; i++)
+            g_.fillRect(x + hash2(c, r, 100 + i) * 14, y + hash2(c, r, 110 + i) * 14, 2, 1, i % 2 ? leaf : leaf2);
+    } else if (roll < (forest ? 0.38 : 0.16)) {   // a fallen twig
+        const int len = 4 + static_cast<int>(hash2(c, r, 75) * 4);
+        for (int i = 0; i < len; i++) g_.fillRect(x + rx + i, y + ry + (i * 2) / len, 1, 1, twig);
+        g_.fillRect(x + rx + len / 2, y + ry - 1, 1, 1, twig);
+    } else if (roll < 0.26) {
+        pebbles(1 + static_cast<int>(hash2(c, r, 76) * 3));
+    } else if (roll < 0.34) {   // a tuft of dark grass
+        for (int i = 0; i < 4; i++) g_.fillRect(x + rx + i, y + ry + (i % 2), 1, 3 - (i % 2), Color(46, 60, 34));
+    } else if (marsh && roll < 0.48) {   // puddles and reeds
+        g_.fillRect(x + rx - 1, y + ry + 1, 7, 3, Color(28, 36, 40));
+        g_.fillRect(x + rx, y + ry, 5, 1, Color(28, 36, 40));
+        g_.fillRect(x + rx + 1, y + ry + 1, 2, 1, Color(110, 130, 140, 140));
+        if (hash2(c, r, 77) < 0.5)
+            for (int i = 0; i < 3; i++) g_.fillRect(x + rx + 6 + i * 2, y + ry - 4 + i, 1, 5 - i, Color(70, 84, 48));
+    } else if ((marsh || z == "heartlands" || z == "coast") && roll < 0.42) {   // mud
+        g_.fillRect(x + rx - 1, y + ry, 7, 3, mud);
+        g_.fillRect(x + rx, y + ry - 1, 5, 1, mud);
+    } else if (frost && roll < 0.45) {   // cracks in the frozen ground
+        for (int i = 0; i < 6; i++) g_.fillRect(x + rx + i, y + ry + static_cast<int>(hash2(c, r, 120 + i) * 3), 1, 1, Color(210, 222, 236, 160));
+    } else if (roll > 0.992) {   // bones: someone did not make it
+        g_.fillRect(x + rx, y + ry, 5, 1, Color(206, 200, 184));
+        g_.fillRect(x + rx, y + ry - 1, 1, 3, Color(206, 200, 184));
+        g_.fillRect(x + rx + 4, y + ry - 1, 1, 3, Color(206, 200, 184));
+        g_.fillRect(x + rx + 7, y + ry - 2, 3, 3, Color(196, 190, 176));
+        g_.fillRect(x + rx + 8, y + ry - 1, 1, 1, Color(40, 34, 30));
+    }
 }
 
 const Sprite& WorldView::minimap(Sim& sim, Map& m, bool fog) {
@@ -601,7 +733,7 @@ void WorldView::render(Sim& sim, int zoom, bool withActors) {
         }
         list.push_back({key, 0, &o});
     }
-    for (int r = r0; r < std::min(m.h, r1 + 4); r++)
+    for (int r = r0; r < std::min(m.h, r1 + 7); r++)
         for (const auto& p : v.props[r])
             if (p.x + p.img->w >= camX - 2 && p.x <= camX + VW + 2) list.push_back({p.base, 1, &p});
     for (const auto& f : m.falling) list.push_back({(f.r + 1) * TILE - 2.0, 2, &f});
@@ -627,7 +759,15 @@ void WorldView::render(Sim& sim, int zoom, bool withActors) {
                     auto hit = m.treeHit.find(m.idx(p.c, row));
                     if (hit != m.treeHit.end() && tick - hit->second.at < 12) sh = (tick >> 1) % 2 ? 1 : -1;   // shake while being chopped
                 }
+                // a big crown between the camera and the hero turns see-through, so the hero is never lost behind it
+                const bool hides = p.img->h > 40 && P.y < p.base && P.y > p.y + 6 && P.x > p.x + 4 && P.x < p.x + p.img->w - 4;
+                if (p.img->h > 30) {   // a long shadow thrown away from the light (upper left): squashed onto the ground
+                    const double sw = p.img->w, shh = std::round(p.img->h * 0.38);
+                    g_.drawTinted(*p.img, std::round(p.x + sw * 0.22), std::round(p.base - shh * 0.35), sw, shh, Color(4, 4, 8, 78));
+                }
+                if (hides) g_.setAlpha(0.45);
                 g_.draw(*p.img, p.x + sh, p.y);
+                g_.setAlpha(1);
                 break;
             }
             case 2: {   // a felled tree tips over around its trunk and fades out
@@ -819,12 +959,19 @@ void WorldView::drawObject(Sim& sim, Map& m, const Object& o) {
             g_.draw(anim(spr_.character(n->sprite, n->tint).get("idle"), tick + o.c * 7, 12), x - 8, y - 15, face < 0);
             // Quest marks: yellow "!" = something new, "?" = hand in here (dimmed while still in progress)
             const int mark = sim.npcMarker(o.id);
-            if (mark) {
-                const Sprite& ms = spr_.get(mark == 1 ? "mark_new" : "mark_done");
-                const double bob = std::round(std::sin(tick * 0.08 + o.c) * 1.5);
-                if (mark == 2) g_.setAlpha(0.45);
-                g_.draw(ms, x + 8 - ms.w / 2, y - 16 - ms.h + bob);
-                g_.setAlpha(1);
+            if (mark) {   // a small gold glyph with a dark rim and a faint glow, not a speech bubble
+                static const char* BANG[7] = {".##.", ".##.", ".##.", ".##.", "....", ".##.", ".##."};
+                static const char* ASK[7] = {".###", "#..#", "...#", "..#.", ".#..", "....", ".#.."};
+                const char* const* g = mark == 1 ? BANG : ASK;
+                const double bob = std::round(std::sin(tick * 0.08 + o.c) * 1.5), gx = x + 6, gy = y - 26 + bob;
+                const Color gold = mark == 2 ? Color(150, 140, 120, 150) : Color(255, 204, 84);
+                if (mark != 2) g_.drawTinted(spr_.glow, gx - 6, gy - 4, 16, 16, Color(255, 190, 80, 70), true);
+                for (int rr = 0; rr < 7; rr++)
+                    for (int cc = 0; cc < 4; cc++)
+                        if (g[rr][cc] == '#') g_.fillRect(gx + cc - 1, gy + rr - 1, 3, 3, Color(20, 14, 8, mark == 2 ? 120 : 220));
+                for (int rr = 0; rr < 7; rr++)
+                    for (int cc = 0; cc < 4; cc++)
+                        if (g[rr][cc] == '#') g_.fillRect(gx + cc, gy + rr, 1, 1, gold);
             }
             break;
         }
@@ -846,6 +993,13 @@ void WorldView::drawObject(Sim& sim, Map& m, const Object& o) {
             if (o.charge > 0) g_.fillRect(x + 7, y + 6, 2, 6, (tick >> 2) % 2 ? Color(255, 90, 74) : Color(255, 179, 71));
             break;
         case ObjKind::Gate: {
+            if (o.id == "zone_gate") {   // an iron portcullis in the rock wall between regions
+                if (o.text != "hidden") {
+                    g_.drawTinted(spr_.glow, x - 20, y - 4, 56, 24, Color(0, 0, 0, 120));
+                    g_.draw(spr_.gate[0], x + 8 - spr_.gate[0].w / 2, y + 16 - spr_.gate[0].h + 8);
+                }
+                break;
+            }
             const int f = !sim.doorOpen ? 0 : std::min(5, std::max(0, (tick - sim.gateAt) / 6));
             g_.draw(spr_.gate[std::min(spr_.gate.size() - 1, static_cast<size_t>(f))], x, y - 16);
             break;
@@ -883,6 +1037,11 @@ void WorldView::drawPlayer(Sim& sim) {
     const double swingP = P.atkT > 0 ? 1 - static_cast<double>(P.atkT) / atkT : 0, lunge = P.atkT > 0 ? 2.5 * std::sin(PI * swingP) : 0;
     const double x = std::round(P.x + std::cos(P.swingA) * lunge) - 16;
     double y = std::round(P.y + std::sin(P.swingA) * lunge * 0.6) - 30;
+    if (P.leapT > 0) {   // Leap Slam: high in an arc, a shadow on the ground below
+        const double k = 1 - P.leapT / 22.0;
+        g_.drawTinted(spr_.glow, std::round(P.x) - 12, std::round(P.y) - 4, 24, 8, Color(0, 0, 0, 120));
+        y -= std::round(std::sin(PI * k) * 18);
+    }
     if (sim.mode == Mode::Dead) {
         const Frames& dead = S.get("dead");
         g_.draw(dead[std::min(dead.size() - 1, static_cast<size_t>((tick - sim.deadAt) / 10))], x, y, flip);
@@ -988,6 +1147,10 @@ const Sprite& WorldView::enemyFrame(Sim& sim, const Enemy& e, bool& flip) {
         static const int CHOMP[6] = {0, 1, 2, 3, 2, 1};
         return e.hop > 0 || e.wind > 0 ? spr_.chest[std::min<size_t>(spr_.chest.size() - 1, CHOMP[(e.t / 3) % 6])] : spr_.chest[std::min<size_t>(1, spr_.chest.size() - 1)];
     }
+    if (def.look == Look::Static) {
+        flip = e.face < 0;
+        return spr_.monster(def.sprite, def.tint);
+    }
     if (def.look == Look::Treant) {
         const Frames& row = spr_.treant(def.tint)[treantRow(e.dir)];
         return e.moving || e.hop > 0 ? anim(row, e.t, e.fast ? 4 : 8) : row[0];
@@ -1021,7 +1184,14 @@ void WorldView::drawEnemy(Sim& sim, const Enemy& e) {
     const double top = animal ? e.y - 28 * k + yo : e.y - 30 * k;
     const int shake = e.wind > 0 && def.ai == Ai::Charger && def.look != Look::Human ? ((e.t >> 1) % 2 ? 1 : -1) : 0;
     const int crouch = e.wind > 0 && def.look == Look::Human ? 1 : 0;
-    const double dx = std::round(e.x - 16 * k) + shake, dy = std::round(top) + crouch;
+    double dx = std::round(e.x - 16 * k) + shake, dy = std::round(top) + crouch;
+    if (def.look == Look::Static) {   // a still picture walks with a bob and a sway, and rears back before it strikes
+        const double gait = e.moving ? std::abs(std::sin(e.t * (e.fast ? 0.35 : 0.22))) : 0.5 + 0.5 * std::sin(e.t * 0.05);
+        dy -= std::round(gait * (e.moving ? 2.5 : 1));
+        if (e.wind > 0 || e.act > 0) dy += 1, dx += e.face < 0 ? 1 : -1;
+        if (def.fly) dy -= 4;
+        g_.drawTinted(spr_.glow, std::round(e.x - 9 * k), std::round(e.y - 3), 18 * k, 6, Color(0, 0, 0, 110));
+    }
     g_.draw(img, dx, dy, 32 * k, 32 * k, flip);
     const bool flash = (e.flash > 0 && e.flash % 4 < 2) || (def.isBoss() && e.state == Enemy::State::VolleyWind && tick % 6 < 3);
     if (flash) g_.drawTinted(img, dx, dy, 32 * k, 32 * k, Color(255, 255, 255), true, flip);
@@ -1047,7 +1217,10 @@ void WorldView::drawCorpse(const Corpse& c) {
         const Frames& fr = spr_.animal(def.sprite, def.tint).get("dead")[animalRow(e.dir)];
         img = &fr[std::min(fr.size() - 1, static_cast<size_t>(c.t / 7))];
     } else if (def.look == Look::Mimic) img = &spr_.chest.back();
-    else if (def.look == Look::Treant) {   // no death frames in the sheet: it sinks and fades
+    else if (def.look == Look::Static) {   // no death frames: it slumps, darkens and fades
+        g_.setAlpha(std::max(0.0, 1 - c.t / 50.0));
+        img = &spr_.monster(def.sprite, "#806060");
+    } else if (def.look == Look::Treant) {   // no death frames in the sheet: it sinks and fades
         g_.setAlpha(std::max(0.0, 1 - c.t / 40.0));
         img = &spr_.treant(def.tint)[treantRow(e.dir)][0];
     } else {

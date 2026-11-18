@@ -31,6 +31,7 @@ Look parseLook(const std::string& s) {
     if (s == "human") return Look::Human;
     if (s == "treant") return Look::Treant;
     if (s == "mimic") return Look::Mimic;
+    if (s == "static") return Look::Static;
     throw std::runtime_error("Unknown enemy look: " + s);
 }
 
@@ -87,6 +88,9 @@ Database Database::load(const std::string& dir) {
         t.xpGrowth = l.at("xpGrowth");
         t.heartEvery = l.value("heartEveryLevels", 0);
         t.skillPointsPerLevel = l.value("skillPointsPerLevel", 1);
+        t.xpLateFrom = l.value("xpLateFrom", 9999);
+        t.xpLateDiv = std::max(1.0, l.value("xpLateDiv", 100.0));
+        t.skillPointEvery = std::max(1, l.value("skillPointEvery", 1));
         t.heartShards = std::max(1, l.value("heartShardsPerHeart", 3));
         t.damageEvery = l.at("damageEveryLevels");
         t.discoverZoneXp = l.at("discoverZoneXp");
@@ -274,6 +278,7 @@ Database Database::load(const std::string& dir) {
             z.rocks = e.at("rocks");
             z.flowers = e.at("flowers");
             z.tree = e.at("tree");
+            z.gate = e.value("gate", "");
             z.sandy = e.value("sandy", false);
             z.snow = e.value("snow", false);
             z.ground = hex(e.at("ground"));
@@ -592,6 +597,9 @@ const SkillDef* Database::skill(const std::string& id) const {
         if (s.id == id) return &s;
     return nullptr;
 }
-int Database::xpForLevel(int level) const { return static_cast<int>(std::floor(tuning.xpBase * std::pow(tuning.xpGrowth, level - 1))); }
+int Database::xpForLevel(int level) const {
+    const double late = std::max(0, level - tuning.xpLateFrom);
+    return static_cast<int>(std::floor(tuning.xpBase * std::pow(tuning.xpGrowth, level - 1) * (1 + late * late / tuning.xpLateDiv)));
+}
 
 }   // namespace hc

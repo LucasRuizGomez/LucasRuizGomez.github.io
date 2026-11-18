@@ -56,6 +56,7 @@ const Sprite& Sprites::icon(const std::string& id) const {
 
 void Sprites::build(Gfx& g, const Database& db, const std::string& root) {
     g_ = &g;
+    root_ = root;
     const json& cfg = db.sprites;
     if (cfg.contains("grade")) {   // the overall colour grade of the art
         const json& gr = cfg.at("grade");
@@ -148,6 +149,16 @@ void Sprites::build(Gfx& g, const Database& db, const std::string& root) {
             if (FILE* f = std::fopen(path.c_str(), "rb")) {
                 std::fclose(f);
                 charSheets_["ch" + std::to_string(n) + "." + a.key] = Image::load(path);
+            }
+        }
+
+    // ── vampires (CraftPix), cut to 32x32 frames by tools/import_dark_art.py; rows down, up, left, right ──
+    for (int v = 1; v <= 3; v++)
+        for (const char* a : {"idle", "walk", "run", "attack", "dead", "hurt"}) {
+            const std::string path = gen + "vampires/vampire" + std::to_string(v) + "." + a + ".png";
+            if (FILE* f = std::fopen(path.c_str(), "rb")) {
+                std::fclose(f);
+                animalSheets_["vampire" + std::to_string(v) + "." + (std::string(a) == "attack" ? "atk" : a)] = Image::load(path);
             }
         }
 
@@ -451,6 +462,21 @@ const CharSet& Sprites::hero(const std::string& helm, const std::string& body, c
     }
     if (!set.anims.count("walk") && set.anims.count("run")) set.anims["walk"] = set.anims["run"];
     return chars_[key] = std::move(set);
+}
+
+const Sprite& Sprites::monster(const std::string& name, const std::string& tint) {
+    const std::string key = "m|" + name + "|" + tint;
+    if (auto it = loose_.find(key); it != loose_.end()) return it->second;
+    Image im = Image::load(root_ + "assets/dcss/" + name + ".png");
+    if (!isWhite(tint) && !im.empty()) im = im.shade(hex(tint));
+    return loose_[key] = im.empty() ? Sprite() : g_->makeSprite(im);
+}
+
+const Sprite& Sprites::undead(const std::string& name) {
+    const std::string key = "u|" + name;
+    if (auto it = loose_.find(key); it != loose_.end()) return it->second;
+    const Image im = Image::load(root_ + "assets/undead/" + name + ".png");
+    return loose_[key] = im.empty() ? Sprite() : g_->makeSprite(im.trim());
 }
 
 const AnimalSet& Sprites::animal(const std::string& sprite, const std::string& tint) {

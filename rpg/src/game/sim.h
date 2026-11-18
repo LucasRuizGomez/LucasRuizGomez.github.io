@@ -86,6 +86,9 @@ struct Player {
     std::vector<Trail> trail;
     std::string mount;          // item id of the mount being ridden, empty on foot
     int mountCast = 0, recallT = 0, whirlCd = 0, whirlT = 0;
+    std::map<std::string, int> abilityCd;   // active skills learned in the tree: ticks until each is ready again
+    int leapT = 0;                          // Leap Slam: ticks left in the air
+    double leapX = 0, leapY = 0, leapTX = 0, leapTY = 0;
     int combatT = 9999;         // ticks since the last blow given or taken
     std::vector<Buff> buffs;
     std::string lastTown = "greenhollow";
@@ -144,6 +147,9 @@ class Sim {
     int gateAt = -999, deadAt = 0, victoryAt = 0, hitstop = 0, deaths = 0, craftFlash = 0;
     bool nightPack = false;
     std::set<std::string> bossesDefeated, zonesFound, waypoints, shrinesFound;
+    void openZoneGates(bool announce);   // lifts every region gate whose boss is dead
+    void gateHint(Map& m);
+    int gateHintAt_ = 0;
     std::map<std::string, QuestState> quests;
     std::string signTitle, signText, shopId, zoneId, townId;
     std::vector<std::string> sfx;               // sound events since the last frame
@@ -234,6 +240,15 @@ class Sim {
     void gainXp(int amount);
     int xpToNext() const { return db.xpForLevel(P.level); }
     bool whirlwindUnlocked() const { return skillStat("whirl") > 0; }
+    // The active skills besides Whirlwind: unlocked by a skill-tree effect of the same name.
+    struct Ability {
+        const char *id, *name, *icon;
+        int cooldown;   // ticks
+    };
+    static const std::vector<Ability>& abilities();
+    bool abilityKnown(const std::string& id) const { return skillStat(id) > 0; }
+    int abilityCooldown(const std::string& id) const;   // ticks left
+    void useAbility(const std::string& id);
     int whirlCooldown() const;
     int skillRank(const std::string& id) const;
     double skillStat(const std::string& stat) const;              // sum of a stat over learned ranks
@@ -250,7 +265,7 @@ class Sim {
     double darkness() const;           // 0 = full day, 1 = deep night
     bool isNight() const { return darkness() > 0.5; }
     std::string clockText() const;
-    bool invulnerable() const { return P.iframes > 0 || P.roll > 2 || flying(); }
+    bool invulnerable() const { return P.iframes > 0 || P.roll > 2 || P.leapT > 0 || flying(); }
     const Enemy* activeBoss() const;
     int combatLevel() const;           // 0 calm, 1 fighting, 2 fighting an elite, 3 boss
     const Enemy* meleeTarget() const;

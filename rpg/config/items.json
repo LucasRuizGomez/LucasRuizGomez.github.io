@@ -29,34 +29,34 @@
     { "id": "crown",   "name": "Hollow Crown", "type": "trophy", "desc": "Proof that the Hollow King has fallen." },
 
     { "id": "wood_sword",   "name": "Wooden Sword",   "type": "weapon", "dmg": 2, "reach": 13, "cd": 22, "tier": 1,   "level": 1,  "value": 4,  "desc": "A whittled blade. Better than fists." },
-    { "id": "iron_sword",   "name": "Iron Sword",     "type": "weapon", "dmg": 4, "reach": 15, "cd": 22, "tier": 2,   "level": 2,  "value": 18, "desc": "Honest iron with a good edge." },
-    { "id": "steel_spear",  "name": "Steel Spear",    "type": "weapon", "dmg": 5, "reach": 21, "cd": 24, "tier": 2.5, "level": 4,  "value": 30, "desc": "Long reach. Forged at a fire." },
-    { "id": "knight_blade", "name": "Knight's Blade", "type": "weapon", "dmg": 6, "reach": 17, "cd": 20, "tier": 3,   "level": 6,  "value": 48, "desc": "A soldier's sword, quick and well balanced." },
-    { "id": "frost_brand",  "name": "Frost Brand",    "type": "weapon", "dmg": 8, "reach": 18, "cd": 20, "tier": 4,   "level": 8,  "value": 80, "desc": "Cold to the touch. Forged in Highwatch." },
-    { "id": "kings_edge",   "name": "King's Edge",    "type": "weapon", "dmg": 10, "reach": 19, "cd": 18, "tier": 5,  "level": 10, "value": 160, "desc": "The blade the Hollow King carried in life." },
+    { "id": "iron_sword",   "name": "Iron Sword",     "type": "weapon", "dmg": 4, "reach": 15, "cd": 22, "tier": 2,   "level": 9,  "value": 18, "desc": "Honest iron with a good edge." },
+    { "id": "steel_spear",  "name": "Steel Spear",    "type": "weapon", "dmg": 5, "reach": 21, "cd": 24, "tier": 2.5, "level": 25,  "value": 30, "desc": "Long reach. Forged at a fire." },
+    { "id": "knight_blade", "name": "Knight's Blade", "type": "weapon", "dmg": 6, "reach": 17, "cd": 20, "tier": 3,   "level": 41,  "value": 48, "desc": "A soldier's sword, quick and well balanced." },
+    { "id": "frost_brand",  "name": "Frost Brand",    "type": "weapon", "dmg": 8, "reach": 18, "cd": 20, "tier": 4,   "level": 57,  "value": 80, "desc": "Cold to the touch. Forged in Highwatch." },
+    { "id": "kings_edge",   "name": "King's Edge",    "type": "weapon", "dmg": 10, "reach": 19, "cd": 18, "tier": 5,  "level": 73, "value": 160, "desc": "The blade the Hollow King carried in life." },
 
     { "id": "wood_shield",     "name": "Wooden Shield",     "type": "shield", "wear": "#8a6040", "def": 1, "tier": 1, "level": 1, "value": 6,  "desc": "Blocks 1 damage from strong hits." },
-    { "id": "iron_shield",     "name": "Iron Shield",       "type": "shield", "wear": "#9aa0a8", "def": 2, "tier": 2, "level": 4, "value": 26, "desc": "Blocks 2 damage from strong hits." },
-    { "id": "champion_shield", "name": "Champion's Shield", "type": "shield", "wear": "#d8b860", "def": 3, "tier": 3, "level": 8, "value": 90, "desc": "Blocks 3 damage from strong hits." },
+    { "id": "iron_shield",     "name": "Iron Shield",       "type": "shield", "wear": "#9aa0a8", "def": 2, "tier": 2, "level": 25, "value": 26, "desc": "Blocks 2 damage from strong hits." },
+    { "id": "champion_shield", "name": "Champion's Shield", "type": "shield", "wear": "#d8b860", "def": 3, "tier": 3, "level": 57, "value": 90, "desc": "Blocks 3 damage from strong hits." },
 
-    { "id": "leather_armor", "name": "Leather Jerkin", "type": "armor", "wear": "#8a5e3a", "hp": 1, "tier": 1, "level": 2, "value": 14, "desc": "Adds half a heart of health." },
-    { "id": "chain_armor",   "name": "Chain Hauberk",  "type": "armor", "wear": "#8c949c", "hp": 2, "tier": 2, "level": 5, "value": 40, "desc": "Adds 1 heart of health." },
-    { "id": "plate_armor",   "name": "Plate Cuirass",  "type": "armor", "wear": "#cdd2de", "hp": 3, "tier": 3, "level": 8, "value": 95, "desc": "Adds a heart and a half of health." },
+    { "id": "leather_armor", "name": "Leather Jerkin", "type": "armor", "wear": "#8a5e3a", "hp": 1, "tier": 1, "level": 9, "value": 14, "desc": "Adds half a heart of health." },
+    { "id": "chain_armor",   "name": "Chain Hauberk",  "type": "armor", "wear": "#8c949c", "hp": 2, "tier": 2, "level": 33, "value": 40, "desc": "Adds 1 heart of health." },
+    { "id": "plate_armor",   "name": "Plate Cuirass",  "type": "armor", "wear": "#cdd2de", "hp": 3, "tier": 3, "level": 57, "value": 95, "desc": "Adds a heart and a half of health." },
 
     { "id": "leather_cap",  "name": "Leather Cap",  "type": "helm", "wear": "#8a5e3a", "hp": 1, "tier": 1, "level": 1, "value": 10, "desc": "Boiled leather. Adds half a heart of health." },
-    { "id": "iron_helm",    "name": "Iron Helm",    "type": "helm", "wear": "#8c949c", "hp": 1, "tier": 2, "level": 4, "value": 32, "desc": "A plain iron pot. Adds half a heart of health." },
-    { "id": "great_helm",   "name": "Great Helm",   "type": "helm", "wear": "#cdd2de", "hp": 1, "def": 1, "tier": 3, "level": 8, "value": 85, "desc": "Full-faced steel. Adds half a heart and blocks 1 damage from strong hits." },
+    { "id": "iron_helm",    "name": "Iron Helm",    "type": "helm", "wear": "#8c949c", "hp": 1, "tier": 2, "level": 25, "value": 32, "desc": "A plain iron pot. Adds half a heart of health." },
+    { "id": "great_helm",   "name": "Great Helm",   "type": "helm", "wear": "#cdd2de", "hp": 1, "def": 1, "tier": 3, "level": 57, "value": 85, "desc": "Full-faced steel. Adds half a heart and blocks 1 damage from strong hits." },
 
     { "id": "leather_boots", "name": "Leather Boots", "type": "boots", "wear": "#6a4a2e", "speed": 5,  "tier": 1, "level": 1, "value": 12, "desc": "Soft soles for long roads." },
-    { "id": "iron_greaves",  "name": "Iron Greaves",  "type": "boots", "wear": "#8c949c", "speed": 8,  "tier": 2, "level": 5, "value": 36, "desc": "Heavy, but well fitted." },
-    { "id": "frost_treads",  "name": "Frost Treads",  "type": "boots", "wear": "#a8d0f0", "speed": 12, "tier": 3, "level": 8, "value": 90, "desc": "Highwatch boots that never slip on ice." },
+    { "id": "iron_greaves",  "name": "Iron Greaves",  "type": "boots", "wear": "#8c949c", "speed": 8,  "tier": 2, "level": 33, "value": 36, "desc": "Heavy, but well fitted." },
+    { "id": "frost_treads",  "name": "Frost Treads",  "type": "boots", "wear": "#a8d0f0", "speed": 12, "tier": 3, "level": 57, "value": 90, "desc": "Highwatch boots that never slip on ice." },
 
-    { "id": "band",   "name": "Copper Band",    "type": "trinket", "tier": 1, "level": 2, "value": 12, "desc": "A plain ring. Its worth is in what it was enchanted with." },
-    { "id": "signet", "name": "Traveller's Signet", "type": "trinket", "tier": 2, "level": 6, "value": 40, "desc": "Worn by those who walk far from home." },
+    { "id": "band",   "name": "Copper Band",    "type": "trinket", "tier": 1, "level": 9, "value": 12, "desc": "A plain ring. Its worth is in what it was enchanted with." },
+    { "id": "signet", "name": "Traveller's Signet", "type": "trinket", "tier": 2, "level": 41, "value": 40, "desc": "Worn by those who walk far from home." },
 
-    { "id": "mount_boar", "name": "War Boar",   "type": "mount", "unique": true, "level": 3, "value": 60,  "mountSprite": "boar", "mountTint": "#c8a888", "mountSpeed": 1.6, "desc": "A saddle-broken boar. Summon it outdoors to ride 60% faster." },
-    { "id": "mount_stag", "name": "Frost Stag", "type": "mount", "unique": true, "level": 7, "value": 180, "mountSprite": "deer", "mountTint": "#d8e4f0", "mountSpeed": 2.0, "desc": "Swift and sure-footed. Summon it outdoors to ride twice as fast." },
-    { "id": "mount_roc",  "name": "Great Roc",  "type": "mount", "unique": true, "level": 9, "value": 450, "mountSprite": "grouse", "mountTint": "#f0c878", "mountSpeed": 2.3, "mountFly": true,
+    { "id": "mount_boar", "name": "War Boar",   "type": "mount", "unique": true, "level": 17, "value": 60,  "mountSprite": "boar", "mountTint": "#c8a888", "mountSpeed": 1.6, "desc": "A saddle-broken boar. Summon it outdoors to ride 60% faster." },
+    { "id": "mount_stag", "name": "Frost Stag", "type": "mount", "unique": true, "level": 49, "value": 180, "mountSprite": "deer", "mountTint": "#d8e4f0", "mountSpeed": 2.0, "desc": "Swift and sure-footed. Summon it outdoors to ride twice as fast." },
+    { "id": "mount_roc",  "name": "Great Roc",  "type": "mount", "unique": true, "level": 65, "value": 450, "mountSprite": "grouse", "mountTint": "#f0c878", "mountSpeed": 2.3, "mountFly": true,
       "desc": "A giant bird broken to the saddle. Summon it outdoors to fly over forests, lakes and mountains, out of reach of monsters." }
   ],
 

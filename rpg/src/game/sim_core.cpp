@@ -40,6 +40,24 @@ void Sim::applyWorldFlags() {
     }
 }
 
+void Sim::openZoneGates(bool announce) {
+    if (!maps.count("over")) return;
+    Map& over = maps.at("over");
+    std::set<std::string> opened;
+    for (auto& o : over.objects) {
+        if (o.kind != ObjKind::Gate || o.id != "zone_gate" || o.gone || !bossesDefeated.count(o.res)) continue;
+        o.gone = true;
+        over.setBlock(o, false);
+        opened.insert(o.res);
+    }
+    if (!announce || opened.empty()) return;
+    for (const auto& z : db.zones)
+        if (opened.count(z.gate)) {
+            showBanner("waypoint", "The way is open", z.name + " can be reached now", Color(120, 90, 50));
+            break;
+        }
+}
+
 void Sim::newGame(const std::string& heroName) {
     buildWorld();
     P = Player();
@@ -157,7 +175,7 @@ void Sim::spawnEnemies(Map& m) {
         for (size_t i = 1; i < m.rooms.size(); i++) {
             const Room& R = m.rooms[i];
             const bool last = i + 1 == m.rooms.size(), bossHere = last && !def->boss.empty();
-            const int n = bossHere ? 2 : last ? 5 : 2 + static_cast<int>(i % 2) + (def->level >= 6 ? 1 : 0);
+            const int n = bossHere ? 2 : last ? 5 : 2 + static_cast<int>(i % 2) + (def->level >= 41 ? 1 : 0);
             bool eliteLeft = rng.chance(0.3);
             for (int k = 0; k < n && !def->enemies.empty(); k++)
                 for (int tries = 0; tries < 30; tries++) {
@@ -255,10 +273,14 @@ void Sim::gainXp(int amount) {
         P.xp -= db.xpForLevel(P.level);
         P.level++;
         P.hp = maxHp();
-        const int pts = db.tuning.skillPointsPerLevel;
-        std::string perk = "+" + std::to_string(pts) + (pts == 1 ? " skill point" : " skill points");
-        if (db.tuning.heartEvery > 0 && P.level % db.tuning.heartEvery == 0) perk += " · +1 heart";
-        if (P.level % db.tuning.damageEvery == 0) perk += " · +1 damage";
+        std::string perk;
+        auto add = [&perk](const std::string& p) { perk += (perk.empty() ? "" : " · ") + p; };
+        if ((P.level - 1) % db.tuning.skillPointEvery == 0) add("+1 skill point");
+        if (db.tuning.heartEvery > 0 && P.level % db.tuning.heartEvery == 0) add("+1 heart");
+        if (P.level % db.tuning.damageEvery == 0) add("+1 damage");
+        for (const auto& s : db.skills)   // skills that open at this level
+            if (s.level == P.level) add(s.name + " can be learned");
+        if (perk.empty()) perk = "Stronger, slowly";
         showBanner("levelup", "Level " + std::to_string(P.level), perk, Color(90, 60, 160));
         play("levelup");
         burst(P.x, P.y - 10, Color(255, 226, 138), 30, 1.8, -0.01);
@@ -283,7 +305,7 @@ double Sim::skillStat(const std::string& stat) const {
 int Sim::skillPoints() const {
     int spent = 0;
     for (const auto& [id, rank] : P.skills) spent += rank;
-    return (P.level - 1) * db.tuning.skillPointsPerLevel - spent;
+    return (P.level - 1) / db.tuning.skillPointEvery * db.tuning.skillPointsPerLevel - spent;
 }
 
 std::string Sim::skillBlocked(const SkillDef& s) const {
@@ -508,6 +530,7 @@ void Sim::action(const std::string& a, bool mouse) {
     else if (a == "interact") wantInteract_ = true;
     else if (a == "heal") wantHeal_ = true;
     else if (a == "skill") wantSkill_ = true;
+    else if (a == "warcry" || a == "leap" || a == "stoneskin" || a == "volley") useAbility(a);
     else if (a == "mount") wantMount_ = true;
     else if (a == "recall") wantRecall_ = true;
     else if (a == "quick1") quickUse("bandage");

@@ -113,7 +113,29 @@ void Sim::updatePlayer() {
             burst(P.x, P.y, Color(200, 176, 144), 6, 0.7, 0.02);
         }
     }
-    if (P.roll > 0) {
+    if (P.leapT > 0) {   // Leap Slam: an arc through the air, then the blow lands
+        const double k = 1 - (P.leapT - 1) / 22.0;
+        double nx = P.leapX + (P.leapTX - P.leapX) * k, ny = P.leapY + (P.leapTY - P.leapY) * k;
+        P.x = nx;
+        P.y = ny;
+        if (--P.leapT == 0) {
+            shake = std::max(shake, 9.0);
+            hitstop = std::max(hitstop, 5);
+            play("whirl");
+            const int dmg = weaponDamage() * 2 + static_cast<int>(skillStat("dmg"));
+            for (auto& e : m.enemies) {
+                if (!e.alive) continue;
+                const double ex = e.x - P.x, ey = (e.y - e.cy) - (P.y - 6), d = hypot2(ex, ey);
+                if (d > 38 + e.r) continue;
+                const double kk = d > 0 ? 4 / d : 0;
+                damageEnemy(e, dmg, ex * kk, ey * kk);
+            }
+            for (int i = 0; i < 36; i++) {
+                const double a = i / 36.0 * PI * 2;
+                particles.push_back({P.x + std::cos(a) * 6, P.y + std::sin(a) * 3, std::cos(a) * 2.2, std::sin(a) * 1.1, -0.3, 18, 2, Color(150, 130, 100)});
+            }
+        }
+    } else if (P.roll > 0) {
         const double k = static_cast<double>(P.roll) / T.rollTicks;
         m.moveBox(P.x, P.y, P.rvx * (1.1 + 2.3 * k), P.rvy * (1.1 + 2.3 * k), 4, 3, false);
         if (P.roll % 3 == 0) P.trail.push_back({P.x, P.y, P.face, 10});
@@ -152,6 +174,8 @@ void Sim::updatePlayer() {
     if (P.actCd > 0) P.actCd--;
     if (P.rollCd > 0) P.rollCd--;
     if (P.whirlCd > 0) P.whirlCd--;
+    for (auto& [id, cd] : P.abilityCd)
+        if (cd > 0) cd--;
     if (P.whirlT > 0) P.whirlT--;
     if (P.combatT < 100000) P.combatT++;
     // Second Wind: out of combat, half a heart back every few seconds
@@ -279,6 +303,7 @@ void Sim::updatePlayer() {
     }
 
     updateSkills(m);
+    gateHint(m);
     if (wantHeal_) {
         wantHeal_ = false;
         quickHeal();
@@ -305,6 +330,120 @@ void Sim::updatePlayer() {
                 });
                 break;
             }
+    }
+}
+
+const std::vector<Sim::Ability>& Sim::abilities() {
+    static const std::vector<Ability> A = {
+        {"warcry", "War Cry", "owl_brave", 1200},
+        {"leap", "Leap Slam", "owl_strengthen", 600},
+        {"stoneskin", "Stone Skin", "owl_stone", 1500},
+        {"volley", "Volley", "owl_crossbow", 420},
+    };
+    return A;
+}
+
+int Sim::abilityCooldown(const std::string& id) const {
+    const auto it = P.abilityCd.find(id);
+    return it == P.abilityCd.end() ? 0 : std::max(0, it->second);
+}
+
+void Sim::useAbility(const std::string& id) {
+    const Ability* ab = nullptr;
+    for (const auto& a : abilities())
+        if (id == a.id) ab = &a;
+    if (!ab || mode != Mode::Play || flying()) return;
+    if (!abilityKnown(id)) {
+        toast("Learn " + std::string(ab->name) + " in the skill tree first.");
+        play("deny");
+        return;
+    }
+    if (abilityCooldown(id) > 0 || P.roll > 0 || P.leapT > 0) {
+        play("deny");
+        return;
+    }
+    Map& m = map();
+    const Vec2 f = dirVec(P.dir);
+    if (id == "volley") {
+        if (!hasItem("bow") || !hasItem("arrows")) {
+            toast("Volley needs a crossbow and bolts.");
+            play("deny");
+            return;
+        }
+        // five bolts in a fan, for the price of two
+        const double a0 = std::atan2(f.y, f.x);
+        for (int i = -2; i <= 2; i++) {
+            Projectile p;
+            const double a = a0 + i * 0.2;
+            p.x = P.x + std::cos(a) * 6;
+            p.y = P.y - 6 + std::sin(a) * 4;
+            p.vx = std::cos(a) * 3.4;
+            p.vy = std::sin(a) * 3.4;
+            p.fromPlayer = true;
+            p.dmg = bowDamage();
+            p.life = 70;
+            m.proj.push_back(p);
+        }
+        removeItem("arrows", std::min(2, countItem("arrows")));
+        P.bowT = 10;
+        play("shoot");
+    } else if (id == "warcry") {
+        // a roar: fury for eight seconds, and everything close is thrown back
+        std::erase_if(P.buffs, [](const Buff& b) { return b.id == "frenzy"; });
+        P.buffs.push_back({"frenzy", 480});
+        for (auto& e : m.enemies) {
+            if (!e.alive) continue;
+            const double ex = e.x - P.x, ey = e.y - P.y, d = hypot2(ex, ey);
+            if (d > 56 || d < 1) continue;
+            e.kbx += ex / d * 4;
+            e.kby += ey / d * 4;
+        }
+        shake = std::max(shake, 5.0);
+        burst(P.x, P.y - 10, Color(255, 120, 80), 24, 2.0);
+        play("whirl");
+        floater(P.x, P.y - 26, "War Cry", Color(255, 150, 110));
+    } else if (id == "stoneskin") {
+        std::erase_if(P.buffs, [](const Buff& b) { return b.id == "protection"; });
+        P.buffs.push_back({"protection", 420});
+        burst(P.x, P.y - 8, Color(170, 160, 140), 20, 1.2);
+        play("shrine");
+        floater(P.x, P.y - 26, "Stone Skin", Color(200, 190, 170));
+    } else if (id == "leap") {
+        // leap up to four tiles the way you face, landing on the furthest open ground
+        dismount();
+        double tx = P.x, ty = P.y;
+        for (int step = 1; step <= 16; step++) {
+            const double nx = P.x + f.x * step * 4, ny = P.y + f.y * step * 4;
+            if (!m.boxFree(nx, ny, 4, 3, false)) break;
+            tx = nx;
+            ty = ny;
+        }
+        P.leapX = P.x;
+        P.leapY = P.y;
+        P.leapTX = tx;
+        P.leapTY = ty;
+        P.leapT = 22;
+        play("dodge");
+    }
+    P.abilityCd[id] = ab->cooldown;
+    P.combatT = std::min(P.combatT, 60);
+}
+
+void Sim::gateHint(Map& m) {
+    if (!m.outdoor || tickCount % 15 != 0 || tickCount < gateHintAt_) return;
+    for (const auto& o : m.objects) {
+        if (o.kind != ObjKind::Gate || o.id != "zone_gate" || o.gone) continue;
+        if (std::abs(o.c * TILE + 8 - P.x) > 30 || std::abs(o.r * TILE + 8 - P.y) > 30) continue;
+        std::string boss = "its guardian", place = o.res;
+        for (const auto& d : db.dungeons)
+            if (d.id == o.res) {
+                place = d.name;
+                if (const EnemyDef* e = db.findEnemy(d.boss)) boss = e->name;
+            }
+        toast("The gate is sealed. It opens when " + boss + " falls in " + place + ".", Color(255, 190, 120));
+        play("deny");
+        gateHintAt_ = tickCount + 300;
+        return;
     }
 }
 
