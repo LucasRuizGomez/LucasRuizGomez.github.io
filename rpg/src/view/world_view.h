@@ -50,6 +50,8 @@ class WorldView {
     void bakeChunk(Map& m, MapView& v, int cx, int cy);
     void drawInteriorTile(Map& m, const TileSet& T, int c, int r);
     void drawTile(Map& m, MapView& v, int c, int r);
+    void drawCliff(Map& m, const TileSet& T, int c, int r);
+    void drawElevation(Map& m, int c, int r);
     bool propFor(Map& m, MapView& v, int c, int r, Prop& out);
     void refreshProps(Map& m, MapView& v, int c, int r);
     const TileSet& tilesAt(Map& m, MapView& v, int c, int r);

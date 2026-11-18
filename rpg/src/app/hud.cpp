@@ -14,48 +14,28 @@ void App::drawHud() {
     const int tick = sim.tickCount;
     auto toScreen = [&](double wx, double wy) { return Vec2{(wx * zoom_ - world_->offX) / ui_, (wy * zoom_ - world_->offY) / ui_}; };
 
-    // Hearts (ten to a row)
-    const int hearts = (sim.maxHp() + 1) / 2;
-    for (int i = 0; i < hearts; i++) {
-        const int v = std::clamp(P.hp - i * 2, 0, 2);
-        const bool low = P.hp <= 2 && v > 0 && (tick >> 4) % 2;
-        drawSpr(spr_.heart[v], 16 + (i % 10) * 27 - (low ? 1 : 0), 12 + (i / 10) * 26 - (low ? 1 : 0), 26 + (low ? 2 : 0));
-    }
-    double y = 14 + ((hearts + 9) / 10) * 26;
-
-    // Level and experience
-    {
-        const bool capped = P.level >= db_.tuning.maxLevel;
-        const std::string lv = "Level " + std::to_string(P.level);
-        shadowText(lv, 16, y + 13, pal::ltGold, 14, 1);
-        const double bx = 22 + textW(lv, 14, 1), bw = 150;
-        bar(bx, y + 4, bw, 7, capped ? 1 : static_cast<double>(P.xp) / sim.xpToNext(), pal::xp, Color(40, 30, 60));
-        double after = bx + bw + 8;
-        if (!capped) {
-            const std::string xpText = std::to_string(P.xp) + " / " + std::to_string(sim.xpToNext());
-            shadowText(xpText, after, y + 12, pal::ltMuted, 11);
-            after += textW(xpText, 11) + 14;
-        }
-        if (const int pts = sim.skillPoints(); pts > 0) {   // unspent skill points nag gently
-            g_.setAlpha(0.75 + 0.25 * std::sin(tick * 0.1));
-            shadowText("+" + std::to_string(pts) + (pts == 1 ? " skill point" : " skill points") + " · " + bindLabel("skills"), after, y + 12, pal::ltGold, 12, 1);
-            g_.setAlpha(1);
-        }
-        y += 26;
-    }
-
-    // Equipment row: weapon, shield, crossbow, healing, whirlwind, mount
+    // ── The action bar along the bottom, between a globe of health and a globe of experience ──
     struct Slot {
-        std::string key, icon, empty, count;
+        std::string key, icon, label, count;
         double cool = 0;
-        bool locked = false;
+        bool locked = false, ready = false, dim = false;
     };
     std::vector<Slot> slots;
     const Item* weapon = sim.equipped(EquipSlot::Weapon);
-    const Item* shield = sim.equipped(EquipSlot::Shield);
     slots.push_back({btnLabel("attack"), weapon ? weapon->id : "", "Fists", ""});
-    slots.push_back({"", shield ? shield->id : "", "", ""});
-    slots.push_back({btnLabel("shoot"), sim.hasItem("bow") ? "bow" : "", "", sim.hasItem("bow") ? std::to_string(sim.countItem("arrows")) : ""});
+    {
+        Slot s{btnLabel("shoot"), "bow", "", sim.hasItem("bow") ? std::to_string(sim.countItem("arrows")) : ""};
+        s.locked = !sim.hasItem("bow");
+        s.dim = !s.locked && sim.countItem("arrows") == 0;
+        slots.push_back(s);
+    }
+    {
+        Slot s{btnLabel("skill"), "owl_shuriken", "", ""};
+        s.locked = !sim.whirlwindUnlocked();
+        s.cool = static_cast<double>(P.whirlCd) / std::max(1, sim.whirlCooldown());
+        s.ready = !s.locked && P.whirlCd <= 0;
+        slots.push_back(s);
+    }
     {
         std::string healIcon;
         for (const char* id : {"potion", "roast", "bandage", "meat"})
@@ -64,42 +44,87 @@ void App::drawHud() {
                 break;
             }
         const int n = sim.countItem("potion") + sim.countItem("roast") + sim.countItem("bandage") + sim.countItem("meat");
-        slots.push_back({btnLabel("heal"), healIcon, "", healIcon.empty() ? "" : std::to_string(n)});
+        Slot s{btnLabel("heal"), healIcon.empty() ? "potion" : healIcon, "", healIcon.empty() ? "" : std::to_string(n)};
+        s.dim = healIcon.empty();
+        slots.push_back(s);
     }
-    slots.push_back({btnLabel("skill"), weapon ? weapon->id : "wood_sword", "", "", static_cast<double>(P.whirlCd) / std::max(1, sim.whirlCooldown()), !sim.whirlwindUnlocked()});
-    if (const std::string mount = sim.chosenMount(); !mount.empty()) slots.push_back({btnLabel("mount"), mount, "", ""});
+    static const char* QUICK[3][2] = {{"bandage", "quick1"}, {"roast", "quick2"}, {"potion", "quick3"}};
+    for (const auto& qk : QUICK) {
+        const int n = sim.countItem(qk[0]);
+        Slot s{scheme_ != Scheme::Pad ? bindLabel(qk[1]) : "", qk[0], "", n ? std::to_string(n) : ""};
+        s.dim = n == 0;
+        slots.push_back(s);
+    }
+    {
+        const std::string mount = sim.chosenMount();
+        Slot s{btnLabel("mount"), mount.empty() ? "mount_boar" : mount, "", ""};
+        s.locked = mount.empty();
+        slots.push_back(s);
+    }
+
+    const double SS = 46, GAP = 6, ORB = 96;
+    const double barW = slots.size() * (SS + GAP) - GAP + 28, barH = SS + 24;
+    const double totalW = barW + ORB * 2 - 24;
+    const double bx0 = std::round((uiW() - totalW) / 2) + ORB - 12, by0 = std::round(uiH() - barH - 8);
+    // the bar: a dark iron plate with a brass rim, and an experience strip along its top
+    panel(bx0, by0, barW, barH);
+    const double xpFrac = P.level >= db_.tuning.maxLevel ? 1 : static_cast<double>(P.xp) / std::max(1, sim.xpToNext());
+    box(bx0 + 12, by0 + 8, barW - 24, 5, Color(16, 12, 20), Color(8, 6, 6));
+    g_.fillRect(bx0 + 13, by0 + 9, std::round((barW - 26) * xpFrac), 3, pal::xp);
+    for (int i = 1; i < 10; i++) g_.fillRect(std::round(bx0 + 12 + (barW - 24) * i / 10), by0 + 8, 1, 5, Color(8, 6, 6, 200));
     for (size_t i = 0; i < slots.size(); i++) {
         const Slot& s = slots[i];
-        const double x = 16 + i * 50.0, sy = y + 8;
-        slotBox(x, sy, 44, 44, s.locked);
+        const double x = bx0 + 14 + i * (SS + GAP), sy = by0 + 18;
+        slotBox(x, sy, SS, SS, s.locked);
         if (!s.icon.empty()) {
-            if (s.locked) g_.setAlpha(0.3);
-            drawSpr(spr_.icon(s.icon), x + 6, sy + 6, 32);
+            const bool glyph = s.icon.rfind("owl_", 0) == 0;
+            g_.setAlpha(s.locked ? 0.22 : s.dim ? 0.4 : 1);
+            if (glyph) drawSpr(spr_.get(s.icon), x + 7, sy + 7, 32, Color(236, 196, 110));
+            else drawSpr(spr_.icon(s.icon), x + 7, sy + 7, 32);
             g_.setAlpha(1);
-        } else if (!s.empty.empty()) text(s.empty, x + 22, sy + 24, pal::faint, 10, 1, Align::Center, Baseline::Middle);
-        if (i == 4) {   // whirlwind: a ring mark, the unlock level, and the cooldown sweeping down
-            if (s.locked) text("Skill", x + 22, sy + 24, pal::muted, 11, 1, Align::Center, Baseline::Middle);
-            else if (s.cool > 0) g_.fillRect(x + 3, sy + 3, 38, std::round(38 * s.cool), Color(20, 14, 10, 150));
-            else box(x + 3, sy + 3, 38, 38, Color(0, 0, 0, 0), Color(255, 226, 138, static_cast<uint8_t>(120 + 80 * std::sin(tick * 0.1))), 2);
+        } else if (!s.label.empty()) text(s.label, x + SS / 2, sy + SS / 2 + 1, pal::faint, 11, 1, Align::Center, Baseline::Middle);
+        if (s.cool > 0 && !s.locked) {   // cooldown: a shadow drains away from the top
+            g_.fillRect(x + 3, sy + 3, SS - 6, std::round((SS - 6) * s.cool), Color(6, 4, 4, 170));
+            text(std::to_string(static_cast<int>(std::ceil(P.whirlCd / 60.0))), x + SS / 2, sy + SS / 2 + 1, pal::text, 15, 2, Align::Center, Baseline::Middle);
         }
-        if (!s.key.empty()) keycap(s.key, x - 4, sy - 6, 16);
-        if (!s.count.empty()) text(s.count, x + 40, sy + 40, pal::text, 12, 1, Align::Right);
+        if (s.ready) box(x + 2, sy + 2, SS - 4, SS - 4, Color(0, 0, 0, 0), Color(255, 210, 120, static_cast<uint8_t>(90 + 70 * std::sin(tick * 0.1))), 1);
+        if (!s.key.empty()) keycap(s.key, x - 3, sy - 7, 15);
+        if (!s.count.empty()) {
+            text(s.count, x + SS - 3, sy + SS - 3, pal::ink, 12, 2, Align::Right);
+            text(s.count, x + SS - 4, sy + SS - 4, pal::text, 12, 2, Align::Right);
+        }
     }
-    // Quick items 1-3
-    static const char* QUICK[3][2] = {{"bandage", "quick1"}, {"roast", "quick2"}, {"potion", "quick3"}};
-    const double qx0 = 16 + slots.size() * 50.0 + 8;
-    for (int i = 0; i < 3; i++) {
-        const double x = qx0 + i * 40, sy = y + 14;
-        const int n = sim.countItem(QUICK[i][0]);
-        slotBox(x, sy, 34, 34, n == 0);
-        g_.setAlpha(n ? 1 : 0.35);
-        drawSpr(spr_.icon(QUICK[i][0]), x + 5, sy + 5, 24);
+
+    // globes
+    auto globe = [&](double gx, double gy, double frac, const Sprite& liquid, const std::string& big, const std::string& small) {
+        const double S = ORB, k = S / 48.0;
+        g_.draw(spr_.ui.orbBack, gx, gy, S, S);
+        frac = std::clamp(frac, 0.0, 1.0);
+        // the surface sways a little
+        const int top = std::clamp(static_cast<int>(std::lround(48 * (1 - frac) + std::sin(tick * 0.08) * (frac > 0.02 && frac < 0.98 ? 0.6 : 0))), 0, 48);
+        if (top < 48) g_.drawPart(liquid, {0, top, 48, 48 - top}, gx, gy + top * k, S, (48 - top) * k);
+        if (top > 2 && top < 46) g_.fillRect(gx + 8 * k, std::round(gy + top * k), S - 16 * k, 1, Color(255, 255, 255, 40));
+        g_.draw(spr_.ui.orbGlass, gx, gy, S, S);
+        g_.draw(spr_.ui.orbFrame, gx, gy, S, S);
+        shadowText(big, gx + S / 2, gy + S / 2 + 4, pal::ltText, 17, 2, Align::Center);
+        shadowText(small, gx + S / 2, gy + S / 2 + 20, pal::ltMuted, 11, 1, Align::Center);
+    };
+    const int maxHp = sim.maxHp();
+    auto heartsText = [](int half) { return std::to_string(half / 2) + (half % 2 ? "\xc2\xbd" : ""); };
+    const bool low = P.hp <= 2 && (tick >> 4) % 2;
+    const double gy = uiH() - ORB - 4;
+    globe(bx0 - ORB + 14, gy, static_cast<double>(P.hp) / std::max(1, maxHp), spr_.ui.orbRed, heartsText(P.hp) + " / " + heartsText(maxHp), "hearts");
+    if (low) g_.drawTinted(spr_.glow, bx0 - ORB + 4, gy - 10, ORB + 20, ORB + 20, Color(255, 40, 30, 70), true);
+    const bool capped = P.level >= db_.tuning.maxLevel;
+    globe(bx0 + barW - 14, gy, xpFrac, spr_.ui.orbViolet, "Level " + std::to_string(P.level), capped ? "max level" : std::to_string(P.xp) + " / " + std::to_string(sim.xpToNext()));
+    if (const int pts = sim.skillPoints(); pts > 0) {   // unspent skill points nag gently, above the experience globe
+        g_.setAlpha(0.75 + 0.25 * std::sin(tick * 0.1));
+        shadowText("+" + std::to_string(pts) + (pts == 1 ? " skill point" : " skill points") + " · " + bindLabel("skills"), bx0 + barW - 14 + ORB / 2, gy - 8, pal::ltGold, 12, 1, Align::Center);
         g_.setAlpha(1);
-        if (scheme_ != Scheme::Pad) keycap(bindLabel(QUICK[i][1]), x - 3, sy - 6, 14);
-        if (n) text(std::to_string(n), x + 31, sy + 31, pal::text, 11, 1, Align::Right);
     }
-    y += 62;
-    // Blessings from shrines
+
+    // Blessings from shrines, top left
+    double y = 16;
     for (const auto& b : P.buffs) {
         if (b.t <= 0) continue;
         const char* name = b.id == "frenzy" ? "Fury" : b.id == "protection" ? "Stone" : b.id == "swift" ? "Wind" : "Fortune";
@@ -115,7 +140,7 @@ void App::drawHud() {
     // Boss bar
     const Enemy* boss = sim.activeBoss();
     if (boss) {
-        const double w = std::min(520.0, uiW() - 80), x = (uiW() - w) / 2, by = uiH() - 70;
+        const double w = std::min(520.0, uiW() - 560), x = (uiW() - w) / 2, by = 48;
         shadowText(boss->def->name, uiW() / 2, by - 8, pal::ltText, 15, 1, Align::Center);
         box(x - 2, by - 2, w + 4, 16, pal::ink);
         box(x, by, w, 12, Color(58, 26, 36));
@@ -151,14 +176,14 @@ void App::drawHud() {
     }
     // Recall cast bar
     if (P.recallT > 0) {
-        const double w = 220, x = (uiW() - w) / 2, by = uiH() - 190;
+        const double w = 220, x = (uiW() - w) / 2, by = uiH() - 200;
         shadowText("Recalling...", uiW() / 2, by - 8, pal::sky, 13, 1, Align::Center);
         bar(x, by, w, 8, 1 - static_cast<double>(P.recallT) / db_.tuning.recallTicks, pal::sky, Color(20, 40, 60));
     }
     // Toasts
     for (size_t i = 0; i < sim.toasts.size(); i++) {
         const Toast& t = sim.toasts[i];
-        const double a = std::min(1.0, t.t / 30.0), ty = uiH() - (boss ? 150 : 120) - (sim.toasts.size() - 1 - i) * 34.0;
+        const double a = std::min(1.0, t.t / 30.0), ty = uiH() - 150 - (sim.toasts.size() - 1 - i) * 34.0;
         const double w = textW(t.text, 14, 1) + 28;
         g_.setAlpha(a);
         box(uiW() / 2 - w / 2, ty, w, 28, pal::ltBox, pal::ltEdge, 2);
@@ -182,8 +207,8 @@ void App::drawHud() {
         if (!ar.sub.empty()) shadowText(ar.sub, uiW() / 2, 88, pal::ltGold, 15, 1, Align::Center);
         g_.setAlpha(1);
     }
-    // Controls hint
-    if (sim.mode == Mode::Play) {
+    // Controls hint: only for the first half minute of a new game (they are always in the pause menu)
+    if (sim.mode == Mode::Play && sim.tickCount < 1800 && P.level == 1) {
         std::string hint;
         if (scheme_ == Scheme::Pad) hint = "Stick move · X attack · RT crossbow · LT whirlwind · B roll · A use · Y heal · LB craft · RB skills · Back bag · Start menu";
         else if (sim.flying()) hint = "WASD fly · " + bindLabel("mount") + " land over open ground · " + bindLabel("recall") + " recall · " + bindLabel("map") + " map · Esc menu";
@@ -194,8 +219,8 @@ void App::drawHud() {
         }
         const double hw = textW(hint, 12) + 24;
         if (hw < uiW() - 20) {
-            box(uiW() / 2 - hw / 2, uiH() - 30, hw, 22, pal::ltBox, pal::ltEdge, 1);
-            text(hint, uiW() / 2, uiH() - 19, Color(236, 230, 216, 210), 12, 0, Align::Center, Baseline::Middle);
+            box(uiW() / 2 - hw / 2, uiH() - 120, hw, 22, pal::ltBox, pal::ltEdge, 1);
+            text(hint, uiW() / 2, uiH() - 109, Color(236, 230, 216, 210), 12, 0, Align::Center, Baseline::Middle);
         }
     }
 }
@@ -239,47 +264,99 @@ void App::drawMinimap() {
     g_.fillRect(X + (pc - c0) * k - k, Y + (pr - r0) * k - k, k * 3, k * 3, Color(255, 255, 255));
     g_.fillRect(X + (pc - c0) * k, Y + (pr - r0) * k, k, k, Color(224, 80, 60));
     g_.setTransform(ui_);
-    drawStatus(x + w, y + h + 30);
+    drawStatus(x + w, y + h + 14);
 }
 
-// Place, clock and the quest tracker, under the minimap
+// Place, clock and the quest tracker, under the minimap: a small iron-bound board
 void App::drawStatus(double right, double top) {
     Sim& sim = *sim_;
     const Map& m = sim.map();
-    struct Line {
-        std::string text;
-        Color col;
-        int weight;
-    };
-    std::vector<Line> lines;
     std::string place = m.name;
     if (m.outdoor) {
         const TownDef* t = db_.town(sim.townId);
         const ZoneDef* z = db_.zone(sim.zoneId);
         place = t ? t->name : z ? z->name : place;
     }
-    lines.push_back({place, pal::muted, 1});
-    lines.push_back({sim.clockText(), sim.isNight() ? pal::night : pal::gold, 1});
+    const double W = 250, X = right - W + 8, pad = 14, iw = W - pad * 2;
+
+    // Lay the board out first, so the panel fits it exactly
+    struct Row {
+        enum Kind { Title, Objective, Hint } kind;
+        std::string text, right;
+        Color col;
+        double frac = -1;
+        bool done = false, ready = false, main = false;
+    };
+    std::vector<Row> rows;
+    const auto active = sim.activeQuests();
     int shown = 0;
-    for (const QuestDef* q : sim.activeQuests()) {
+    for (const QuestDef* q : active) {
         if (++shown > 3) break;
         const bool ready = sim.questReady(*q);
-        lines.push_back({q->title, ready ? pal::ok : pal::text, 1});
+        Row t{Row::Title, q->title, "", ready ? pal::ok : q->main ? Color(236, 196, 110) : pal::ltText};
+        t.ready = ready;
+        t.main = q->main;
+        rows.push_back(t);
         if (ready) {
             const NpcDef* n = db_.npc(q->turnIn);
-            lines.push_back({"Return to " + (n ? n->name : std::string("the giver")), pal::ok, 0});
-        } else
-            for (size_t i = 0; i < q->objectives.size(); i++) {
-                const QuestObjective& o = q->objectives[i];
-                lines.push_back({o.count > 1 ? o.label + ": " + std::to_string(sim.objectiveProgress(*q, i)) + " / " + std::to_string(o.count) : o.label, pal::muted, 0});
-            }
+            rows.push_back({Row::Hint, "Return to " + (n ? n->name : std::string("the giver")), "", pal::ok});
+            continue;
+        }
+        for (size_t i = 0; i < q->objectives.size(); i++) {
+            const QuestObjective& o = q->objectives[i];
+            const int have = std::min(o.count, sim.objectiveProgress(*q, i));
+            Row r{Row::Objective, o.label, o.count > 1 ? std::to_string(have) + "/" + std::to_string(o.count) : "", have >= o.count ? pal::ok : pal::ltMuted};
+            r.done = have >= o.count;
+            if (o.count > 1) r.frac = static_cast<double>(have) / o.count;
+            rows.push_back(r);
+        }
     }
-    double w = 0;
-    for (const auto& l : lines) w = std::max(w, textW(l.text, 12, l.weight));
-    w += 22;
-    const double h = lines.size() * 17.0 + 10;
-    panel(right - w + 2, top - 19, w + 8, h + 8);
-    for (size_t i = 0; i < lines.size(); i++) text(lines[i].text, right - 4, top + i * 17.0, lines[i].col, 12, lines[i].weight, Align::Right);
+    if (active.size() > 3) rows.push_back({Row::Hint, "+" + std::to_string(active.size() - 3) + " more · " + bindLabel("quests") + " quest log", "", pal::ltMuted});
+    if (active.empty()) rows.push_back({Row::Hint, "No quests. Talk to the townsfolk.", "", pal::ltMuted});
+
+    double h = 58;
+    for (const auto& r : rows) h += r.kind == Row::Title ? 22 : r.frac >= 0 ? 22 : 17;
+    h += 8;
+
+    panel(X, top, W, h);
+    // header: where you are and the hour, with the sun or moon
+    const bool night = sim.isNight();
+    text(place, X + pad, top + 26, Color(236, 220, 190), 18, 1);
+    drawSpr(spr_.get(night ? "owl_rest" : "owl_light"), X + W - pad - 18, top + 10, 18, night ? Color(150, 170, 230) : Color(240, 200, 110));
+    text(sim.clockText(), X + W - pad - 28, top + 24, night ? Color(150, 170, 230) : pal::ltMuted, 12, 1, Align::Right);
+    ornament(X + W / 2, top + 38, iw);
+    double y = top + 60;
+    for (const auto& r : rows) {
+        switch (r.kind) {
+            case Row::Title: {
+                // a gold "!" for a quest under way, a "?" when it is ready to hand in
+                drawSpr(spr_.get(r.ready ? "owl_question" : "owl_exclamation"), X + pad - 4, y - 14, 16, r.ready ? pal::ok : r.main ? Color(236, 196, 110) : Color(200, 180, 140));
+                std::string t = r.text;
+                while (t.size() > 3 && textW(t, 13, 1) > iw - 16) t = t.substr(0, t.size() - 4) + "...";
+                text(t, X + pad + 14, y, r.col, 13, 1);
+                y += 22;
+                break;
+            }
+            case Row::Objective: {
+                box(X + pad + 15, y - 8, 7, 7, r.done ? pal::ok : Color(0, 0, 0, 0), r.done ? pal::ok : Color(150, 118, 66));
+                std::string t = r.text;
+                const double rw = r.right.empty() ? 0 : textW(r.right, 11, 1) + 8;
+                while (t.size() > 3 && textW(t, 12) > iw - 30 - rw) t = t.substr(0, t.size() - 4) + "...";
+                text(t, X + pad + 28, y, r.col, 12);
+                if (!r.right.empty()) text(r.right, X + W - pad, y, r.done ? pal::ok : pal::ltMuted, 11, 1, Align::Right);
+                if (r.frac >= 0) {
+                    bar(X + pad + 28, y + 5, iw - 28, 3, r.frac, r.done ? pal::ok : Color(196, 150, 70), Color(24, 18, 14));
+                    y += 22;
+                } else
+                    y += 17;
+                break;
+            }
+            case Row::Hint:
+                text(r.text, X + pad + 14, y, r.col, 12);
+                y += 17;
+                break;
+        }
+    }
 }
 
 }   // namespace hc

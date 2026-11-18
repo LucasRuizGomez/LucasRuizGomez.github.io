@@ -117,7 +117,7 @@ class App {
     void button(double x, double y, double w, double h, const std::string& label, bool sel, double size = 15);
     void row(double x, double y, double w, double h, bool sel);
     void box(double x, double y, double w, double h, Color fill, Color border = Color(0, 0, 0, 0), double bw = 1);
-    void drawSpr(const Sprite& img, double x, double y, double size);
+    void drawSpr(const Sprite& img, double x, double y, double size, Color tint = Color(255, 255, 255));
     double keycap(const std::string& label, double x, double y, double h);
     void dim(double alpha);
     void closeButton(double x, double y);
@@ -188,6 +188,10 @@ class App {
     std::string questStatus(const QuestDef& q) const;
     double drawObjectives(const QuestDef& q, double x, double y, double w, bool progress);
     double drawRewards(const QuestDef& q, double x, double y, double w, int pick, bool choosing);
+    double talkH_ = 0;                                                          // the quest window's height, measured last frame
+    void ornament(double cx, double y, double w);                               // a brass rule with a diamond in the middle
+    double sectionHead(const std::string& label, const std::string& icon, double x, double y, double w);
+    Color questLevelColor(int level) const;                                     // grey, green, yellow, orange, red by danger
     std::vector<const QuestDef*> questLogList() const;
     void questKeyAbandon();
 

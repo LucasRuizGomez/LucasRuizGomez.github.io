@@ -165,7 +165,7 @@ TEST_CASE("inventory: stacking, gear instances, equipping, removal") {
 
     const int hp = sim.maxHp();
     sim.addItem({"leather_armor", 1});
-    CHECK(sim.maxHp() == hp + 2);
+    CHECK(sim.maxHp() == hp + 1);   // half a heart
 }
 
 TEST_CASE("crafting chain: wood to sword, fire recipes need a fire") {
@@ -440,7 +440,7 @@ TEST_CASE("bag: worn gear leaves the bag, things can be thrown away and picked u
     CHECK(sim.addItem({"stone", 1}, true));
 }
 
-TEST_CASE("max health: levels give skill points, not hearts; three shards make a heart") {
+TEST_CASE("max health: levels give skill points, not hearts; enough shards make a heart") {
     Sim sim = freshGame();
     const int hp = sim.maxHp();
     sim.gainXp(sim.db.xpForLevel(1) + sim.db.xpForLevel(2));
@@ -471,7 +471,7 @@ TEST_CASE("skill tree: requirements, points and effects") {
     CHECK(sim.whirlwindUnlocked());
     const int hp = sim.maxHp();
     CHECK(sim.learnSkill("vitality"));
-    CHECK(sim.maxHp() == hp + 2);
+    CHECK(sim.maxHp() == hp + 1);   // half a heart a rank
     CHECK(sim.skillPoints() == 0);
     CHECK_FALSE(sim.learnSkill("vitality"));
     CHECK_FALSE(sim.learnSkill("cyclone"));   // level 5
@@ -661,4 +661,53 @@ TEST_CASE("everyone talks, and quests can be accepted, declined and handed in fo
     CHECK(sim.countItem(picked) == before + 1);
     CHECK(sim.countItem(joss->choice[0].first) == 0);
     CHECK(sim.quests.at("joss_hares").state == 2);
+}
+
+TEST_CASE("high ground: plateaus are ringed by cliffs and every one has a way up") {
+    const Database& db = database();
+    const Map over = generateOverworld(db);
+    REQUIRE(over.height.size() == over.t.size());
+    const auto mask = reachMask(over, over.start.c, over.start.r);
+    int high = 0, ramps = 0, unreachable = 0;
+    for (int r = 1; r < over.h - 1; r++)
+        for (int c = 1; c < over.w - 1; c++) {
+            const uint8_t t = over.get(c, r);
+            if (t == RAMP) ramps++;
+            const int h = over.heightAt(c, r);
+            if (h == 0 || !walkable(t) || t == RAMP) continue;
+            high++;
+            // you never step straight off high ground onto lower ground: a cliff, a lip or a ramp is in between
+            static const int DC[4] = {1, -1, 0, 0}, DR[4] = {0, 0, 1, -1};
+            for (int k = 0; k < 4; k++) {
+                const int nc = c + DC[k], nr = r + DR[k];
+                const uint8_t n = over.get(nc, nr);
+                if (walkable(n) && n != RAMP) CHECK_MESSAGE(over.heightAt(nc, nr) >= h, "open drop at " << c << "," << r);
+            }
+            if (!mask[over.idx(c, r)] && over.tileFree(c, r, false)) unreachable++;
+        }
+    CHECK(high > 300);   // there is real high ground in the world
+    CHECK(ramps > 5);
+    CHECK(unreachable < high / 10);   // nearly all of it can be walked to (odd pockets behind trees aside)
+}
+
+TEST_CASE("sword: the blade winds up, sweeps through the arc and follows through") {
+    CHECK(Sim::swingOffset(0) <= -Sim::SWING_SPAN);   // it starts drawn back
+    double last = Sim::swingOffset(2);
+    for (int f = 3; f <= 14; f++) {   // then it only ever moves forward
+        const double o = Sim::swingOffset(f);
+        CHECK(o >= last);
+        last = o;
+    }
+    CHECK(Sim::swingOffset(8) >= Sim::SWING_SPAN - 1e-9);
+}
+
+TEST_CASE("armour never blocks more than half of a hit") {
+    Sim sim = freshGame();
+    for (const char* id : {"champion_shield", "great_helm"}) sim.addItem({id, 1});
+    sim.P.skills["bulwark"] = 1;
+    REQUIRE(sim.shieldDef() >= 4);
+    sim.P.hp = sim.maxHp();
+    const int full = sim.P.hp;
+    sim.hurtPlayer(6, 0, 0);
+    CHECK(sim.P.hp == full - 3);
 }

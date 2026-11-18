@@ -8,7 +8,7 @@
 namespace hc {
 
 namespace {
-const Color QUEST_GOLD(196, 140, 20);
+const Color QUEST_GOLD(236, 190, 84);
 }
 
 // ───────────────────────────── shared pieces ─────────────────────────────
@@ -24,69 +24,118 @@ std::string App::questStatus(const QuestDef& q) const {
     return s.empty() ? (q.main ? "Main story" : "Side quest") : s;
 }
 
-// Objectives with ticks and counts; returns the y below them
+Color App::questLevelColor(int level) const {
+    const int d = level - sim_->P.level;
+    if (d >= 3) return Color(226, 84, 64);
+    if (d >= 1) return Color(232, 146, 64);
+    if (d >= -1) return Color(230, 204, 92);
+    if (d >= -4) return Color(122, 194, 102);
+    return Color(140, 132, 120);
+}
+
+void App::ornament(double cx, double y, double w) {
+    const Color brass(150, 118, 66), hi(222, 184, 104), shadow(0, 0, 0, 120);
+    const double l = std::round(cx - w / 2), half = std::round(w / 2 - 8);
+    g_.fillRect(l, std::round(y), half, 1, brass);
+    g_.fillRect(std::round(cx + 8), std::round(y), half, 1, brass);
+    g_.fillRect(l, std::round(y + 1), half, 1, shadow);
+    g_.fillRect(std::round(cx + 8), std::round(y + 1), half, 1, shadow);
+    for (int i = 0; i < 4; i++) g_.fillRect(std::round(cx - 4 + i), std::round(y - i), 8 - 2 * i, 1, i == 3 ? hi : brass);   // the diamond
+    for (int i = 1; i < 4; i++) g_.fillRect(std::round(cx - 4 + i), std::round(y + i), 8 - 2 * i, 1, brass);
+    g_.fillRect(l - 3, std::round(y - 1), 3, 3, brass);
+    g_.fillRect(std::round(cx + w / 2), std::round(y - 1), 3, 3, brass);
+}
+
+// A heading with a small icon and a rule running out to the right; returns the y for what follows
+double App::sectionHead(const std::string& label, const std::string& icon, double x, double y, double w) {
+    double tx = x;
+    if (!icon.empty()) {
+        drawSpr(spr_.get(icon), x - 2, y - 17, 22, pal::gold);
+        tx += 24;
+    }
+    text(label, tx, y, pal::gold, 15, 1);
+    const double lx = std::round(tx + textW(label, 15, 1) + 10);
+    g_.fillRect(lx, std::round(y - 5), std::round(x + w - lx), 1, Color(110, 88, 54));
+    g_.fillRect(lx, std::round(y - 4), std::round(x + w - lx), 1, Color(0, 0, 0, 110));
+    return y + 24;
+}
+
+// Objectives with checks, counts and progress bars; returns the y below them
 double App::drawObjectives(const QuestDef& q, double x, double y, double w, bool progress) {
     Sim& sim = *sim_;
     if (!q.objectiveText.empty()) {
         for (const auto& l : wrap(q.objectiveText, w, 14)) {
-            text(l, x, y, pal::text, 14);
+            text(l, x, y, pal::muted, 14);
             y += 19;
         }
-        y += 4;
+        y += 6;
     }
     for (size_t i = 0; i < q.objectives.size(); i++) {
         const QuestObjective& o = q.objectives[i];
-        const int have = progress ? sim.objectiveProgress(q, i) : 0;
+        const int have = progress ? std::min(o.count, sim.objectiveProgress(q, i)) : 0;
         const bool done = progress && have >= o.count;
-        box(x, y - 11, 12, 12, done ? pal::ok : pal::well, pal::line);
-        std::string label = o.label;
-        if (o.count > 1) label += progress ? "   " + std::to_string(have) + " / " + std::to_string(o.count) : "   x" + std::to_string(o.count);
-        text(label, x + 20, y, done ? pal::ok : pal::text, 14, 1);
-        y += 21;
+        box(x + 2, y - 12, 13, 13, pal::well, done ? pal::ok : Color(150, 118, 66));   // a brass-rimmed box, ticked when done
+        if (done) drawSpr(spr_.get("owl_tick"), x - 1, y - 15, 19, pal::ok);
+        text(o.label, x + 24, y, done ? pal::ok : pal::text, 14, 1);
+        if (o.count > 1) {
+            const std::string n = progress ? std::to_string(have) + " / " + std::to_string(o.count) : "x" + std::to_string(o.count);
+            text(n, x + w, y, done ? pal::ok : pal::muted, 13, 1, Align::Right);
+            if (progress) {
+                const double bw = std::min(160.0, w * 0.3), bx = x + w - textW(n, 13, 1) - bw - 12;
+                bar(bx, y - 7, bw, 5, static_cast<double>(have) / o.count, done ? pal::ok : Color(196, 150, 70), Color(30, 24, 20));
+            }
+        }
+        y += 23;
     }
     return y;
 }
 
-// Rewards: xp and gold, items always given, and the items to choose one from. pick >= -1 makes the choice
-// boxes clickable (pick = the chosen one). Returns the y below.
+// Rewards: experience and gold chips, items always given, and the items to choose one from. Returns the y below.
 double App::drawRewards(const QuestDef& q, double x, double y, double w, int pick, bool choosing) {
     auto itemBox = [&](const std::string& id, int qty, double bx, double by, double bw, bool sel, bool dim) {
-        box(bx, by, bw, 40, sel ? pal::slotSel : pal::slot, sel ? pal::sel : pal::line, sel ? 2 : 1);
-        if (dim) g_.setAlpha(0.55);
-        drawSpr(spr_.icon(id), bx + 4, by + 4, 32);
+        box(bx, by, bw, 44, sel ? pal::slotSel : pal::well, sel ? pal::sel : pal::line, sel ? 2 : 1);
+        slotBox(bx + 4, by + 4, 36, 36, false);
+        if (dim) g_.setAlpha(0.45);
+        drawSpr(spr_.icon(id), bx + 6, by + 6, 32);
         const ItemDef& d = db_.item(id);
-        const auto lines = wrap(d.name, bw - 48, 12, 1);
-        for (size_t i = 0; i < lines.size() && i < 2; i++) text(lines[i], bx + 42, by + (lines.size() > 1 ? 16 : 24) + i * 14.0, pal::text, 12, 1);
+        const auto lines = wrap(d.name, bw - 80, 13, 1);
+        for (size_t i = 0; i < lines.size() && i < 2; i++) text(lines[i], bx + 50, by + (lines.size() > 1 ? 19 : 27) + i * 15.0, sel ? pal::gold : pal::text, 13, 1);
         if (qty > 1) {
-            text(std::to_string(qty), bx + 36, by + 36, pal::ltText, 12, 2, Align::Right);
-            text(std::to_string(qty), bx + 35, by + 35, pal::text, 12, 2, Align::Right);
+            text(std::to_string(qty), bx + 40, by + 40, pal::ink, 12, 2, Align::Right);
+            text(std::to_string(qty), bx + 39, by + 39, pal::text, 12, 2, Align::Right);
         }
         g_.setAlpha(1);
+        if (sel) drawSpr(spr_.get("owl_tick"), bx + bw - 28, by + 11, 22, pal::gold);
     };
+    auto chip = [&](double cx, const std::string& icon, const std::string& label, Color col) {
+        const double cw = textW(label, 14, 1) + 40;
+        box(cx, y - 16, cw, 24, pal::well, pal::line);
+        drawSpr(spr_.get(icon), cx + 3, y - 15, 22, col);
+        text(label, cx + 30, y + 1, col, 14, 1);
+        return cx + cw + 8;
+    };
+    const double cx = chip(x, "owl_brave", std::to_string(q.xp) + " experience", Color(190, 160, 240));
+    if (q.gold) chip(cx, "owl_coins", std::to_string(q.gold) + " gold", pal::gold);
+    y += 16;
     const double half = std::floor((w - 8) / 2);
-    std::string head = std::to_string(q.xp) + " experience";
-    if (q.gold) head += "   ·   " + std::to_string(q.gold) + " gold";
-    if (q.gold) drawSpr(spr_.icon("gold"), x, y - 15, 18);
-    text(head, x + (q.gold ? 24 : 0), y, pal::gold, 14, 1);
-    y += 14;
     if (!q.items.empty()) {
-        text("You will receive:", x, y + 14, pal::muted, 12, 1);
-        y += 22;
-        for (size_t i = 0; i < q.items.size(); i++) itemBox(q.items[i].first, q.items[i].second, x + (i % 2) * (half + 8), y + (i / 2) * 46.0, half, false, false);
-        y += ((q.items.size() + 1) / 2) * 46.0;
+        text("You will receive:", x, y + 12, pal::muted, 12, 1);
+        y += 20;
+        for (size_t i = 0; i < q.items.size(); i++) itemBox(q.items[i].first, q.items[i].second, x + (i % 2) * (half + 8), y + (i / 2) * 50.0, half, false, false);
+        y += ((q.items.size() + 1) / 2) * 50.0;
     }
     if (!q.choice.empty()) {
-        text(choosing ? "Choose one of these rewards:" : "You will be able to choose one of these:", x, y + 14, choosing ? QUEST_GOLD : pal::muted, 12, 1);
-        y += 22;
+        text(choosing ? "Choose one of these rewards:" : "You will be able to choose one of these:", x, y + 12, choosing ? pal::gold : pal::muted, 12, 1);
+        y += 20;
         for (size_t i = 0; i < q.choice.size(); i++) {
-            const double bx = x + (i % 2) * (half + 8), by = y + (i / 2) * 46.0;
+            const double bx = x + (i % 2) * (half + 8), by = y + (i / 2) * 50.0;
             itemBox(q.choice[i].first, q.choice[i].second, bx, by, half, choosing && static_cast<int>(i) == pick, choosing && pick >= 0 && static_cast<int>(i) != pick);
             if (choosing) {
                 const int k = static_cast<int>(i);
-                hit(bx, by, half, 40, [this, k] { rewardPick_ = k; });
+                hit(bx, by, half, 44, [this, k] { rewardPick_ = k; });
             }
         }
-        y += ((q.choice.size() + 1) / 2) * 46.0;
+        y += ((q.choice.size() + 1) / 2) * 50.0;
     }
     return y;
 }
@@ -183,45 +232,61 @@ void App::drawTalk() {
         sim.mode = Mode::Play;
         return;
     }
-    dim(0.45);
-    // A plain chat is only as tall as what is said and the choices; a quest gets the full window
-    double want = 560;
-    if (talkView_ == TalkView::Menu) want = 190 + wrap(sim.talkLine, std::min(780.0, uiW() - 40) - 48, 16).size() * 22.0 + talkOptions().size() * 40.0 + 30;
-    const double W = std::min(780.0, uiW() - 40), H = std::min(want, uiH() - 40), X = std::round((uiW() - W) / 2), Y = std::round((uiH() - H) / 2);
+    dim(0.55);
+    const QuestDef* q = db_.quest(talkQuest_);
+    if (talkView_ != TalkView::Menu && !q) talkView_ = TalkView::Menu;
+    // Each view is as tall as what it holds (measured on the previous frame)
+    const double W = std::min(760.0, uiW() - 40), H = std::min(talkH_ > 0 ? talkH_ : 420.0, uiH() - 30);
+    const double X = std::round((uiW() - W) / 2), Y = std::round((uiH() - H) / 2);
     panel(X, Y, W, H);
     closeButton(X + W - 40, Y + 14);
 
-    // The speaker
-    box(X + 22, Y + 22, 84, 84, pal::well, pal::line);
+    // ── the speaker: portrait in a brass frame, name, where they live ──
+    box(X + 12, Y + 12, W - 24, 100, Color(14, 11, 10, 150));
+    box(X + 22, Y + 20, 84, 84, Color(150, 118, 66), Color(10, 8, 7), 1);
+    box(X + 25, Y + 23, 78, 78, Color(30, 26, 30), Color(70, 54, 34), 1);
+    g_.drawTinted(spr_.glow, X + 30, Y + 28, 68, 68, Color(255, 190, 110, 40), true);
     {
         const CharSet& cs = spr_.character(npc->sprite, npc->tint);
         const Frames& idle = cs.get("idle");
-        if (!idle.empty()) drawSpr(idle[(sim.tickCount / 14) % idle.size()], X + 22, Y + 18, 84);
+        if (!idle.empty()) drawSpr(idle[(sim.tickCount / 14) % idle.size()], X + 22, Y + 16, 84);
     }
-    text(npc->name, X + 122, Y + 44, pal::text, 22, 1);
+    text(npc->name, X + 124, Y + 52, pal::text, 24, 1);
     std::string where;
     if (const BuildingDef* b = db_.building(npc->building)) where = b->name;
     if (const TownDef* t = db_.town(npc->town)) where += (where.empty() ? "" : ", ") + t->name;
-    text(where, X + 122, Y + 64, pal::muted, 12, 1);
+    text(where, X + 124, Y + 74, pal::muted, 13);
+    if (q && talkView_ != TalkView::Menu) {   // what kind of talk this is
+        const std::string tag = talkView_ == TalkView::Offer ? "New quest" : talkView_ == TalkView::Progress ? "Quest under way" : "Quest complete";
+        const double tw = textW(tag, 12, 1) + 36, tx = X + W - 64 - tw;
+        box(tx, Y + 66, tw, 24, pal::well, Color(150, 118, 66));
+        drawSpr(spr_.get(talkView_ == TalkView::Offer ? "owl_exclamation" : "owl_question"), tx + 2, Y + 67, 22, talkView_ == TalkView::Progress ? pal::muted : pal::gold);
+        text(tag, tx + 28, Y + 82, talkView_ == TalkView::Progress ? pal::muted : pal::gold, 12, 1);
+    }
 
-    const double cx = X + 24, cw = W - 48;
-    double y = Y + 132;
-    const QuestDef* q = db_.quest(talkQuest_);
-    if (talkView_ != TalkView::Menu && !q) talkView_ = TalkView::Menu;
+    const double cx = X + 30, cw = W - 60;
+    double y = Y + 140;
 
     if (talkView_ == TalkView::Menu) {
-        for (const auto& l : wrap("\"" + sim.talkLine + "\"", cw, 16)) {
-            text(l, cx, y, pal::text, 16);
+        // what they say, in a sunken letter
+        const auto lines = wrap(sim.talkLine, cw - 44, 16);
+        box(cx, y - 14, cw, lines.size() * 22.0 + 22, pal::well, pal::line);
+        text("\"", cx + 10, y + 14, Color(150, 118, 66), 30, 1);
+        for (const auto& l : lines) {
+            text(l, cx + 30, y + 9, pal::text, 16);
             y += 22;
         }
-        y += 16;
+        y += 30;
         const auto opts = talkOptions();
         talkSel_ = std::clamp(talkSel_, 0, static_cast<int>(opts.size()) - 1);
         for (size_t i = 0; i < opts.size(); i++) {
             const bool sel = static_cast<int>(i) == talkSel_;
-            row(cx, y, cw, 34, sel);
-            drawSpr(spr_.get(opts[i].icon), cx + 6, y + 3, 28);
-            text(opts[i].label, cx + 44, y + 17, opts[i].col, 15, 1, Align::Left, Baseline::Middle);
+            if (sel) {
+                box(cx, y, cw, 34, Color(80, 60, 34, 150), Color(176, 138, 70));
+                g_.fillRect(cx, y, 3, 34, Color(236, 196, 110));
+            } else box(cx, y, cw, 34, Color(0, 0, 0, 0), Color(60, 48, 34));
+            drawSpr(spr_.get(opts[i].icon), cx + 8, y + 3, 28, opts[i].col);
+            text(opts[i].label, cx + 46, y + 17, opts[i].col, 15, 1, Align::Left, Baseline::Middle);
             const int k = static_cast<int>(i);
             hit(cx, y, cw, 34, [this, k] {
                 if (talkSel_ == k || scheme_ == Scheme::Mouse) {
@@ -235,48 +300,63 @@ void App::drawTalk() {
             }, [this, k] { talkSel_ = k; });
             y += 40;
         }
-        text("Up / Down choose · Enter select · Esc leave", X + W / 2, Y + H - 16, pal::muted, 12, 0, Align::Center);
+        y += 14;
+        text("Up / Down choose · Enter select · Esc leave", X + W / 2, y + 6, pal::faint, 12, 0, Align::Center);
+        talkH_ = y + 24 - Y;
         return;
     }
 
-    // A quest: offered, under way, or ready to hand in
-    text(q->title, cx, y, pal::gold, 21, 1);
-    text("Level " + std::to_string(q->level) + (q->main ? " · Main story" : " · Side quest"), cx + cw, y, pal::muted, 12, 1, Align::Right);
+    // ── a quest: offered, under way, or ready to hand in ──
+    const Color lc = questLevelColor(q->level);
+    text(q->title, X + W / 2, y + 4, pal::gold, 26, 1, Align::Center);
+    y += 22;
+    {
+        const std::string lv = "Level " + std::to_string(q->level), kind = q->main ? "Main story" : "Side quest";
+        const double lw = textW(lv, 12, 1) + 16, kw = textW(kind, 12, 1), sx = std::round(X + W / 2 - (lw + 10 + kw) / 2);
+        box(sx, y - 3, lw, 18, Color(lc.r, lc.g, lc.b, 40), lc);
+        text(lv, sx + lw / 2, y + 6, lc, 12, 1, Align::Center, Baseline::Middle);
+        text(kind, sx + lw + 10, y + 11, q->main ? pal::gold : pal::muted, 12, 1);
+    }
+    y += 30;
+    ornament(X + W / 2, y, cw * 0.7);
     y += 26;
     const std::string body = talkView_ == TalkView::Offer ? q->offer : talkView_ == TalkView::Progress ? (q->progress.empty() ? q->offer : q->progress) : (q->done.empty() ? "Well done." : q->done);
     for (const auto& l : wrap(body, cw, 15)) {
         text(l, cx, y, pal::text, 15);
-        y += 20;
+        y += 21;
     }
-    y += 12;
+    y += 16;
     if (talkView_ != TalkView::Complete) {
-        text(talkView_ == TalkView::Offer ? "Quest objectives" : "Progress", cx, y, QUEST_GOLD, 15, 1);
-        y += 22;
-        y = drawObjectives(*q, cx, y, cw, talkView_ == TalkView::Progress) + 6;
+        y = sectionHead(talkView_ == TalkView::Offer ? "Objectives" : "Progress", "owl_scroll", cx, y, cw);
+        y = drawObjectives(*q, cx, y, cw, talkView_ == TalkView::Progress) + 8;
     }
-    text("Rewards", cx, y, QUEST_GOLD, 15, 1);
-    y += 22;
-    drawRewards(*q, cx, y, cw, rewardPick_, talkView_ == TalkView::Complete);
+    y = sectionHead("Rewards", "owl_chest", cx, y, cw);
+    y = drawRewards(*q, cx, y, cw, rewardPick_, talkView_ == TalkView::Complete) + 16;
 
-    // Buttons
-    const double by = Y + H - 62;
+    // ── buttons, under a rule ──
+    ornament(X + W / 2, y, cw);
+    y += 16;
+    const double by = y;
     auto btn = [&](double bx, double bw, const std::string& label, bool primary, std::function<void()> act) {
-        button(bx, by, bw, 32, label, primary, 15);
-        hit(bx, by, bw, 32, std::move(act));
+        button(bx, by, bw, 34, label, primary, 15);
+        hit(bx, by, bw, 34, std::move(act));
     };
+    std::string help;
     if (talkView_ == TalkView::Offer) {
-        btn(cx, 140, "Accept", true, [this] { talkKey("Enter", "", true); });
-        btn(cx + cw - 140, 140, "Decline", false, [this] { talkKey("Escape", "", false); });
-        text("Enter accept · Esc decline", X + W / 2, Y + H - 16, pal::muted, 12, 0, Align::Center);
+        btn(cx, 150, "Accept", true, [this] { talkKey("Enter", "", true); });
+        btn(cx + cw - 150, 150, "Decline", false, [this] { talkKey("Escape", "", false); });
+        help = "Enter accept · Esc decline";
     } else if (talkView_ == TalkView::Progress) {
-        btn(cx, 140, "Back", false, [this] { talkKey("Escape", "", false); });
+        btn(cx, 150, "Back", false, [this] { talkKey("Escape", "", false); });
         if (q->turnIn != sim.talkNpc)
-            if (const NpcDef* t = db_.npc(q->turnIn)) text("Hand it in to " + t->name + ".", cx + 160, by + 20, pal::muted, 13, 1);
+            if (const NpcDef* t = db_.npc(q->turnIn)) help = "Hand it in to " + t->name + ".";
     } else {
-        btn(cx, 170, "Complete quest", true, [this] { talkKey("Enter", "", true); });
-        btn(cx + cw - 140, 140, "Back", false, [this] { talkKey("Escape", "", false); });
-        text(q->choice.empty() ? "Enter complete · Esc back" : "Left / Right choose a reward · Enter complete · Esc back", X + W / 2, Y + H - 16, pal::muted, 12, 0, Align::Center);
+        btn(cx, 180, "Complete quest", true, [this] { talkKey("Enter", "", true); });
+        btn(cx + cw - 150, 150, "Back", false, [this] { talkKey("Escape", "", false); });
+        help = q->choice.empty() ? "Enter complete · Esc back" : "Left / Right choose · Enter complete · Esc back";
     }
+    text(help, X + W / 2, by + 22, pal::faint, 12, 0, Align::Center);
+    talkH_ = by + 34 + 20 - Y;
 }
 
 // ───────────────────────────── quest log ─────────────────────────────

@@ -17,7 +17,20 @@ const App::Hit* App::hitAt(double ux, double uy) const {
     return nullptr;
 }
 
-void App::text(const std::string& s, double x, double y, Color col, double size, int weight, Align align, Baseline base) { fonts_.draw(g_, s, x, y, col, size, weight, align, base); }
+namespace {
+// Big bold text (titles, names, headings) is set in the blackletter display face, a touch larger
+void titleFace(double& size, int& weight) {
+    if (weight >= 1 && size >= 18) {
+        weight = 3;
+        size *= 1.12;
+    }
+}
+}   // namespace
+
+void App::text(const std::string& s, double x, double y, Color col, double size, int weight, Align align, Baseline base) {
+    titleFace(size, weight);
+    fonts_.draw(g_, s, x, y, col, size, weight, align, base);
+}
 
 void App::shadowText(const std::string& s, double x, double y, Color col, double size, int weight, Align align) {
     const double d = std::max(1.0, size / 16);
@@ -25,8 +38,14 @@ void App::shadowText(const std::string& s, double x, double y, Color col, double
     text(s, x, y, col, size, weight, align);
 }
 
-double App::textW(const std::string& s, double size, int weight) { return fonts_.measure(g_, s, size, weight); }
-std::vector<std::string> App::wrap(const std::string& s, double maxW, double size, int weight) { return fonts_.wrap(g_, s, maxW, size, weight); }
+double App::textW(const std::string& s, double size, int weight) {
+    titleFace(size, weight);
+    return fonts_.measure(g_, s, size, weight);
+}
+std::vector<std::string> App::wrap(const std::string& s, double maxW, double size, int weight) {
+    titleFace(size, weight);
+    return fonts_.wrap(g_, s, maxW, size, weight);
+}
 
 // 9-slice of a UI-pack sprite: crisp corners (`corner` art pixels), stretched edges and centre, 2 UI px per art pixel
 void App::nine(const Sprite& img, double x, double y, double w, double h, int c) {
@@ -70,12 +89,14 @@ void App::bar(double x, double y, double w, double h, double frac, Color fill, C
 }
 
 // Draws a sprite at a whole multiple of its size so pixels stay square
-void App::drawSpr(const Sprite& img, double x, double y, double size) {
+void App::drawSpr(const Sprite& img, double x, double y, double size, Color tint) {
     if (!img) return;
     const int k = std::max(1, static_cast<int>(std::floor(size * ui_ / std::max(img.w, img.h))));
     const int w = img.w * k, h = img.h * k;
     g_.setTransform(1);
-    g_.draw(img, std::round(x * ui_ + (size * ui_ - w) / 2), std::round(y * ui_ + (size * ui_ - h) / 2), w, h);
+    const double dx = std::round(x * ui_ + (size * ui_ - w) / 2), dy = std::round(y * ui_ + (size * ui_ - h) / 2);
+    if (tint.r == 255 && tint.g == 255 && tint.b == 255 && tint.a == 255) g_.draw(img, dx, dy, w, h);
+    else g_.drawTinted(img, dx, dy, w, h, tint);
     g_.setTransform(ui_);
 }
 

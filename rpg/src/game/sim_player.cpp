@@ -27,6 +27,15 @@ std::array<double, 4> Sim::attackBox() const {
 }
 
 // Keyboard and gamepad play: the nearest monster in reach of a swing...
+double Sim::swingOffset(double f) {
+    if (f < 2) return -SWING_SPAN - 0.3 * f / 2;   // drawn back
+    if (f <= 8) {
+        const double t = (f - 2) / 6;
+        return -SWING_SPAN - 0.3 + (2 * SWING_SPAN + 0.3) * (1 - (1 - t) * (1 - t));
+    }
+    return SWING_SPAN + 0.2 * std::min(1.0, (f - 8) / 4);   // follow-through
+}
+
 const Enemy* Sim::meleeTarget() const {
     const Enemy* best = nullptr;
     double bd = 1e18;
@@ -156,7 +165,9 @@ void Sim::updatePlayer() {
     for (auto& b : P.buffs) b.t--;
     std::erase_if(P.buffs, [](const Buff& b) { return b.t <= 0; });
 
+    double aimA = std::atan2(dirVec(P.dir).y, dirVec(P.dir).x);
     auto aimAt = [&](double ax, double ay) {
+        if (std::abs(ax) + std::abs(ay) > 1e-6) aimA = std::atan2(ay, ax);
         P.dir = snap4(ax, ay);
         if (std::abs(ax) > 1) P.face = ax < 0 ? -1 : 1;
     };
@@ -171,6 +182,8 @@ void Sim::updatePlayer() {
         if (byMouse) aimAt(in_.aimX, in_.aimY);
         else if (const Enemy* t = meleeTarget()) aimAt(t->x - P.x, (t->y - t->cy) - (P.y - 6));   // turn toward a monster right next to you
         attackBuf_ = 0;
+        P.swingA = byMouse || meleeTarget() ? aimA : std::atan2(dirVec(P.dir).y, dirVec(P.dir).x);
+        P.swingSide = -P.swingSide;
         P.atkT = T.attackTicks;
         P.atkCd = weaponCooldown();
         P.hitSet.clear();
@@ -179,24 +192,34 @@ void Sim::updatePlayer() {
     if (P.atkT > 0) {
         const int f = T.attackTicks - P.atkT;
         if (f >= 2 && f <= 8) {
+            // The blade sweeps an arc in front of the hero; it strikes what it has passed over so far
             const auto box = attackBox();
-            const Vec2 v = dirVec(P.dir);
+            const double sweep = swingOffset(f), reach = weaponReach() + 5, cx = P.x, cy = P.y - 6;
+            auto inArc = [&](double tx, double ty, double r) {
+                const double dx = tx - cx, dy = ty - cy, d = std::hypot(dx, dy);
+                if (d > reach + r) return false;
+                if (d < 6 + r) return true;   // right on top of the hero
+                double off = std::remainder(std::atan2(dy, dx) - P.swingA, 2 * PI) * P.swingSide;
+                const double slack = std::asin(std::min(1.0, r / d));   // a big body is hit by its edge
+                return off >= -SWING_SPAN - slack && off <= sweep + slack;
+            };
+            const Vec2 v{std::cos(P.swingA), std::sin(P.swingA)};
             for (auto& e : m.enemies) {
                 if (!e.alive || std::find(P.hitSet.begin(), P.hitSet.end(), e.uid) != P.hitSet.end()) continue;
-                if (!rectCircle(box[0], box[1], box[2], box[3], e.x, e.y - e.cy, e.r)) continue;
+                if (!inArc(e.x, e.y - e.cy, e.r)) continue;
                 P.hitSet.push_back(e.uid);
                 damageEnemy(e, weaponDamage(), v.x * 2.6, v.y * 2.6);
                 hitstop = std::max(hitstop, e.alive ? 3 : 5);
             }
             for (auto& p : m.proj)
-                if (!p.fromPlayer && rectCircle(box[0], box[1], box[2], box[3], p.x, p.y, 3)) {
+                if (!p.fromPlayer && (inArc(p.x, p.y, 3) || rectCircle(box[0], box[1], box[2], box[3], p.x, p.y, 3))) {
                     p.life = 0;
                     p.hitSomething = true;
                     burst(p.x, p.y, Color(236, 230, 216), 5, 1);
                     play("hit");
                 }
             for (auto& o : m.objects)
-                if (o.kind == ObjKind::Pot && !o.gone && rectCircle(box[0], box[1], box[2], box[3], o.c * TILE + 8, o.r * TILE + 8, 6)) breakPot(m, o);
+                if (o.kind == ObjKind::Pot && !o.gone && inArc(o.c * TILE + 8, o.r * TILE + 8, 6)) breakPot(m, o);
         }
         P.atkT--;
     }
@@ -384,7 +407,8 @@ void Sim::hurtPlayer(int dmg, double fx, double fy) {
     if (invulnerable() || mode != Mode::Play || dmg <= 0) return;
     hitstop = std::max(hitstop, 4);
     const int def = shieldDef();
-    int d = dmg > 1 ? std::max(1, dmg - def) : dmg;
+    // Armour softens strong hits but never blocks more than half of one
+    int d = dmg > 1 ? std::max((dmg + 1) / 2, dmg - def) : dmg;
     if (hasBuff("protection")) d = std::max(1, d / 2);
     P.hp = std::max(0, P.hp - d);
     P.iframes = db.tuning.hitInvuln;

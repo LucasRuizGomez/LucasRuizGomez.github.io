@@ -23,6 +23,17 @@ const Sprite& progress(const Frames& f, int total, int left) {
 int animalRow(Dir d) { return d == Dir::Down ? 0 : d == Dir::Up ? 1 : d == Dir::Left ? 2 : 3; }
 int treantRow(Dir d) { return d == Dir::Down ? 0 : d == Dir::Right ? 1 : d == Dir::Up ? 2 : 3; }
 bool grassy(uint8_t t) { return t == GRASS || t == FLOWERS || t == TREE; }
+// A cliff tile is a face (rock hanging below high ground) when higher ground is one or two tiles above it;
+// otherwise it is the lip of the high ground, which is grass with rocks along the drop.
+bool cliffFace(const Map& m, int c, int r) {
+    if (m.get(c, r) != CLIFF && m.get(c, r) != RAMP) return false;
+    const int h = m.heightAt(c, r);
+    return m.heightAt(c, r - 1) > h || m.heightAt(c, r - 2) > h;
+}
+bool grassyAt(const Map& m, int c, int r) {
+    const uint8_t t = m.get(c, r);
+    return grassy(t) || (t == CLIFF && !cliffFace(m, c, r));
+}
 double frand() { return std::rand() / (RAND_MAX + 1.0); }
 
 Color miniColor(uint8_t t) {
@@ -41,6 +52,8 @@ Color miniColor(uint8_t t) {
         case DOOR: return {154, 106, 60};
         case PLAZA:
         case COBBLE: return {214, 210, 200};
+        case CLIFF: return {72, 64, 58};
+        case RAMP: return {150, 140, 120};
         default: return {242, 210, 122};
     }
 }
@@ -273,6 +286,12 @@ void WorldView::drawTile(Map& m, MapView& v, int c, int r) {
         return;
     }
     switch (t) {
+        case CLIFF:
+            if (cliffFace(m, c, r)) {
+                drawCliff(m, T, c, r);
+                break;
+            }
+            [[fallthrough]];
         case GRASS:
         case FLOWERS:
         case TREE: {
@@ -282,7 +301,7 @@ void WorldView::drawTile(Map& m, MapView& v, int c, int r) {
             for (int qy = 0; qy < 2; qy++)
                 for (int qx = 0; qx < 2; qx++) {
                     const int sx = qx ? 1 : -1, sy = qy ? 1 : -1;
-                    const bool V = grassy(m.get(c, r + sy)), H = grassy(m.get(c + sx, r)), D = grassy(m.get(c + sx, r + sy));
+                    const bool V = grassyAt(m, c, r + sy), H = grassyAt(m, c + sx, r), D = grassyAt(m, c + sx, r + sy);
                     int tx, ty;
                     if (V && H && !D) {
                         tx = 240 + (qx ? 0 : 16);
@@ -298,6 +317,8 @@ void WorldView::drawTile(Map& m, MapView& v, int c, int r) {
                     const Sprite& f = spr_.flowers[static_cast<int>(hash2(c, r, 30 + i) * 4)];
                     g_.draw(f, x + 1 + static_cast<int>(hash2(c, r, 32 + i) * (14 - f.w)) + i * 3, y + 2 + static_cast<int>(hash2(c, r, 34 + i) * (12 - f.h)));
                 }
+            } else if (t == CLIFF) {
+                drawCliff(m, T, c, r);   // the lip: rocks along the drop
             } else if (t == GRASS && hash2(c, r, 6) < 0.035) {
                 const Sprite& f = spr_.decals[static_cast<size_t>(hash2(c, r, 7) * spr_.decals.size())];
                 g_.draw(f, x + (16 - f.w) / 2, y + (16 - f.h) / 2);
@@ -364,8 +385,100 @@ void WorldView::drawTile(Map& m, MapView& v, int c, int r) {
             }
             break;
         }
+        case RAMP: drawCliff(m, T, c, r); break;
         default: break;
     }
+    if (m.outdoor && !m.height.empty()) drawElevation(m, c, r);
+}
+
+// High ground. A face of layered rock, two tiles tall, hangs below each south edge; the other edges are a lip
+// of grass with rocks along the drop; ramps are stone steps cut into the face.
+void WorldView::drawCliff(Map& m, const TileSet& T, int c, int r) {
+    const double x = c * TILE, y = r * TILE;
+    const int here = m.heightAt(c, r);
+    const Color base(84, 76, 68), dark(50, 44, 40), lite(126, 116, 102), line(28, 24, 22);
+    const bool upper = m.heightAt(c, r - 1) > here;   // the top tile of a face (the bottom one has face above it)
+    if (m.get(c, r) == RAMP) {   // stone steps between two cheeks of rock
+        g_.fillRect(x, y, 16, 16, base);
+        g_.fillRect(x + 3, y, 10, 16, Color(98, 92, 84));
+        for (int i = 0; i < 4; i++) {
+            g_.fillRect(x + 3, y + i * 4, 10, 1, Color(150, 142, 128));
+            g_.fillRect(x + 3, y + i * 4 + 3, 10, 1, Color(56, 50, 46));
+        }
+        g_.fillRect(x + 2, y, 1, 16, line);
+        g_.fillRect(x + 13, y, 1, 16, line);
+        g_.fillRect(x, y, 2, 16, dark);
+        g_.fillRect(x + 14, y, 2, 16, dark);
+        return;
+    }
+    if (cliffFace(m, c, r)) {
+        // strata: bands of rock with cracks; turf hanging over the top; dark and damp at the foot
+        g_.fillRect(x, y, 16, 16, base);
+        for (int band = 0; band < 3; band++) {
+            const double by = y + 2 + band * 5 + (upper ? 1 : 0);
+            g_.fillRect(x, by, 16, 1, lite);
+            g_.fillRect(x, by + 4, 16, 1, dark);
+            for (int i = 0; i < 16; i++)
+                if (hash2(c * 16 + i, r * 4 + band, 13) < 0.14) g_.fillRect(x + i, by + 1, 1, 3, line);
+        }
+        if (upper) {
+            for (int i = 0; i < 16; i++) {   // the turf of the high ground spilling over the edge
+                const int len = 1 + static_cast<int>(hash2(c * 16 + i, r, 14) * 4);
+                g_.fillRect(x + i, y, 1, len, i % 3 ? Color(76, 94, 50) : Color(96, 116, 60));
+            }
+            g_.fillRect(x, y, 16, 1, Color(118, 138, 74));
+        } else {
+            for (int i = 0; i < 6; i++) g_.fillRect(x, y + 10 + i, 16, 1, Color(0, 0, 0, static_cast<uint8_t>(20 + i * 18)));
+            g_.fillRect(x, y + 15, 16, 1, line);
+            for (int i = 0; i < 3; i++) {   // stones fallen at the foot
+                const double sx = x + hash2(c, r, 50 + i) * 13;
+                if (hash2(c, r, 60 + i) < 0.5) g_.fillRect(sx, y + 13, 3, 2, lite);
+            }
+        }
+        // where the face ends, its corner is shaded
+        const int up = upper ? 1 : 2;
+        if (m.heightAt(c - 1, r - up) <= here) g_.fillRect(x, y, 3, 16, Color(0, 0, 0, 60));
+        if (m.heightAt(c + 1, r - up) <= here) g_.fillRect(x + 13, y, 3, 16, Color(0, 0, 0, 100));
+        return;
+    }
+    // a lip (drawn over grass): rocks along each side that drops away
+    auto lower = [&](int dc, int dr) { return m.heightAt(c + dc, r + dr) < here; };
+    auto rocks = [&](double rx, double ry, double rw, double rh, int seed) {
+        for (int i = 0; i < 4; i++) {
+            const double bs = 3 + hash2(c, r, seed + i) * 3;
+            const double bx = rx + hash2(c, r, seed + 10 + i) * std::max(0.0, rw - bs), by = ry + hash2(c, r, seed + 20 + i) * std::max(0.0, rh - bs);
+            g_.fillRect(bx, by, bs, bs, base);
+            g_.fillRect(bx, by, bs, 1, lite);
+            g_.fillRect(bx, by + bs - 1, bs, 1, dark);
+        }
+    };
+    if (lower(-1, 0)) {
+        g_.fillRect(x, y, 2, 16, dark);
+        rocks(x, y, 6, 16, 100);
+    }
+    if (lower(1, 0)) {
+        g_.fillRect(x + 14, y, 2, 16, dark);
+        rocks(x + 10, y, 6, 16, 140);
+    }
+    if (lower(0, -1)) {
+        g_.fillRect(x, y, 16, 2, lite);
+        g_.fillRect(x, y + 2, 16, 1, dark);
+        rocks(x, y, 16, 6, 180);
+    }
+    if (!lower(-1, 0) && !lower(1, 0) && !lower(0, -1)) rocks(x, y, 16, 16, 220);   // a corner
+}
+
+// The height of the land: high ground catches more light, and every cliff casts a shadow on the ground below
+// and to its right (the light comes from the upper left).
+void WorldView::drawElevation(Map& m, int c, int r) {
+    const double x = c * TILE, y = r * TILE;
+    const int here = m.heightAt(c, r);
+    if (cliffFace(m, c, r)) return;
+    if (here > 0) g_.fillRect(x, y, 16, 16, Color(255, 236, 196, static_cast<uint8_t>(14 * here)));
+    if (cliffFace(m, c, r - 1))
+        for (int i = 0; i < 7; i++) g_.fillRect(x, y + i, 16, 1, Color(0, 0, 0, static_cast<uint8_t>(120 - i * 17)));
+    if (m.heightAt(c - 1, r) > here || cliffFace(m, c - 1, r))
+        for (int i = 0; i < 5; i++) g_.fillRect(x + i, y, 1, 16, Color(0, 0, 0, static_cast<uint8_t>(80 - i * 16)));
 }
 
 const Sprite& WorldView::minimap(Sim& sim, Map& m, bool fog) {
@@ -392,9 +505,11 @@ const Sprite& WorldView::minimap(Sim& sim, Map& m, bool fog) {
                     if (zd.snow && t != TREE) col = Color(250, 250, 250);
                     col = Color(static_cast<uint8_t>(col.r * z.r / 255), static_cast<uint8_t>(col.g * z.g / 255), static_cast<uint8_t>(std::min(255, col.b * z.b / 255 + (z.b > 230 && z.r < 240 ? 60 : 0))));
                 }
-                p[0] = col.r;
-                p[1] = col.g;
-                p[2] = col.b;
+                // the same washed-out grade as the art
+                const Image::Grade& gr = Image::grade;
+                const double lum = 0.3 * col.r + 0.59 * col.g + 0.11 * col.b;
+                const uint8_t tint[3] = {gr.tint.r, gr.tint.g, gr.tint.b}, raw[3] = {col.r, col.g, col.b};
+                for (int k = 0; k < 3; k++) p[k] = static_cast<uint8_t>(std::clamp((lum + (raw[k] - lum) * gr.saturation) * gr.brightness * tint[k] / 255.0, 0.0, 255.0));
                 p[3] = 255;
             }
     };
@@ -580,6 +695,25 @@ void WorldView::render(Sim& sim, int zoom, bool withActors) {
     }
     for (const auto& p : sim.particles) g_.fillRect(std::round(p.x), std::round(p.y), p.s, p.s, p.col);
 
+    // Mist drifting over the land (and thicker in the marshes at night)
+    if (m.outdoor) {
+        const double camX = offX / zoom, camY = offY / zoom, vw = g_.width() / static_cast<double>(zoom), vh = g_.height() / static_cast<double>(zoom);
+        const double drift = tick * 0.12;
+        const int CELL = 150;
+        const int c0 = static_cast<int>(std::floor((camX - drift - 200) / CELL)), c1 = static_cast<int>(std::floor((camX - drift + vw + 200) / CELL));
+        const int r0 = static_cast<int>(std::floor((camY - 120) / CELL)), r1 = static_cast<int>(std::floor((camY + vh + 120) / CELL));
+        const double thick = 0.6 + 0.6 * sim.darkness();
+        for (int r = r0; r <= r1; r++)
+            for (int c = c0; c <= c1; c++) {
+                const uint32_t hsh = static_cast<uint32_t>(c * 73856093) ^ static_cast<uint32_t>(r * 19349663);
+                if (hsh % 3 == 0) continue;
+                const double fx = c * CELL + drift + (hsh % 97), fy = r * CELL + ((hsh >> 8) % 83) + std::sin(tick * 0.004 + c) * 10;
+                const double w = 220 + (hsh >> 4) % 120, h = 90 + (hsh >> 12) % 60;
+                const uint8_t a = static_cast<uint8_t>(std::min(255.0, (30 + (hsh >> 16) % 26) * thick));
+                g_.drawTinted(spr_.glow, std::round(fx - w / 2), std::round(fy - h / 2), w, h, Color(190, 200, 205, a));
+            }
+    }
+
     // ── light and time of day ──
     if (m.dark) drawLighting(sim, m, zoom, 0.94, Color(6, 5, 12));
     else {
@@ -589,7 +723,39 @@ void WorldView::render(Sim& sim, int zoom, bool withActors) {
             g_.setTransform(1);
             g_.fillRect(0, 0, DW, DH, Color(255, 130, 60, static_cast<uint8_t>(255 * 0.12 * std::min(1.0, warm))));
         }
-        if (dk > 0.01) drawLighting(sim, m, zoom, 0.72 * dk, Color(10, 12, 34));
+        // A grim world: even at noon a gloom hangs over it, and torches, fires and windows cut pools of light out of it
+        const double gloom = m.interior ? 0.34 : 0.26;
+        if (dk > 0.01 || gloom > 0) drawLighting(sim, m, zoom, std::max(gloom, 0.8 * dk), dk > 0.3 ? Color(8, 10, 26) : Color(12, 16, 20));
+    }
+    // Ambient life, above the shadows: ash drifting down by day, fireflies after dusk, wisps over the marsh
+    if (m.outdoor) {
+        g_.setTransform(zoom, offX, offY);
+        const double camX = offX / zoom, camY = offY / zoom, vw = DW / static_cast<double>(zoom), vh = DH / static_cast<double>(zoom);
+        const double dk = sim.darkness();
+        const int CELL = 40;
+        for (int r = static_cast<int>(std::floor(camY / CELL)) - 1; r <= static_cast<int>((camY + vh) / CELL) + 1; r++)
+            for (int c = static_cast<int>(std::floor(camX / CELL)) - 1; c <= static_cast<int>((camX + vw) / CELL) + 1; c++) {
+                const uint32_t hsh = static_cast<uint32_t>(c * 2654435761u) ^ static_cast<uint32_t>(r * 40503u + 7);
+                const int tc = c * CELL / TILE, tr = r * CELL / TILE;
+                if (!m.inside(tc, tr)) continue;
+                const bool marsh = zoneAt(db_, m, tc, tr).id == "marsh";
+                const double ph = (hsh % 1000) / 159.0, t = tick / 60.0;
+                if (dk > 0.25 && hsh % 4 == 0) {   // fireflies (green-gold) or marsh wisps (pale blue)
+                    const double fx = c * CELL + 20 + std::sin(t * 0.7 + ph) * 16 + std::sin(t * 1.9 + ph * 2) * 4;
+                    const double fy = r * CELL + 20 + std::cos(t * 0.5 + ph * 1.3) * 12;
+                    const double blink = std::max(0.0, std::sin(t * 2.2 + ph * 3));
+                    const Color col = marsh ? Color(150, 210, 255) : Color(214, 255, 120);
+                    const uint8_t a = static_cast<uint8_t>(std::min(1.0, (dk - 0.25) * 2) * blink * 200);
+                    g_.drawTinted(spr_.glow, std::round(fx) - 4, std::round(fy) - 4, 9, 9, col.alpha(a / 255.0 * 0.8), true);
+                    g_.fillRect(std::round(fx), std::round(fy), 1, 1, col.alpha(a / 255.0));
+                } else if (dk < 0.5 && hsh % 3 == 0) {   // ash and seed down, falling slow and slanted
+                    const double fall = std::fmod(t * (6 + hsh % 7) + ph * 30, CELL * 3.0);
+                    const double fx = c * CELL + (hsh >> 8) % CELL + std::sin(t * 0.9 + ph) * 5 + fall * 0.4;
+                    const double fy = r * CELL - CELL + fall;
+                    const double life = std::sin(PI * fall / (CELL * 3.0));
+                    g_.fillRect(std::round(fx), std::round(fy), 1, 1, Color(214, 210, 200, static_cast<uint8_t>(110 * life * (1 - dk))));
+                }
+            }
     }
     g_.setTransform(1);
 }
@@ -706,10 +872,17 @@ void WorldView::drawObject(Sim& sim, Map& m, const Object& o) {
 void WorldView::drawPlayer(Sim& sim) {
     const Player& P = sim.P;
     const int tick = sim.tickCount, atkT = db_.tuning.attackTicks;
-    const CharSet& S = spr_.character("ch8", "");
+    // The hero wears what is equipped: helm, armour, boots and shield colour the sprite, the weapon is drawn in hand
+    auto wearOf = [&](EquipSlot s) {
+        const Item* it = sim.equipped(s);
+        return it ? db_.item(it->id).wear : std::string();
+    };
+    const CharSet& S = spr_.hero(wearOf(EquipSlot::Helm), wearOf(EquipSlot::Armor), wearOf(EquipSlot::Boots), wearOf(EquipSlot::Shield));
     const bool flip = P.face < 0;
-    const double x = std::round(P.x) - 16;
-    double y = std::round(P.y) - 30;
+    // a swing leans the hero into the blow
+    const double swingP = P.atkT > 0 ? 1 - static_cast<double>(P.atkT) / atkT : 0, lunge = P.atkT > 0 ? 2.5 * std::sin(PI * swingP) : 0;
+    const double x = std::round(P.x + std::cos(P.swingA) * lunge) - 16;
+    double y = std::round(P.y + std::sin(P.swingA) * lunge * 0.6) - 30;
     if (sim.mode == Mode::Dead) {
         const Frames& dead = S.get("dead");
         g_.draw(dead[std::min(dead.size() - 1, static_cast<size_t>((tick - sim.deadAt) / 10))], x, y, flip);
@@ -746,27 +919,45 @@ void WorldView::drawPlayer(Sim& sim) {
         }
     } else g_.fillRect(x + 11, y + 30, 10, 2, Color(0, 0, 0, 64));
 
-    // The hero's sheet only swings sideways, so up/down swings show the blade and an arc
+    // The weapon: held low at the side, or swept through an arc (any direction) with a smear of light behind it
+    const Item* weapon = sim.equipped(EquipSlot::Weapon);
+    const Sprite* blade = nullptr;
+    if (weapon)
+        if (auto rot = spr_.weaponRot.find(weapon->id); rot != spr_.weaponRot.end()) blade = &rot->second[0];   // pointing up
+    double bladeA = flip ? 0.62 : PI - 0.62, hx = x + (flip ? 20 : 12), hy = y + 27;   // at rest: down and back
+    const bool swinging = P.atkT > 0 && sim.mode != Mode::Dead;
+    double f = 0;
+    if (swinging) {
+        f = atkT - P.atkT;
+        bladeA = P.swingA + P.swingSide * Sim::swingOffset(f);
+        hx = x + 16 + std::cos(bladeA) * 3;
+        hy = y + 22 + std::sin(bladeA) * 3;
+    }
+    if (!P.mount.empty() && !swinging) blade = nullptr;   // riding: the sword stays sheathed
     auto weaponPass = [&] {
-        if (P.atkT <= 0) return;
-        const Vec2 d = dirVec(P.dir);
-        const double p = 1 - static_cast<double>(P.atkT) / atkT, ext = p < 0.4 ? p / 0.4 : 1 - (p - 0.4) / 0.6;
-        if (const Item* w = sim.equipped(EquipSlot::Weapon)) {
-            auto rot = spr_.weaponRot.find(w->id);
-            if (rot != spr_.weaponRot.end()) {
-                const Sprite& ws = rot->second[static_cast<int>(P.dir)];
-                const double cx = P.x + d.x * (6 + ext * 7), cy = P.y - 6 + d.y * (6 + ext * 7);
-                g_.draw(ws, std::round(cx - ws.w / 2.0), std::round(cy - ws.h / 2.0));
+        if (blade && *blade) {
+            // weapon art is drawn for the bag; in the hand it is a little smaller
+            const double k = std::min(1.0, 17.0 / std::max(1, blade->h)), px = blade->w / 2.0, py = blade->h - 2.0;
+            g_.drawRotated(*blade, hx - px * k, hy - py * k, bladeA + PI / 2, px, py, k);
+        }
+        if (swinging && f >= 2 && f <= 11) {   // the smear: arcs trailing behind the edge, fading
+            const double R = blade ? std::max(10.0, std::min(17.0, blade->h - 2.0) + 2) : 9.0, cx = x + 16, cy = y + 22;
+            const double fade = f <= 8 ? 1 : 1 - (f - 8) / 4.0;
+            const double start = P.swingA + P.swingSide * (-Sim::SWING_SPAN), trail = 1.3;
+            double a0 = bladeA - P.swingSide * trail;
+            // never trail back past where the swing began
+            if ((a0 - start) * P.swingSide < 0) a0 = start;
+            const double lo = std::min(a0, bladeA), hi = std::max(a0, bladeA);
+            for (int i = 0; i < 4; i++) {
+                const double rr = R + 1 - i * 2.2, al = fade * (0.85 - i * 0.18);
+                if (rr > 3 && al > 0) pixelArc(cx, cy, rr, lo, hi, Color(236, 232, 220, static_cast<uint8_t>(255 * al)));
             }
         }
-        if (p > 0.1 && p < 0.75) {
-            const double R = sim.weaponReach() * 0.85 + 4, a0 = std::atan2(d.y, d.x), span = 1.15, frac = (p - 0.1) / 0.65;
-            pixelArc(P.x, P.y - 6, R, a0 - span, a0 - span + span * 2 * std::min(1.0, frac * 1.6), Color(255, 255, 255, static_cast<uint8_t>(255 * (0.9 - frac * 0.6))));
-        }
     };
-    if (P.dir == Dir::Up) weaponPass();
+    const bool bladeBehind = std::sin(bladeA) < -0.25 || (!swinging && P.dir == Dir::Up);
+    if (bladeBehind) weaponPass();
     g_.draw(*img, x, y, flip);
-    if (P.dir != Dir::Up) weaponPass();
+    if (!bladeBehind) weaponPass();
 
     if (P.whirlT > 0) {   // whirlwind: an expanding ring of steel
         const double k = 1 - P.whirlT / 18.0;
@@ -880,7 +1071,13 @@ void WorldView::drawLighting(Sim& sim, Map& m, int zoom, double alpha, Color col
         lightPx_.assign(static_cast<size_t>(lw) * lh * 4, 0);
         lightA_.assign(static_cast<size_t>(lw) * lh, 0);
     }
-    std::fill(lightA_.begin(), lightA_.end(), static_cast<float>(alpha));
+    // The shadow, deepening toward the edges of the screen (a vignette the lights still cut through)
+    for (int y = 0; y < lh; y++)
+        for (int x = 0; x < lw; x++) {
+            const double vx = (x + 0.5) / lw * 2 - 1, vy = (y + 0.5) / lh * 2 - 1;
+            const double v = std::clamp((std::sqrt(vx * vx * 0.8 + vy * vy) - 0.55) / 0.75, 0.0, 1.0);
+            lightA_[static_cast<size_t>(y) * lw + x] = static_cast<float>(alpha + (1 - alpha) * 0.5 * v * v);
+        }
     const double camX = offX / zoom, camY = offY / zoom;
     auto light = [&](double wx, double wy, double rad) {
         const double lx = (wx - camX) / cell, ly = (wy - camY) / cell, lr = rad / cell;

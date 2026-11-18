@@ -79,6 +79,8 @@ struct Player {
     std::string mountPick;          // mount chosen in the bag's mount slot (empty = the fastest one)
     int regenT = 0;
     int atkT = 0, atkCd = 0, bowCd = 0, bowT = 0, iframes = 0, actCd = 0, roll = 0, rollCd = 0;
+    double swingA = 0;              // the direction of the current sword swing (radians)
+    int swingSide = 1;              // which way the blade sweeps: alternates, swing after swing
     double kbx = 0, kby = 0, rvx = 0, rvy = 0;
     std::vector<int> hitSet;
     std::vector<Trail> trail;
@@ -254,6 +256,10 @@ class Sim {
     const Enemy* meleeTarget() const;
     const Enemy* bowTarget() const;
     std::array<double, 4> attackBox() const;
+    // A sword swing sweeps from -SWING_SPAN to +SWING_SPAN radians around P.swingA (times P.swingSide).
+    // swingOffset: where the blade is at frame f of the swing (0 = it starts): wind-up, a fast slash, follow-through.
+    static constexpr double SWING_SPAN = 1.2;
+    static double swingOffset(double f);
     void travelTo(const std::string& townId);
     void respawn();
 

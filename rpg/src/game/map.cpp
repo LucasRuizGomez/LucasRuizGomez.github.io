@@ -147,13 +147,14 @@ void ensureReach(Map& m, TilePos from, int c, int r, std::vector<uint8_t>* mask)
         if (m.block[m.idx(nc, nr)]) return -1;
         const uint8_t t = m.get(nc, nr);
         if (walkable(t)) return 1;
-        return t == TREE ? 3 : t == ROCK ? 4 : t == WATER ? 5 : -1;
+        return t == TREE ? 3 : t == ROCK ? 4 : t == WATER ? 5 : t == CLIFF ? 6 : -1;
     });
     for (const auto& p : path) {
         if (p.c == c && p.r == r) continue;
         const uint8_t t = m.get(p.c, p.r);
         if (t == TREE || t == ROCK) m.set(p.c, p.r, GRASS);
         else if (t == WATER) m.set(p.c, p.r, BRIDGE);
+        else if (t == CLIFF) m.set(p.c, p.r, RAMP);   // steps cut into the cliff
     }
     if (!path.empty()) *mask = reachMask(m, from.c, from.r);   // the carved corridor opened new ground
 }

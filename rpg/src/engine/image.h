@@ -17,8 +17,17 @@ struct Image {
     uint8_t* at(int x, int y) { return &px[(static_cast<size_t>(y) * w + x) * 4]; }
     const uint8_t* at(int x, int y) const { return &px[(static_cast<size_t>(y) * w + x) * 4]; }
 
+    // Colour grade applied to every PNG as it loads (the game's overall look), except paths containing a "skip" entry
+    struct Grade {
+        double saturation = 1, brightness = 1, contrast = 1;
+        Color tint{255, 255, 255};
+        std::vector<std::string> skip;
+    };
+    static Grade grade;
+
     // Loads a PNG. Returns an empty image (and logs a warning) if the file is missing or broken.
     static Image load(const std::string& path);
+    Image graded(const Grade& g) const;
     bool savePng(const std::string& path) const;
 
     Image crop(int x, int y, int cw, int ch) const;   // out-of-range areas come back transparent

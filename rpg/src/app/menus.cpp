@@ -329,7 +329,7 @@ void App::drawCredits() {
         {"Towns, props, water", "ArMM1998, \"Zelda-like tilesets and sprites\" (CC0)"},
         {"Characters, terrain", "CraftPix: medieval fortress kit, hunt animals, rocks and stones"},
         {"Interface art", "CraftPix: basic pixel art UI for RPG"},
-        {"Typeface", "Alegreya Sans, Juan Pablo del Peral, Huerta Tipografica (SIL OFL 1.1)"},
+        {"Typefaces", "Almendra, Ana Sanfelippo · Pirata One, Rodrigo Fuenzalida & Nicolas Massi (SIL OFL 1.1)"},
         {"Libraries", "SDL2, SDL_mixer, stb, nlohmann/json, doctest, Emscripten"},
     };
     for (size_t i = 0; i < sizeof LINES / sizeof LINES[0]; i++) {

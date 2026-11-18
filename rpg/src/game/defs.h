@@ -25,6 +25,7 @@ struct ItemDef {
     int level = 1, value = 0;
     bool unique = false;
     std::string mountSprite, mountTint;
+    std::string wear;                   // worn gear: the colour it gives the hero's sprite (hex)
     double mountSpeed = 1;
     bool mountFly = false;              // a flying mount crosses water, forests and rocks
     bool isGear() const {

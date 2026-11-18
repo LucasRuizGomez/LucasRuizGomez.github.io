@@ -1,6 +1,6 @@
 # Hollow Crypt
 
-A top-down open-world action RPG that runs in the browser: six regions, six towns, seven dungeons, 21 quests, 39 buildings to walk into, over 60 townsfolk to talk to, 57 quests with rewards to choose from, crafting, random gear on a drag-and-drop paper doll, a skill tree, mounts (one of them flies) and a day and night cycle. Written in C++20 on SDL2 and compiled to WebAssembly with Emscripten. The same code also builds as a desktop program.
+A top-down open-world action RPG that runs in the browser: six regions with high ground and cliffs, six towns, seven dungeons, 39 buildings to walk into, over 60 townsfolk to talk to, 57 quests with rewards to choose from, crafting, random gear on a drag-and-drop paper doll that shows on the hero, sword swings in any direction, a skill tree, mounts (one of them flies) and a day and night cycle, all in a grim, washed-out look. Written in C++20 on SDL2 and compiled to WebAssembly with Emscripten. The same code also builds as a desktop program.
 
 Play it at [lukeda.me/rpg](https://lukeda.me/rpg/).
 
@@ -38,7 +38,7 @@ The game reads everything below at start-up. Changing a value and rebuilding is 
 | `skills.json` | The skill tree: branches, skills, their requirements and what each rank gives |
 | `controls.json` | Default key and gamepad bindings, default volumes |
 | `audio.json` | Which sound files play for each event, and the music for each place |
-| `sprites.json` | Where each sprite sits in the art sheets |
+| `sprites.json` | Where each sprite sits in the art sheets, and the colour grade every image gets as it loads |
 | `assets.json` | Which asset files are packed into the web build |
 
 ## Building
@@ -89,7 +89,9 @@ Add these to the URL of a web build (`?autostart&kit&tp=128,40`), or pass them a
 | `screen=name` | Open a screen straight away: `inv`, `skills`, `craft`, `quests`, `map`, `pause`, `controls`, or on the title menu `load`, `new`, `settings` |
 | `fly` | Start in the air on a Great Roc |
 | `map=b_<building>` | Start inside a building (ids are in `config/buildings.json`) |
-| `talk=npc` | Open a conversation with someone in the current map; add `offer` to open their first quest offer |
+| `talk=npc` | Open a conversation with someone in the current map; add `offer` to open their first quest offer, or `handin=quest` for the hand-in window of a quest |
+| `accept=quest,quest` | Accept quests straight away (to see the quest tracker) |
+| `swing=degrees,frame` | Freeze a sword swing at an angle and frame, to look at it |
 | `mute` | No sound |
 
 ## Deployment

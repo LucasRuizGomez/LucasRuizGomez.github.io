@@ -411,6 +411,136 @@ struct OverworldGen {
         std::erase_if(m.objects, [](const Object& o) { return o.gone; });
     }
 
+    // ── 7b. high ground: plateaus one or two levels up, ringed by cliffs, climbed by stone ramps ──
+    // Cliffs face south (the face hangs below the edge, the way the eye expects in a top-down view); the other
+    // edges are a rocky lip on the high ground itself. Kept clear of roads, water, towns and anything placed.
+    std::vector<TilePos> highGround;
+    void plateaus() {
+        m.height.assign(static_cast<size_t>(W) * H, 0);
+        std::vector<uint8_t> keep(static_cast<size_t>(W) * H, 0);   // 1 = must stay low and open
+        for (int r = 0; r < H; r++)
+            for (int c = 0; c < W; c++) {
+                const uint8_t t = m.get(c, r);
+                const bool feature = !(isGround(t) || t == TREE || t == ROCK) || m.block[m.idx(c, r)];
+                if (c < 5 || r < 5 || c >= W - 5 || r >= H - 6 || townAt(db, c, r, 7)) keep[m.idx(c, r)] = 1;
+                if (!feature) continue;
+                for (int dr = -3; dr <= 4; dr++)
+                    for (int dc = -3; dc <= 3; dc++)
+                        if (m.inside(c + dc, r + dr)) keep[m.idx(c + dc, r + dr)] = 1;
+            }
+        for (const auto& o : m.objects)
+            for (int dr = -4; dr <= 4; dr++)
+                for (int dc = -4; dc <= 4; dc++)
+                    if (m.inside(o.c + dc, o.r + dr)) keep[m.idx(o.c + dc, o.r + dr)] = 1;
+        // raw heights from noise, then opened (eroded and grown back) so no plateau is a sliver
+        std::vector<uint8_t> h(static_cast<size_t>(W) * H, 0);
+        for (int r = 0; r < H; r++)
+            for (int c = 0; c < W; c++) {
+                if (keep[m.idx(c, r)] || zone(c, r).snow) continue;
+                const double n = fbm(c / 21.0, r / 21.0, S + 77);
+                h[m.idx(c, r)] = n > 0.71 ? 2 : n > 0.58 ? 1 : 0;
+            }
+        auto open = [&](int level, int rad) {
+            std::vector<uint8_t> er(h.size(), 0);
+            for (int r = rad; r < H - rad; r++)
+                for (int c = rad; c < W - rad; c++) {
+                    bool all = true;
+                    for (int dr = -rad; dr <= rad && all; dr++)
+                        for (int dc = -rad; dc <= rad; dc++)
+                            if (h[m.idx(c + dc, r + dr)] < level) {
+                                all = false;
+                                break;
+                            }
+                    er[m.idx(c, r)] = all;
+                }
+            for (int r = rad; r < H - rad; r++)
+                for (int c = rad; c < W - rad; c++) {
+                    if (h[m.idx(c, r)] < level) continue;
+                    bool near = false;
+                    for (int dr = -rad; dr <= rad && !near; dr++)
+                        for (int dc = -rad; dc <= rad; dc++)
+                            if (er[m.idx(c + dc, r + dr)]) {
+                                near = true;
+                                break;
+                            }
+                    if (!near) h[m.idx(c, r)] = static_cast<uint8_t>(level - 1);
+                }
+        };
+        open(1, 3);
+        open(2, 3);
+        auto H_ = [&](int c, int r) { return m.inside(c, r) ? h[m.idx(c, r)] : 0; };
+        // the upper level sits well inside the lower one, so each cliff is one step high
+        for (int r = 0; r < H; r++)
+            for (int c = 0; c < W; c++)
+                if (H_(c, r) == 2)
+                    for (int dr = -3; dr <= 6; dr++)
+                        for (int dc = -3; dc <= 3; dc++)
+                            if (H_(c + dc, r + dr) == 0) h[m.idx(c, r)] = 1;
+        m.height = h;
+        // cliffs: a face below every south edge, a lip along the others
+        for (int r = 1; r < H - 1; r++)
+            for (int c = 1; c < W - 1; c++) {
+                const int here = H_(c, r);
+                if (H_(c, r - 1) > here || H_(c, r - 2) > here) {   // the face of the ground above: two tiles tall
+                    m.set(c, r, CLIFF);
+                    continue;
+                }
+                if (here == 0) continue;
+                // a lip wherever lower ground touches, except along a plain south edge (the face below closes that)
+                const bool s = H_(c, r + 1) < here;
+                const bool other = H_(c - 1, r) < here || H_(c + 1, r) < here || H_(c, r - 1) < here || H_(c - 1, r - 1) < here || H_(c + 1, r - 1) < here;
+                const bool diagS = H_(c - 1, r + 1) < here || H_(c + 1, r + 1) < here;
+                if (other || (diagS && !s)) m.set(c, r, CLIFF);
+            }
+        // ramps: on each run of south face, a stair every so often (at least one per plateau)
+        std::vector<uint8_t> seen(h.size(), 0);
+        for (int r = 1; r < H - 1; r++)
+            for (int c = 1; c < W - 1; c++) {
+                if (seen[m.idx(c, r)] || H_(c, r) == 0) continue;
+                // one plateau (one level): gather its south faces
+                const int lv = H_(c, r);
+                std::vector<int> stack{m.idx(c, r)};
+                seen[m.idx(c, r)] = 1;
+                std::vector<TilePos> faces;
+                while (!stack.empty()) {
+                    const int i = stack.back();
+                    stack.pop_back();
+                    const int pc = i % W, pr = i / W;
+                    if (m.get(pc, pr + 1) == CLIFF && H_(pc, pr + 1) < lv && H_(pc, pr + 2) < lv && m.get(pc, pr + 2) == CLIFF && m.get(pc, pr + 3) != CLIFF)
+                        faces.push_back({pc, pr + 1});   // the upper tile of a two-tile face
+                    for (int k = 0; k < 4; k++) {
+                        const int nc = pc + DC4[k], nr = pr + DR4[k];
+                        if (!m.inside(nc, nr) || seen[m.idx(nc, nr)] || H_(nc, nr) != lv) continue;
+                        seen[m.idx(nc, nr)] = 1;
+                        stack.push_back(m.idx(nc, nr));
+                    }
+                }
+                // a ramp needs open ground above and below it, and cliff on both sides
+                auto rampOk = [&](TilePos f) {
+                    return m.tileFree(f.c, f.r + 2, false) && walkable(m.get(f.c, f.r - 1)) && m.get(f.c, f.r - 1) != CLIFF && m.get(f.c - 1, f.r) == CLIFF &&
+                           m.get(f.c + 1, f.r) == CLIFF && m.get(f.c - 1, f.r + 1) == CLIFF && m.get(f.c + 1, f.r + 1) == CLIFF;
+                };
+                // remember an open cell of it, so connectivity() can make sure it is reachable
+                for (int k = 0; k < 4; k++)
+                    if (walkable(m.get(c + DC4[k], r + DR4[k])) && H_(c + DC4[k], r + DR4[k]) == lv) {
+                        highGround.push_back({c + DC4[k], r + DR4[k]});
+                        break;
+                    }
+                int placed = 0;
+                for (size_t i = 0; i < faces.size(); i++) {
+                    const TilePos f = faces[(i * 7 + static_cast<size_t>(hash2(c, r, S + 78) * faces.size())) % faces.size()];
+                    if (!rampOk(f)) continue;
+                    bool close = false;
+                    for (const auto& o : faces)
+                        if (m.get(o.c, o.r) == RAMP && std::abs(o.c - f.c) + std::abs(o.r - f.r) < 14) close = true;
+                    if (close) continue;
+                    m.set(f.c, f.r, RAMP);
+                    m.set(f.c, f.r + 1, RAMP);
+                    if (++placed >= 1 + static_cast<int>(faces.size() / 24)) break;
+                }
+            }
+    }
+
     // ── 6. points of interest ──
     bool poiSpot(TilePos& out, int clear) {
         for (int tries = 0; tries < 400; tries++) {
@@ -600,6 +730,11 @@ struct OverworldGen {
         for (const auto& t : db.towns) ensureReach(m, from, t.at.c, t.at.r + 3, &mask);
         for (const auto& d : db.dungeons)
             if (d.under.empty()) ensureReach(m, from, d.at.c, d.at.r + 1, &mask);
+        // high ground: every stretch of it (woods on a plateau can wall pockets off) gets a way in
+        for (const auto& p : highGround) ensureReach(m, from, p.c, p.r, &mask);
+        for (int r = 2; r < H - 2; r += 3)
+            for (int c = 2; c < W - 2; c += 3)
+                if (m.heightAt(c, r) > 0 && m.tileFree(c, r, false) && !mask[m.idx(c, r)]) ensureReach(m, from, c, r, &mask);
         const size_t n = m.objects.size();
         for (size_t i = 0; i < n; i++) {
             const ObjKind k = m.objects[i].kind;
@@ -674,6 +809,7 @@ struct OverworldGen {
         roads();
         townSigns();
         pois();
+        plateaus();
         nodes();
         connectivity();
         spawns();

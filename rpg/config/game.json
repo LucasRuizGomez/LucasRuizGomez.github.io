@@ -12,7 +12,7 @@
     "inputBuffer": 10,
     "baseHp": 10,
     "invSlots": 30,
-    "hitInvulnTicks": 60,
+    "hitInvulnTicks": 50,
     "recallTicks": 210,
     "mountCastTicks": 45,
     "combatLockTicks": 240
@@ -25,9 +25,10 @@
     // Levels no longer give hearts: they give skill points to spend in the skill tree (skills.json).
     // Max health grows with the Vitality skills, armour and helms, and Heart Crystals forged from the
     // shards bosses drop ("heartShardsPerHeart" shards make one crystal).
+    // Armour ("ward") can never block more than half of a hit.
     "heartEveryLevels": 0,
     "skillPointsPerLevel": 1,
-    "heartShardsPerHeart": 3,
+    "heartShardsPerHeart": 4,
     "damageEveryLevels": 3,
     "discoverZoneXp": 25
   },

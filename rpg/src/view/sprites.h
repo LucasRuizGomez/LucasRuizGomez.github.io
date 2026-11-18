@@ -41,6 +41,9 @@ class Sprites {
     const Frames& frames(const std::string& name) const;     // animation strips from sprites.json
     const Sprite& icon(const std::string& id) const;         // item icons and a few banner icons
     const CharSet& character(const std::string& sprite, const std::string& tint);
+    // The hero, dressed in what is worn: colours (hex) for the helm, body armour, boots and shield; empty = none.
+    // The kit's painted sword is taken out, so the real weapon can be drawn in the hand.
+    const CharSet& hero(const std::string& helm, const std::string& body, const std::string& feet, const std::string& shield);
     const AnimalSet& animal(const std::string& sprite, const std::string& tint);
     const std::array<Frames, 4>& treant(const std::string& tint);   // down, right, up, left
     const TileSet& tiles(const std::string& tint);
@@ -52,6 +55,7 @@ class Sprites {
     std::map<std::string, std::array<Sprite, 4>> weaponRot;   // up, right, down, left
     struct {
         Sprite panel, slot, slotDark, btn, btnSel, close;
+        Sprite orbBack, orbFrame, orbGlass, orbRed, orbViolet;   // the health and experience globes (48 art px)
     } ui;
 
   private:

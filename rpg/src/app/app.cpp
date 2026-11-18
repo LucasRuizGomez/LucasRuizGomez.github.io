@@ -44,9 +44,11 @@ bool App::init(int argc, char** argv) {
     if (!g_.init(db_.tuning.saveSlots ? "Hollow Crypt" : "Hollow Crypt", w, h, headless)) return false;
     if (!headless) audio_.init();
     audio_.load(db_.audio, root_);
-    fonts_.load(0, root_ + "assets/fonts/AlegreyaSans-Medium.ttf");
-    fonts_.load(1, root_ + "assets/fonts/AlegreyaSans-Bold.ttf");
-    fonts_.load(2, root_ + "assets/fonts/AlegreyaSans-ExtraBold.ttf");
+    // A book hand for reading, and blackletter for titles (weight 3)
+    fonts_.load(0, root_ + "assets/fonts/Almendra-Regular.ttf");
+    fonts_.load(1, root_ + "assets/fonts/Almendra-Bold.ttf");
+    fonts_.load(2, root_ + "assets/fonts/Almendra-Bold.ttf");
+    fonts_.load(3, root_ + "assets/fonts/PirataOne-Regular.ttf");
     loadSettings();
     spr_.build(g_, db_, root_);
     world_ = std::make_unique<WorldView>(g_, spr_, db_);
@@ -123,6 +125,12 @@ void App::runDebugSwitches() {
         sim_->setMountPick("mount_roc");
         sim_->P.mount = "mount_roc";
     }
+    if (const std::string ids = param("accept"); !ids.empty())   // accept quests: accept=id,id
+        for (size_t i = 0, j; i < ids.size(); i = j + 1) {
+            j = ids.find(',', i);
+            if (j == std::string::npos) j = ids.size();
+            sim_->acceptQuest(ids.substr(i, j - i));
+        }
     if (const std::string who = param("talk"); !who.empty())   // open a conversation (add "offer" to see a quest offer)
         for (auto& o : sim_->map().objects)
             if (o.kind == ObjKind::Npc && o.id == who) {
@@ -132,6 +140,11 @@ void App::runDebugSwitches() {
                 if (!param("offer").empty() && !offered.empty()) {
                     talkView_ = TalkView::Offer;
                     talkQuest_ = offered.front()->id;
+                }
+                if (const std::string hq = param("handin"); !hq.empty() && db_.quest(hq)) {   // the hand-in window for a quest
+                    talkView_ = TalkView::Complete;
+                    talkQuest_ = hq;
+                    rewardPick_ = 0;
                 }
             }
     if (screen == "inv") sim_->mode = Mode::Inv;
@@ -691,6 +704,15 @@ void App::frame() {
         n++;
     }
     if (n == 6) acc_ = 0;
+    if (const std::string sw = platform::queryParam("swing"); !sw.empty()) {   // debug: freeze a sword swing, swing=degrees,frame
+        double deg = 0;
+        int fr = 5;
+        std::sscanf(sw.c_str(), "%lf,%d", &deg, &fr);
+        sim_->P.swingA = deg * PI / 180;
+        sim_->P.swingSide = 1;
+        sim_->P.atkT = db_.tuning.attackTicks - fr;
+        sim_->P.atkCd = 99;
+    }
     if (sim_->mode == Mode::Talk && prevMode_ != Mode::Talk) {   // a new conversation starts at its menu
         talkView_ = TalkView::Menu;
         talkSel_ = 0;

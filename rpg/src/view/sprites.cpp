@@ -2,6 +2,7 @@
 
 #include "core/files.h"
 
+#include <algorithm>
 #include <cmath>
 
 namespace hc {
@@ -56,6 +57,14 @@ const Sprite& Sprites::icon(const std::string& id) const {
 void Sprites::build(Gfx& g, const Database& db, const std::string& root) {
     g_ = &g;
     const json& cfg = db.sprites;
+    if (cfg.contains("grade")) {   // the overall colour grade of the art
+        const json& gr = cfg.at("grade");
+        Image::grade.saturation = gr.value("saturation", 1.0);
+        Image::grade.brightness = gr.value("brightness", 1.0);
+        Image::grade.contrast = gr.value("contrast", 1.0);
+        Image::grade.tint = hex(gr.value("tint", std::string("#ffffff")));
+        Image::grade.skip = gr.value("skip", std::vector<std::string>{});
+    }
     std::map<std::string, std::string> paths;
     for (auto it = cfg.at("images").begin(); it != cfg.at("images").end(); ++it) paths[it.key()] = root + it.value().get<std::string>();
     const std::string fort = paths["fort"], hunt = paths["hunt"], rock = paths["rock"], uiDir = paths["ui"], gen = paths["gen"];
@@ -246,12 +255,99 @@ void Sprites::build(Gfx& g, const Database& db, const std::string& root) {
 
     // ── interface pieces from the RPG UI pack ──
     const Image uiTiles = Image::load(uiDir + "Main_tiles.png"), uiInv = Image::load(uiDir + "Inventory.png"), uiButtons = Image::load(uiDir + "Buttons.png");
-    ui.panel = g.makeSprite(uiTiles.crop(208, 196, 48, 40));
-    ui.slot = g.makeSprite(uiInv.crop(177, 113, 14, 14));
-    ui.slotDark = g.makeSprite(uiInv.crop(193, 113, 14, 14));
-    ui.btn = g.makeSprite(uiButtons.crop(51, 97, 42, 15));
-    ui.btnSel = g.makeSprite(uiButtons.crop(147, 97, 42, 15));
+    // Dark iron-bound leather, drawn here: panels with brass rims and rivets, sunken slots, oxblood buttons
+    (void)uiTiles;
+    (void)uiButtons;
+    auto frame = [](int w, int h, Color fill, Color rim, Color hi, Color lo, bool rivets) {
+        Image im(w, h);
+        for (int y = 0; y < h; y++)
+            for (int x = 0; x < w; x++) {
+                Color c = fill;
+                const int e = std::min({x, y, w - 1 - x, h - 1 - y});
+                if (e == 0) c = Color(10, 8, 7);
+                else if (e == 1) c = (x == 1 || y == 1) ? hi : rim;
+                else if (e == 2) c = (x == w - 3 || y == h - 3) ? hi : lo;
+                else if (e == 3) c = Color(12, 10, 9);
+                im.fill(x, y, 1, 1, c);
+            }
+        if (rivets)
+            for (auto [rx, ry] : {std::pair{2, 2}, {w - 4, 2}, {2, h - 4}, {w - 4, h - 4}}) {
+                im.fill(rx, ry, 2, 2, hi);
+                im.fill(rx + 1, ry + 1, 1, 1, lo);
+            }
+        return im;
+    };
+    ui.panel = g.makeSprite(frame(48, 40, Color(36, 29, 25), Color(112, 88, 52), Color(176, 140, 78), Color(70, 54, 34), true));
+    auto well = [](int w, int h, Color fill, Color edge, Color hi) {
+        Image im(w, h);
+        im.fill(0, 0, w, h, edge);
+        im.fill(1, 1, w - 2, h - 2, Color(8, 7, 6));
+        im.fill(2, 2, w - 3, h - 3, fill);
+        im.fill(2, h - 2, w - 3, 1, hi);
+        im.fill(w - 2, 2, 1, h - 3, hi);
+        return im;
+    };
+    ui.slot = g.makeSprite(well(14, 14, Color(26, 21, 18), Color(96, 76, 50), Color(58, 46, 32)));
+    ui.slotDark = g.makeSprite(well(14, 14, Color(15, 12, 11), Color(60, 48, 34), Color(34, 28, 22)));
+    ui.btn = g.makeSprite(frame(42, 15, Color(74, 34, 28), Color(110, 84, 50), Color(160, 124, 70), Color(52, 26, 22), false));
+    ui.btnSel = g.makeSprite(frame(42, 15, Color(120, 50, 32), Color(176, 138, 70), Color(236, 196, 110), Color(84, 36, 24), false));
     ui.close = g.makeSprite(uiInv.crop(206, 3, 7, 7));
+
+    // Globes: a dark hollow, the liquid (drawn cut to how full it is), a glass highlight and a brass ring
+    {
+        const int N = 48;
+        const double c = (N - 1) / 2.0, R = 20.5;
+        auto disc = [&](auto shadeAt) {
+            Image im(N, N);
+            for (int y = 0; y < N; y++)
+                for (int x = 0; x < N; x++) {
+                    const double d = std::hypot(x - c, y - c);
+                    if (d > R) continue;
+                    const Color col = shadeAt(x, y, d / R);
+                    std::copy(&col.r, &col.r + 4, im.at(x, y));
+                }
+            return im;
+        };
+        auto liquid = [&](Color base) {
+            return disc([&](int x, int y, double t) {
+                // brighter in the middle and towards the top, swirls of darker colour
+                const double sw = 0.5 + 0.5 * std::sin(x * 0.45 + std::sin(y * 0.3) * 2.2);
+                const double k = std::clamp((1.0 - t * 0.55) * (0.75 + 0.35 * (1 - y / static_cast<double>(N))) * (0.88 + 0.12 * sw), 0.0, 1.4);
+                return Color(static_cast<uint8_t>(std::clamp(base.r * k, 0.0, 255.0)), static_cast<uint8_t>(std::clamp(base.g * k, 0.0, 255.0)),
+                             static_cast<uint8_t>(std::clamp(base.b * k, 0.0, 255.0)), 255);
+            });
+        };
+        ui.orbBack = g.makeSprite(disc([](int, int, double t) { return Color(static_cast<uint8_t>(14 + 8 * (1 - t)), 10, 10, 255); }));
+        ui.orbRed = g.makeSprite(liquid(Color(196, 26, 22)));
+        ui.orbViolet = g.makeSprite(liquid(Color(110, 60, 190)));
+        Image glass(N, N), ring(N, N);
+        for (int y = 0; y < N; y++)
+            for (int x = 0; x < N; x++) {
+                const double d = std::hypot(x - c, y - c);
+                // a crescent of light high on the left
+                const double hd = std::hypot((x - (c - 6)) / 1.25, y - (c - 9));
+                if (d < R - 1 && hd < 9) {
+                    const double a = std::clamp((9 - hd) / 9, 0.0, 1.0) * 0.55;
+                    uint8_t* p = glass.at(x, y);
+                    p[0] = p[1] = p[2] = 255;
+                    p[3] = static_cast<uint8_t>(a * 255 * (d > R - 5 ? 0.4 : 1));
+                }
+                if (d > R - 2.5 && d < R + 3.5) {   // the brass ring, lit from the top left
+                    const double lit = 0.5 + 0.5 * ((c - x) + (c - y)) / (std::max(1.0, d) * 1.414);
+                    const bool edge = d > R + 2.5 || d < R - 1.5;
+                    const Color b = edge ? Color(12, 9, 7) : Color(static_cast<uint8_t>(90 + 120 * lit), static_cast<uint8_t>(68 + 92 * lit), static_cast<uint8_t>(36 + 46 * lit));
+                    std::copy(&b.r, &b.r + 3, ring.at(x, y));
+                    ring.at(x, y)[3] = 255;
+                }
+            }
+        for (int i = 0; i < 4; i++) {   // four rivets around the rim
+            const double a = PI / 4 + i * PI / 2;
+            const int rx = static_cast<int>(std::lround(c + std::cos(a) * (R + 0.5))), ry = static_cast<int>(std::lround(c + std::sin(a) * (R + 0.5)));
+            ring.fill(rx - 1, ry - 1, 2, 2, Color(240, 210, 140));
+        }
+        ui.orbGlass = g.makeSprite(glass);
+        ui.orbFrame = g.makeSprite(ring);
+    }
 
     // ── water effects ──
     const Image ripple = Image::load(gen + "water_ripple.png"), splash = Image::load(gen + "water_splash.png"), whirl = Image::load(gen + "water_whirlpool.png");
@@ -279,6 +375,79 @@ const CharSet& Sprites::character(const std::string& sprite, const std::string& 
     for (const auto& [name, im] : charSheets_) {
         if (name.rfind(prefix, 0) != 0) continue;
         set.anims[name.substr(prefix.size())] = strip(isWhite(tint) ? im : im.shade(hex(tint)), 32, 32);
+    }
+    if (!set.anims.count("walk") && set.anims.count("run")) set.anims["walk"] = set.anims["run"];
+    return chars_[key] = std::move(set);
+}
+
+const CharSet& Sprites::hero(const std::string& helm, const std::string& body, const std::string& feet, const std::string& shield) {
+    const std::string key = "hero|" + helm + "|" + body + "|" + feet + "|" + shield;
+    if (auto it = chars_.find(key); it != chars_.end()) return it->second;
+    // The knight's palette (after the colour grade): outline, steel light, steel shade, green tunic, white blade
+    Image pal(5, 1);
+    const Color raw[5] = {Color(5, 4, 3), Color(197, 199, 221), Color(154, 151, 185), Color(93, 155, 121), Color(255, 255, 255)};
+    for (int i = 0; i < 5; i++) std::copy(&raw[i].r, &raw[i].r + 4, pal.at(i, 0));
+    const Image gp = pal.graded(Image::grade);
+    auto same = [](const uint8_t* p, const uint8_t* q) { return p[3] > 0 && p[0] == q[0] && p[1] == q[1] && p[2] == q[2]; };
+    const uint8_t *OUT = gp.at(0, 0), *LIT = gp.at(1, 0), *SHADE = gp.at(2, 0), *TUNIC = gp.at(3, 0), *BLADE = gp.at(4, 0);
+    // colours for each part, graded like the rest of the art: [light, shade]
+    auto tone = [](const std::string& h, Color fallback) {
+        const Color c = h.empty() ? fallback : hex(h);
+        Image im(2, 1);
+        const Color lit(static_cast<uint8_t>(std::min(255, c.r * 135 / 100 + 12)), static_cast<uint8_t>(std::min(255, c.g * 135 / 100 + 12)), static_cast<uint8_t>(std::min(255, c.b * 135 / 100 + 12)));
+        const Color shade(static_cast<uint8_t>(c.r * 88 / 100), static_cast<uint8_t>(c.g * 88 / 100), static_cast<uint8_t>(c.b * 88 / 100));
+        std::copy(&lit.r, &lit.r + 4, im.at(0, 0));
+        std::copy(&shade.r, &shade.r + 4, im.at(1, 0));
+        return im.graded(Image::grade);
+    };
+    // nothing worn: a dark hood, a linen shirt, rag-wrapped feet, a pack on the back
+    const Image tHelm = tone(helm, Color(96, 80, 72)), tBody = tone(body, Color(150, 136, 110)), tFeet = tone(feet, Color(86, 72, 60)),
+                tShield = tone(shield, Color(92, 74, 56));
+    CharSet set;
+    for (const auto& [name, src] : charSheets_) {
+        if (name.rfind("ch8.", 0) != 0) continue;
+        Image im = src;
+        for (int fx = 0; fx + 32 <= im.w; fx += 32) {
+            // the frame's silhouette: top of the head, soles of the feet
+            int top = 32, bottom = 0;
+            for (int y = 0; y < std::min(32, im.h); y++)
+                for (int x = fx; x < fx + 32; x++)
+                    if (src.at(x, y)[3] && !same(src.at(x, y), BLADE)) {
+                        top = std::min(top, y);
+                        bottom = std::max(bottom, y);
+                    }
+            auto body = [&](int x, int y) {
+                if (x < fx || y < 0 || x >= fx + 32 || y >= std::min(32, im.h)) return false;
+                const uint8_t* p = src.at(x, y);
+                return same(p, LIT) || same(p, SHADE) || same(p, TUNIC);
+            };
+            for (int y = 0; y < std::min(32, im.h); y++)
+                for (int x = fx; x < fx + 32; x++) {
+                    uint8_t* d = im.at(x, y);
+                    const uint8_t* p = src.at(x, y);
+                    if (!p[3]) continue;
+                    if (same(p, BLADE)) {   // the painted sword (and the slash smear)
+                        d[3] = 0;
+                        continue;
+                    }
+                    if (same(p, OUT)) {   // its outline goes too: outline that touches no body
+                        if (!body(x - 1, y) && !body(x + 1, y) && !body(x, y - 1) && !body(x, y + 1)) d[3] = 0;
+                        continue;
+                    }
+                    const bool lit = same(p, LIT), shade = same(p, SHADE), tunic = same(p, TUNIC);
+                    if (!lit && !shade && !tunic) continue;
+                    const int lx = x - fx;
+                    const Image* t = nullptr;
+                    if (y <= top + 8 && !tunic) t = &tHelm;                    // head
+                    else if (y >= bottom - 1) t = &tFeet;                       // feet
+                    else if (shade && lx >= 21) t = &tShield;                   // the shield slung on the off side
+                    else t = &tBody;                                            // body and arms
+                    const uint8_t* c = t->at(lit ? 0 : tunic ? 0 : 1, 0);
+                    if (tunic && t == &tBody) c = t->at(1, 0);
+                    std::copy(c, c + 3, d);
+                }
+        }
+        set.anims[name.substr(4)] = strip(im, 32, 32);
     }
     if (!set.anims.count("walk") && set.anims.count("run")) set.anims["walk"] = set.anims["run"];
     return chars_[key] = std::move(set);

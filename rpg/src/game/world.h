@@ -14,10 +14,11 @@
 
 namespace hc {
 
-enum Tile : uint8_t { GRASS, WATER, TREE, PATH, SAND, ROCK, FLOWERS, BRIDGE, FLOOR, WALL, DOOR, STAIRS_DOWN, STAIRS_UP, PLANKS, PLAZA, COBBLE, TILE_COUNT };
+// CLIFF: the rock face below high ground, or its rocky lip (solid; birds fly over). RAMP: stone steps up a cliff.
+enum Tile : uint8_t { GRASS, WATER, TREE, PATH, SAND, ROCK, FLOWERS, BRIDGE, FLOOR, WALL, DOOR, STAIRS_DOWN, STAIRS_UP, PLANKS, PLAZA, COBBLE, CLIFF, RAMP, TILE_COUNT };
 
 inline bool walkable(uint8_t t) {
-    static const bool w[TILE_COUNT] = {true, false, false, true, true, false, true, true, true, false, false, true, true, true, true, true};
+    static const bool w[TILE_COUNT] = {true, false, false, true, true, false, true, true, true, false, false, true, true, true, true, true, false, true};
     return t < TILE_COUNT && w[t];
 }
 inline bool blocksFlight(uint8_t t) { return t == TREE || t == ROCK || t == WALL || t == DOOR; }
@@ -147,6 +148,7 @@ struct Map {
     std::map<std::string, TilePos> doors;                // overworld: building id -> its door tile
     const DungeonDef* dungeon = nullptr;
     std::vector<uint8_t> t, block, explored, zone, reach;
+    std::vector<uint8_t> height;   // overworld: 0 = low ground, 1 and 2 = plateaus (empty elsewhere)
     std::vector<Object> objects;
     std::vector<Enemy> enemies;
     std::vector<Drop> drops;
@@ -169,6 +171,7 @@ struct Map {
     int idx(int c, int r) const { return r * w + c; }
     bool inside(int c, int r) const { return c >= 0 && r >= 0 && c < w && r < h; }
     uint8_t get(int c, int r) const { return inside(c, r) ? t[idx(c, r)] : (outdoor ? TREE : WALL); }
+    int heightAt(int c, int r) const { return inside(c, r) && !height.empty() ? height[idx(c, r)] : 0; }
     void set(int c, int r, uint8_t v) {
         if (inside(c, r)) t[idx(c, r)] = v;
     }

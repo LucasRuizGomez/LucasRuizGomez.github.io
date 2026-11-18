@@ -16,7 +16,8 @@ class Fonts {
   public:
     Fonts();
     ~Fonts();
-    // weight: 0 = regular, 1 = bold, 2 = extra bold
+    // weight: 0 = regular, 1 = bold, 2 = extra bold, 3 = display (titles). A missing face falls back to a lighter one.
+    static constexpr int FACES = 4;
     bool load(int weight, const std::string& path);
     // Size and position are in the current Gfx transform's units; glyphs are rasterised at device resolution.
     void draw(Gfx& g, const std::string& utf8, double x, double y, Color c, double size, int weight = 0, Align align = Align::Left,
@@ -29,7 +30,7 @@ class Fonts {
     struct Face;
     struct Atlas;
     Atlas* atlas(Gfx& g, int weight, int px);
-    std::unique_ptr<Face> faces_[3];
+    std::unique_ptr<Face> faces_[FACES];
     std::map<int, std::unique_ptr<Atlas>> atlases_;   // key = weight * 1000 + pixel size
 };
 

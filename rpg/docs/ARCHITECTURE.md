@@ -30,11 +30,11 @@ The simulation never calls into the app. Everything it wants to tell the outside
 |---|---|
 | `defs.h/.cpp` | `Database`: the contents of `config/*.json` as structs. Loaded once, never changed |
 | `world.h`, `map.cpp` | `Map` and what lives on it (objects, enemies, projectiles, drops), plus collision and pathfinding |
-| `worldgen.cpp` | Builds the overworld (towns with a door on every building) and every dungeon from a seed |
+| `worldgen.cpp` | Builds the overworld (towns with a door on every building, plateaus ringed by cliffs and climbed by ramps) and every dungeon from a seed |
 | `interiors.cpp` | Builds the inside of each town building from `buildings.json` |
 | `sim.h` | `Sim`: the whole running game. The methods are implemented across the `sim_*.cpp` files below |
 | `sim_core.cpp` | Lifecycle, the tick, camera, spawning (dungeons refill only after the hero has been outside), day and night, the skill tree |
-| `sim_player.cpp` | Movement, attacks, rolling, Whirlwind, mounts (including flight) |
+| `sim_player.cpp` | Movement, sword swings (an arc that strikes what the blade has passed), the crossbow, rolling, Whirlwind, mounts (including flight) |
 | `sim_enemies.cpp` | Enemy behaviour, bosses, projectiles |
 | `sim_interact.cpp` | Chests, gathering, shrines, doors, traps |
 | `inventory.cpp` | Bag, the six equipment slots, throwing things away, stats, crafting, shops |
@@ -51,9 +51,10 @@ The simulation never calls into the app. Everything it wants to tell the outside
 - `Gfx` wraps `SDL_Renderer` with a canvas-like transform (scale and offset), so the world is drawn in art pixels and the interface in a virtual 1280×720 space.
 - The world uses a whole-number zoom so every art pixel covers the same number of screen pixels.
 - Terrain is baked into 32×32-tile chunk textures and only re-baked where tiles change. Props and characters are sorted by their feet and drawn on top, so the hero can walk behind trees and houses.
-- `Sprites` cuts every sprite from the art sheets at start-up using `config/sprites.json`. Tinted variants (a region's grass colour, recoloured monsters) are made the first time they are needed.
-- Text is rasterised from the TrueType font with stb_truetype into one glyph atlas per size.
-- Darkness at night and in dungeons is a separate layer with holes cut around light sources.
+- `Sprites` cuts every sprite from the art sheets at start-up using `config/sprites.json`. Every image is colour-graded as it loads (less saturated, darker, cooler; the `grade` block in `sprites.json`), except the interface art. Tinted variants (a region's grass colour, recoloured monsters, the hero in the colours of their gear with the kit's painted sword removed) are made the first time they are needed.
+- High ground is drawn into the terrain chunks: cliff faces two tiles tall below each south edge, rocky lips on the other edges, stone ramps, lighter ground on top and a shadow at the foot.
+- Text is rasterised from TrueType fonts with stb_truetype into one glyph atlas per size and face: Almendra for reading, Pirata One (blackletter) for big bold titles.
+- Darkness is a separate layer with holes cut around light sources. A light gloom and a vignette stay on even at noon, so torches, fires and town windows always cut pools of light; mist, drifting ash and fireflies sit on top.
 
 ## Platform differences (`src/engine/platform.cpp`)
 

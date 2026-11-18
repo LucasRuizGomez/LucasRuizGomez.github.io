@@ -2,6 +2,8 @@
 
 #include "core/files.h"
 
+#include <algorithm>
+
 #define STB_IMAGE_IMPLEMENTATION
 #define STBI_ONLY_PNG
 #include "stb_image.h"
@@ -9,6 +11,24 @@
 #include "stb_image_write.h"
 
 namespace hc {
+
+Image::Grade Image::grade;
+
+Image Image::graded(const Grade& g) const {
+    Image out = *this;
+    for (size_t i = 0; i + 3 < out.px.size(); i += 4) {
+        uint8_t* p = &out.px[i];
+        const double lum = 0.3 * p[0] + 0.59 * p[1] + 0.11 * p[2];
+        const uint8_t tint[3] = {g.tint.r, g.tint.g, g.tint.b};
+        for (int k = 0; k < 3; k++) {
+            double c = lum + (p[k] - lum) * g.saturation;
+            c = (c - 128) * g.contrast + 128;
+            c *= g.brightness * tint[k] / 255.0;
+            p[k] = static_cast<uint8_t>(std::clamp(c, 0.0, 255.0));
+        }
+    }
+    return out;
+}
 
 Image Image::load(const std::string& path) {
     int w = 0, h = 0, n = 0;
@@ -20,7 +40,11 @@ Image Image::load(const std::string& path) {
     Image im(w, h);
     std::copy(data, data + static_cast<size_t>(w) * h * 4, im.px.begin());
     stbi_image_free(data);
-    return im;
+    for (const auto& s : grade.skip)
+        if (path.find(s) != std::string::npos) return im;
+    const Grade& g = grade;
+    if (g.saturation == 1 && g.brightness == 1 && g.contrast == 1 && g.tint.r == 255 && g.tint.g == 255 && g.tint.b == 255) return im;
+    return im.graded(g);
 }
 
 bool Image::savePng(const std::string& path) const { return !empty() && stbi_write_png(path.c_str(), w, h, 4, px.data(), w * 4) != 0; }

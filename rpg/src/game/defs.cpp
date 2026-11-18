@@ -136,6 +136,7 @@ Database Database::load(const std::string& dir) {
             d.mountSprite = e.value("mountSprite", "");
             d.mountSpeed = e.value("mountSpeed", 1.0);
             d.mountTint = e.value("mountTint", "");
+            d.wear = e.value("wear", "");
             d.mountFly = e.value("mountFly", false);
             db.itemIndex_[d.id] = db.items.size();
             db.items.push_back(std::move(d));

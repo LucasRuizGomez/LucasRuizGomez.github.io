@@ -3,6 +3,9 @@
   // Sprites are trimmed to their opaque pixels unless "raw" is set. "frames" cuts an animation strip
   // (frame i starts at x + i * step) and names the frames "name#0", "name#1", ...
   // Characters, animals, terrain tiles and a few composed icons are built in src/view/sprites.cpp.
+  // The colour grade every image gets as it loads: a grim, washed-out look. "skip" lists paths left alone (interface art).
+  "grade": { "saturation": 0.5, "brightness": 0.82, "contrast": 1.1, "tint": "#dce2e4",
+             "skip": ["Main_tiles", "Inventory.png", "Buttons.png", "Icons.png", "owl_icons", "keiffer", "/UI/"] },
   "images": {
     "fort":    "assets/craftpix-net-749505-free-medieval-fortress-top-down-pixel-minigame-kit/",
     "hunt":    "assets/craftpix-net-789196-free-top-down-hunt-animals-pixel-sprite-pack/PNG/With_Shadow/",

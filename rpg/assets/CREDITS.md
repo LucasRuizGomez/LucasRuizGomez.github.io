@@ -41,4 +41,5 @@ The music is unmodified apart from the file names. Attribution is required: it i
 
 | Files | Work | Author | Licence |
 |---|---|---|---|
-| `fonts/AlegreyaSans-*.ttf` | *Alegreya Sans* | Juan Pablo del Peral, Huerta Tipográfica | [SIL Open Font License 1.1](fonts/OFL.txt) |
+| `fonts/Almendra-*.ttf` | *Almendra* (body text) | Ana Sanfelippo | [SIL Open Font License 1.1](fonts/OFL-Almendra.txt) |
+| `fonts/PirataOne-Regular.ttf` | *Pirata One* (titles) | Rodrigo Fuenzalida, Nicolas Massi | [SIL Open Font License 1.1](fonts/OFL-PirataOne.txt) |

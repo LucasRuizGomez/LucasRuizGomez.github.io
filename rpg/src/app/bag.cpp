@@ -446,7 +446,7 @@ void App::drawSkills() {
         const int rank = sim.skillRank(s.id);
         const bool open = sim.skillBlocked(s).empty();
         const bool sel = static_cast<int>(i) == skillSel_;
-        const Color fill = rank >= s.maxRank ? (br ? br->color.alpha(0.55) : pal::slotSel) : rank > 0 ? (br ? br->color.alpha(0.3) : pal::slotSel) : open ? pal::slot : Color(214, 198, 160);
+        const Color fill = rank >= s.maxRank ? (br ? br->color.alpha(0.55) : pal::slotSel) : rank > 0 ? (br ? br->color.alpha(0.3) : pal::slotSel) : open ? pal::slot : pal::well;
         box(nx, ny, nodeW, nodeH, fill, sel ? pal::sel : open ? pal::gold : pal::line, sel ? 3 : open ? 2 : 1);
         if (open && !sel) box(nx - 2, ny - 2, nodeW + 4, nodeH + 4, Color(0, 0, 0, 0), Color(255, 210, 90, static_cast<uint8_t>(90 + 80 * std::sin(sim.tickCount * 0.12))), 1);
         // Icon (OwlishMedia) in an octagonal frame (Keiffer); greyed out until it can be learned

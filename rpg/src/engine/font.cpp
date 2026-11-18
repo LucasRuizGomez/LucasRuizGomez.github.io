@@ -16,7 +16,7 @@ namespace {
 // Characters beyond ASCII that the game's text uses.
 const int EXTRA[] = {0x00B7 /* · */, 0x00D7 /* × */, 0x2026 /* … */, 0x2013 /* – */, 0x2019 /* ’ */, 0x00BD /* ½ */, 0x00E9 /* é */, 0x2014 /* — */};
 const int EXTRA_COUNT = static_cast<int>(sizeof EXTRA / sizeof EXTRA[0]);
-const double SIZE_BOOST = 1.14;   // Alegreya Sans runs small next to the system fonts the layout was tuned for
+const double SIZE_BOOST = 1.12;   // Almendra runs small next to the system fonts the layout was tuned for
 
 // Minimal UTF-8 decoder: returns the next code point and advances i.
 int nextCodepoint(const std::string& s, size_t& i) {
@@ -65,7 +65,7 @@ bool Fonts::load(int weight, const std::string& path) {
         logWarn("Not a usable font: %s", path.c_str());
         return false;
     }
-    faces_[std::clamp(weight, 0, 2)] = std::move(face);
+    faces_[std::clamp(weight, 0, FACES - 1)] = std::move(face);
     return true;
 }
 
@@ -75,7 +75,7 @@ void Fonts::releaseAtlases(Gfx& g) {
 }
 
 Fonts::Atlas* Fonts::atlas(Gfx& g, int weight, int px) {
-    weight = std::clamp(weight, 0, 2);
+    weight = std::clamp(weight, 0, FACES - 1);
     while (weight > 0 && !faces_[weight]) weight--;
     if (!faces_[weight]) return nullptr;
     px = std::clamp(px, 6, 160);
