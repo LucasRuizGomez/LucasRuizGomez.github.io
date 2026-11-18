@@ -1,6 +1,6 @@
 {
-  // type: mat | heal | weapon | shield | armor | trinket | bow | ammo | tool | light | key | special | trophy | mount
-  // Gear (weapon, shield, armor, trinket) never stacks: every piece is its own item and can roll a rarity with affixes.
+  // type: mat | heal | weapon | shield | armor | trinket | helm | boots | bow | ammo | tool | light | key | special | trophy | mount
+  // Gear (weapon, shield, armor, trinket, helm, boots) never stacks: every piece is its own item and can roll a rarity with affixes.
   // "value" is the base price in gold; merchants pay a fraction of it. "level" gates random drops and purchases.
   "items": [
     { "id": "wood",   "name": "Wood",     "type": "mat", "value": 1, "desc": "Chopped from trees. Used in most recipes." },
@@ -24,6 +24,7 @@
     { "id": "arrows",  "name": "Bolts",   "type": "ammo", "value": 1, "desc": "Ammunition for the crossbow." },
     { "id": "key",     "name": "Gate Key", "type": "key", "desc": "Opens the sealed gate in the Hollow Crypt." },
     { "id": "heart",   "name": "Heart Crystal", "type": "special", "desc": "Raises your maximum health by 1 heart." },
+    { "id": "heart_shard", "name": "Heart Shard", "type": "special", "desc": "A splinter of a Heart Crystal. Bosses guard them, and three make a whole crystal." },
     { "id": "crown",   "name": "Hollow Crown", "type": "trophy", "desc": "Proof that the Hollow King has fallen." },
 
     { "id": "wood_sword",   "name": "Wooden Sword",   "type": "weapon", "dmg": 2, "reach": 13, "cd": 22, "tier": 1,   "level": 1,  "value": 4,  "desc": "A whittled blade. Better than fists." },
@@ -41,11 +42,21 @@
     { "id": "chain_armor",   "name": "Chain Hauberk",  "type": "armor", "hp": 4, "tier": 2, "level": 5, "value": 40, "desc": "Adds 2 hearts of health." },
     { "id": "plate_armor",   "name": "Plate Cuirass",  "type": "armor", "hp": 6, "tier": 3, "level": 8, "value": 95, "desc": "Adds 3 hearts of health." },
 
+    { "id": "leather_cap",  "name": "Leather Cap",  "type": "helm", "hp": 1, "tier": 1, "level": 1, "value": 10, "desc": "Boiled leather. Adds half a heart of health." },
+    { "id": "iron_helm",    "name": "Iron Helm",    "type": "helm", "hp": 2, "tier": 2, "level": 4, "value": 32, "desc": "A plain iron pot. Adds 1 heart of health." },
+    { "id": "great_helm",   "name": "Great Helm",   "type": "helm", "hp": 2, "def": 1, "tier": 3, "level": 8, "value": 85, "desc": "Full-faced steel. Adds 1 heart and blocks 1 damage from strong hits." },
+
+    { "id": "leather_boots", "name": "Leather Boots", "type": "boots", "speed": 5,  "tier": 1, "level": 1, "value": 12, "desc": "Soft soles for long roads." },
+    { "id": "iron_greaves",  "name": "Iron Greaves",  "type": "boots", "speed": 8,  "tier": 2, "level": 5, "value": 36, "desc": "Heavy, but well fitted." },
+    { "id": "frost_treads",  "name": "Frost Treads",  "type": "boots", "speed": 12, "tier": 3, "level": 8, "value": 90, "desc": "Highwatch boots that never slip on ice." },
+
     { "id": "band",   "name": "Copper Band",    "type": "trinket", "tier": 1, "level": 2, "value": 12, "desc": "A plain ring. Its worth is in what it was enchanted with." },
     { "id": "signet", "name": "Traveller's Signet", "type": "trinket", "tier": 2, "level": 6, "value": 40, "desc": "Worn by those who walk far from home." },
 
-    { "id": "mount_boar", "name": "War Boar",   "type": "mount", "unique": true, "level": 3, "value": 60,  "mountSprite": "boar", "mountSpeed": 1.6, "desc": "A saddle-broken boar. Summon it outdoors to ride 60% faster." },
-    { "id": "mount_stag", "name": "Frost Stag", "type": "mount", "unique": true, "level": 7, "value": 180, "mountSprite": "deer", "mountSpeed": 2.0, "desc": "Swift and sure-footed. Summon it outdoors to ride twice as fast." }
+    { "id": "mount_boar", "name": "War Boar",   "type": "mount", "unique": true, "level": 3, "value": 60,  "mountSprite": "boar", "mountTint": "#c8a888", "mountSpeed": 1.6, "desc": "A saddle-broken boar. Summon it outdoors to ride 60% faster." },
+    { "id": "mount_stag", "name": "Frost Stag", "type": "mount", "unique": true, "level": 7, "value": 180, "mountSprite": "deer", "mountTint": "#d8e4f0", "mountSpeed": 2.0, "desc": "Swift and sure-footed. Summon it outdoors to ride twice as fast." },
+    { "id": "mount_roc",  "name": "Great Roc",  "type": "mount", "unique": true, "level": 9, "value": 450, "mountSprite": "grouse", "mountTint": "#f0c878", "mountSpeed": 2.3, "mountFly": true,
+      "desc": "A giant bird broken to the saddle. Summon it outdoors to fly over forests, lakes and mountains, out of reach of monsters." }
   ],
 
   // Rarity tiers for dropped gear. "affixes" is how many random bonuses a piece of that rarity rolls.
@@ -59,10 +70,10 @@
   // Random bonuses. "slots" says which gear types can roll it.
   "affixes": [
     { "id": "might",     "label": "of Might",     "stat": "dmg",   "min": 1, "max": 3,  "slots": ["weapon", "trinket"],          "text": "+{v} damage" },
-    { "id": "vitality",  "label": "of Vitality",  "stat": "hp",    "min": 2, "max": 4,  "slots": ["armor", "shield", "trinket"], "text": "+{h} hearts" },
-    { "id": "haste",     "label": "of Haste",     "stat": "speed", "min": 5, "max": 12, "slots": ["armor", "trinket", "weapon"], "text": "+{v}% movement speed" },
+    { "id": "vitality",  "label": "of Vitality",  "stat": "hp",    "min": 1, "max": 2,  "slots": ["armor", "helm", "trinket"],   "text": "+{h} hearts" },
+    { "id": "haste",     "label": "of Haste",     "stat": "speed", "min": 4, "max": 10, "slots": ["boots", "trinket", "weapon"], "text": "+{v}% movement speed" },
     { "id": "precision", "label": "of Precision", "stat": "crit",  "min": 6, "max": 15, "slots": ["weapon", "trinket"],          "text": "{v}% chance to strike twice as hard" },
     { "id": "leech",     "label": "of the Leech", "stat": "leech", "min": 10, "max": 25, "slots": ["weapon", "trinket"],         "text": "{v}% chance to heal half a heart on a kill" },
-    { "id": "warding",   "label": "of Warding",   "stat": "ward",  "min": 1, "max": 1,  "slots": ["shield", "armor"],            "text": "Blocks {v} more damage from strong hits" }
+    { "id": "warding",   "label": "of Warding",   "stat": "ward",  "min": 1, "max": 1,  "slots": ["shield", "armor", "helm"],    "text": "Blocks {v} more damage from strong hits" }
   ]
 }

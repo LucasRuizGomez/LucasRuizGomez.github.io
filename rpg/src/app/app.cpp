@@ -94,7 +94,7 @@ void App::runDebugSwitches() {
     sim_->newGame("Tester");
     world_->forget();
     if (!param("kit").empty()) {
-        for (const char* id : {"iron_sword", "wood_shield", "bow", "torch", "pickaxe", "leather_armor", "mount_boar"}) sim_->addItem({id, 1});
+        for (const char* id : {"iron_sword", "wood_shield", "bow", "torch", "pickaxe", "leather_armor", "leather_cap", "leather_boots", "mount_boar"}) sim_->addItem({id, 1});
         sim_->addItem({"arrows", 40});
         sim_->addItem({"gold", 200});
         sim_->addItem({"potion", 3});
@@ -118,7 +118,13 @@ void App::runDebugSwitches() {
         for (const auto& z : db_.zones) sim_->zonesFound.insert(z.id);
         for (const auto& t : db_.towns) sim_->waypoints.insert(t.id);
     }
+    if (!param("fly").empty()) {   // a Great Roc, already in the air
+        sim_->addItem({"mount_roc", 1}, true);
+        sim_->setMountPick("mount_roc");
+        sim_->P.mount = "mount_roc";
+    }
     if (screen == "inv") sim_->mode = Mode::Inv;
+    else if (screen == "skills") sim_->mode = Mode::Skills;
     else if (screen == "craft") sim_->mode = Mode::Craft;
     else if (screen == "quests") sim_->mode = Mode::Quests;
     else if (screen == "map") sim_->mode = Mode::WorldMap;
@@ -331,6 +337,7 @@ void App::quitToTitle() {
 
 void App::setMode(Mode m) {
     if (sim_->mode != m && m != Mode::Play) audio_.play("uiOpen");
+    drag_ = Drag();
     sim_->mode = m;
 }
 
@@ -340,8 +347,9 @@ void App::playAction(const std::string& a, Scheme from) {
     if (a == "attack" || a == "shoot") scheme_ = from;
     if (a == "bag") {
         setMode(Mode::Inv);
-        invSel_ = std::min(invSel_, std::max(0, static_cast<int>(sim_->P.inv.size()) - 1));
+        invSel_ = std::clamp(invSel_, 0, std::max(0, static_cast<int>(sim_->bagView().size()) - 1));
     } else if (a == "craft") setMode(Mode::Craft);
+    else if (a == "skills") setMode(Mode::Skills);
     else if (a == "quests") setMode(Mode::Quests);
     else if (a == "map") setMode(Mode::WorldMap);
     else sim_->action(a, from == Scheme::Mouse);
@@ -360,23 +368,28 @@ void App::handleKey(const std::string& code, bool shift) {
             break;
         case Mode::Pause: pauseKey(code); break;
         case Mode::Inv: {
-            const int cols = 6, n = db_.tuning.invSlots;
-            if (dir == "right") invSel_ = std::min(n - 1, invSel_ + 1);
-            if (dir == "left") invSel_ = std::max(0, invSel_ - 1);
-            if (dir == "down") invSel_ = std::min(n - 1, invSel_ + cols);
-            if (dir == "up") invSel_ = std::max(0, invSel_ - cols);
-            if (enter || code == "Space" || act == "interact") sim.useOrEquip(invSel_);
+            if (!dir.empty()) invMove(dir);
+            if (enter || code == "Space" || act == "interact") invActivate();
+            if (code == "KeyX" || code == "Delete" || code == "Backspace") invDiscard(shift);
             if (act == "bag" || code == "Escape") sim.mode = Mode::Play;
             if (act == "craft") setMode(Mode::Craft);
             if (act == "quests") setMode(Mode::Quests);
+            if (act == "skills") setMode(Mode::Skills);
             break;
         }
+        case Mode::Skills:
+            if (!dir.empty()) skillMove(dir);
+            if (enter && skillSel_ < static_cast<int>(db_.skills.size())) sim.learnSkill(db_.skills[skillSel_].id);
+            if (act == "skills" || code == "Escape") sim.mode = Mode::Play;
+            else if (act == "bag") setMode(Mode::Inv);
+            break;
         case Mode::Craft: {
             const int n = static_cast<int>(sim.recipes(craftCat_).size());
             if (dir == "down") craftSel_ = std::min(n - 1, craftSel_ + 1);
             if (dir == "up") craftSel_ = std::max(0, craftSel_ - 1);
             if (code == "Tab" || dir == "right" || dir == "left") setCraftCat(dir == "left" ? -1 : 1);
             else if (act == "bag") setMode(Mode::Inv);
+            else if (act == "skills") setMode(Mode::Skills);
             if (enter) craftSelected(shift ? 5 : 1);
             if (act == "craft" || code == "Escape") sim.mode = Mode::Play;
             break;
@@ -458,6 +471,8 @@ void App::handlePad() {
     if (pressed("b")) handleKey("Escape", false);
     if (pressed("start")) handleKey(sim.mode == Mode::Title ? "Enter" : "Escape", false);
     if (pressed("x") && sim.mode == Mode::Craft) handleKey("Enter", true);
+    if (pressed("x") && sim.mode == Mode::Inv) handleKey("KeyX", false);
+    if (pressed("y") && sim.mode == Mode::Inv) setMode(Mode::Skills);
     if (pressed("x") && sim.mode == Mode::Title) handleKey("Delete", false);
     if (pressed("leftshoulder")) handleKey("ArrowLeft", false);
     if (pressed("rightshoulder")) handleKey("ArrowRight", false);
@@ -512,6 +527,8 @@ void App::handleInput() {
             if (const Hit* h = hitAt(in_.mouseX / ui_, in_.mouseY / ui_); h && h->hover) h->hover();
     }
     for (const auto& c : in_.clicks) handleClick(c);
+    for (const auto& r : in_.releases)
+        if (sim.mode == Mode::Inv && !sim.fade) invRelease(r.x / ui_, r.y / ui_);
     if (in_.wheel != 0 && (sim.mode == Mode::Craft || sim.mode == Mode::Shop || sim.mode == Mode::Quests || sim.mode == Mode::Travel || sim.mode == Mode::Pause || sim.mode == Mode::Title))
         handleKey(in_.wheel < 0 ? "ArrowDown" : "ArrowUp", false);
     if (in_.lostFocus && sim.mode == Mode::Play && !sim.fade && platform::queryParam("shot").empty() && platform::queryParam("autostart").empty()) openPause();
@@ -614,6 +631,7 @@ void App::render() {
             drawHud();
             if (sim.mode == Mode::Inv) drawInventory();
             if (sim.mode == Mode::Craft) drawCrafting();
+            if (sim.mode == Mode::Skills) drawSkills();
             if (sim.mode == Mode::Shop) drawShop();
             if (sim.mode == Mode::Sign) drawSign();
             if (sim.mode == Mode::Quests) drawQuests();

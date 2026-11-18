@@ -87,8 +87,8 @@
           "text": "Welcome to Greenhollow. Chop trees, mine rocks and pick herbs with the Use key, then open Crafting. The fire roasts meat and forges iron, and resting there heals you. The world is wide: follow the roads, and read the signposts." },
         { "id": "mira", "name": "Huntress Mira", "sprite": "ch7", "role": "quest",
           "text": "The vale feeds us, if you know how to hunt it. Boars charge, so step aside. Foxes do not give up." },
-        { "id": "merchant", "name": "Tobin the Trader", "sprite": "ch2", "role": "merchant", "shop": "general", "text": "" },
-        { "id": "hobb", "name": "Stablemaster Hobb", "sprite": "ch2", "tint": "#c8a878", "role": "stable", "shop": "stable", "text": "" }
+        { "id": "merchant", "name": "Tobin the Trader", "sprite": "ch2", "role": "merchant", "shop": "vale_trader", "text": "" },
+        { "id": "hobb", "name": "Stablemaster Hobb", "sprite": "ch2", "tint": "#c8a878", "role": "stable", "shop": "vale_stable", "text": "" }
       ] },
     { "id": "thornwick", "name": "Thornwick", "at": [52, 62], "radius": 11, "houses": 3, "stalls": 1, "zone": "deepwood", "music": "town_b",
       "features": ["fountain", "campfire", "waypoint", "fence"],
@@ -105,7 +105,7 @@
       "npcs": [
         { "id": "oswin", "name": "Pilgrim Oswin", "sprite": "ch6", "tint": "#d8d0f0", "role": "quest",
           "text": "Every road in the realm crosses here. I walk them all, from shrine to shrine. The old stones still answer, if you touch them." },
-        { "id": "peddler", "name": "Road Peddler", "sprite": "ch2", "tint": "#e0b0a0", "role": "merchant", "shop": "general", "text": "" }
+        { "id": "peddler", "name": "Road Peddler", "sprite": "ch2", "tint": "#e0b0a0", "role": "merchant", "shop": "road_peddler", "text": "" }
       ] },
     { "id": "saltmere", "name": "Saltmere", "at": [160, 168], "radius": 13, "houses": 5, "stalls": 2, "zone": "coast", "music": "town_harbor",
       "features": ["fountain", "campfire", "forge", "waypoint", "fence"],
@@ -114,14 +114,14 @@
           "text": "Saltmere lives by its harbour, and the harbour is being bled dry. Smugglers, lad. A whole nest of them down the coast." },
         { "id": "dagna", "name": "Dagna the Smith", "sprite": "ch7", "tint": "#e0a080", "role": "smith", "shop": "smith",
           "text": "" },
-        { "id": "fishmonger", "name": "Old Fishmonger", "sprite": "ch2", "tint": "#b0d0d0", "role": "merchant", "shop": "general", "text": "" }
+        { "id": "fishmonger", "name": "Old Fishmonger", "sprite": "ch2", "tint": "#b0d0d0", "role": "merchant", "shop": "harbor_market", "text": "" }
       ] },
     { "id": "fenwatch", "name": "Fenwatch", "at": [200, 108], "radius": 8, "houses": 1, "stalls": 0, "zone": "marsh", "music": "town_c",
       "features": ["campfire", "waypoint", "fence"],
       "npcs": [
         { "id": "voss", "name": "Quartermaster Voss", "sprite": "ch1", "tint": "#b0c0a0", "role": "quest",
           "text": "This is the last dry ground before the Ashen Marsh. Mind the reeds. What hunts there, hunts quietly." },
-        { "id": "sutler", "name": "Camp Sutler", "sprite": "ch2", "tint": "#a0b090", "role": "merchant", "shop": "general", "text": "" }
+        { "id": "sutler", "name": "Camp Sutler", "sprite": "ch2", "tint": "#a0b090", "role": "merchant", "shop": "fen_sutler", "text": "" }
       ] },
     { "id": "highwatch", "name": "Highwatch", "at": [128, 34], "radius": 12, "houses": 4, "stalls": 1, "zone": "frost", "music": "town_b",
       "features": ["fountain", "campfire", "forge", "waypoint", "towers"],
@@ -129,7 +129,7 @@
         { "id": "yrsa", "name": "Commander Yrsa", "sprite": "ch1", "tint": "#d0e0ff", "role": "quest",
           "text": "Highwatch guards the pass. Beyond it, in the eastern peaks, the Hollow King sits on his throne of bones. No one I have sent has come back." },
         { "id": "armorer", "name": "Bjarn the Armorer", "sprite": "ch7", "tint": "#c0d0e0", "role": "smith", "shop": "armorer", "text": "" },
-        { "id": "stablehand", "name": "Stablemaster Inga", "sprite": "ch2", "tint": "#d0e0f0", "role": "stable", "shop": "stable", "text": "" }
+        { "id": "stablehand", "name": "Stablemaster Inga", "sprite": "ch2", "tint": "#d0e0f0", "role": "stable", "shop": "peak_stable", "text": "" }
       ] }
   ],
 
@@ -166,15 +166,24 @@
   ],
 
   // buy: [item, quantity, price]. sell: what the merchant pays per unit; gear is always bought at a fraction of its value.
+  // Every town has its own stock: the vale sells basics, the road peddler light gear, the harbour food and ore,
+  // the marsh camp potions at a premium, and the two forges their own lines of iron and steel.
   "shops": {
-    "general":   { "title": "Trader", "buy": [["arrows", 10, 6], ["bandage", 1, 3], ["roast", 1, 6], ["torch", 1, 5], ["pickaxe", 1, 10], ["iron", 1, 5], ["coal", 1, 4]],
-                   "sell": { "meat": 1, "herb": 1, "wood": 1, "stone": 1, "iron": 2, "coal": 2, "hide": 2, "bark": 3, "frost_shard": 5 } },
-    "herbalist": { "title": "Herbalist", "buy": [["bandage", 1, 3], ["potion", 1, 14], ["herb", 1, 2], ["roast", 1, 6]],
-                   "sell": { "herb": 1, "bark": 4, "meat": 1 } },
-    "smith":     { "title": "Smith", "buy": [["iron_sword", 1, 22], ["iron_shield", 1, 30], ["steel_spear", 1, 38], ["chain_armor", 1, 50], ["band", 1, 18], ["arrows", 10, 6], ["pickaxe", 1, 10]],
-                   "sell": { "iron": 3, "coal": 2, "hide": 2, "frost_shard": 6 } },
-    "armorer":   { "title": "Armorer", "buy": [["knight_blade", 1, 60], ["frost_brand", 1, 100], ["champion_shield", 1, 110], ["plate_armor", 1, 120], ["signet", 1, 50], ["potion", 1, 14], ["arrows", 10, 6]],
-                   "sell": { "iron": 3, "coal": 2, "hide": 2, "frost_shard": 6 } },
-    "stable":    { "title": "Stable", "buy": [["mount_boar", 1, 60], ["mount_stag", 1, 180]], "sell": {} }
+    "vale_trader":   { "title": "Village Trader", "buy": [["bandage", 1, 3], ["roast", 1, 6], ["torch", 1, 5], ["pickaxe", 1, 10], ["arrows", 10, 6], ["wood_sword", 1, 6], ["wood_shield", 1, 8], ["leather_cap", 1, 12]],
+                       "sell": { "meat": 1, "herb": 1, "wood": 1, "stone": 1, "hide": 2 } },
+    "road_peddler":  { "title": "Road Peddler", "buy": [["arrows", 10, 5], ["bandage", 1, 3], ["leather_armor", 1, 18], ["leather_boots", 1, 15], ["band", 1, 20], ["torch", 1, 6]],
+                       "sell": { "meat": 1, "herb": 1, "wood": 1, "stone": 1, "iron": 2, "coal": 2, "hide": 3, "bark": 3 } },
+    "harbor_market": { "title": "Harbour Market", "buy": [["roast", 1, 5], ["meat", 1, 2], ["potion", 1, 16], ["iron", 1, 4], ["coal", 1, 3], ["arrows", 10, 7]],
+                       "sell": { "meat": 2, "herb": 1, "hide": 2, "iron": 2, "coal": 2, "frost_shard": 5 } },
+    "fen_sutler":    { "title": "Camp Sutler", "buy": [["potion", 1, 18], ["bandage", 1, 4], ["arrows", 10, 8], ["torch", 1, 7], ["bark", 1, 6]],
+                       "sell": { "herb": 2, "bark": 4, "hide": 2, "meat": 1, "frost_shard": 5 } },
+    "herbalist":     { "title": "Herbalist", "buy": [["bandage", 1, 3], ["potion", 1, 14], ["herb", 1, 2], ["roast", 1, 6]],
+                       "sell": { "herb": 1, "bark": 4, "meat": 1 } },
+    "smith":         { "title": "Smith", "buy": [["iron_sword", 1, 22], ["iron_shield", 1, 30], ["steel_spear", 1, 38], ["iron_helm", 1, 34], ["iron_greaves", 1, 40], ["chain_armor", 1, 50]],
+                       "sell": { "iron": 3, "coal": 2, "hide": 2, "frost_shard": 6 } },
+    "armorer":       { "title": "Armorer", "buy": [["knight_blade", 1, 60], ["frost_brand", 1, 100], ["champion_shield", 1, 110], ["plate_armor", 1, 120], ["great_helm", 1, 95], ["frost_treads", 1, 100], ["signet", 1, 50], ["potion", 1, 16]],
+                       "sell": { "iron": 3, "coal": 2, "hide": 2, "frost_shard": 6 } },
+    "vale_stable":   { "title": "Stable", "buy": [["mount_boar", 1, 60]], "sell": {} },
+    "peak_stable":   { "title": "Highwatch Stable", "buy": [["mount_stag", 1, 180], ["mount_roc", 1, 450]], "sell": {} }
   }
 }

@@ -15,13 +15,14 @@
     { "id": "recall",   "label": "Recall to town",  "keys": ["KeyT"] },
     { "id": "bag",      "label": "Bag",             "keys": ["KeyI", "Tab"] },
     { "id": "craft",    "label": "Crafting",        "keys": ["KeyC"] },
+    { "id": "skills",   "label": "Skill tree",      "keys": ["KeyN"] },
     { "id": "quests",   "label": "Quest log",       "keys": ["KeyL"] },
     { "id": "map",      "label": "World map",       "keys": ["KeyM"] }
   ],
   // Standard-mapping gamepad buttons while playing.
   "gamepad": {
     "a": "interact", "b": "dodge", "x": "attack", "y": "heal",
-    "leftshoulder": "craft", "rightshoulder": "attack",
+    "leftshoulder": "craft", "rightshoulder": "skills",
     "lefttrigger": "skill", "righttrigger": "shoot",
     "back": "bag", "leftstick": "mount", "rightstick": "map"
   },

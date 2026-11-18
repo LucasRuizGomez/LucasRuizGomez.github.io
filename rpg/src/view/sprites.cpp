@@ -209,6 +209,7 @@ void Sprites::build(Gfx& g, const Database& db, const std::string& root) {
     }
     if (auto it = animalSheets_.find("boar.idle"); it != animalSheets_.end()) setIcon("mount_boar", it->second.crop(0, 96, 32, 32).trim());
     if (auto it = animalSheets_.find("deer.idle"); it != animalSheets_.end()) setIcon("mount_stag", it->second.crop(0, 96, 32, 32).trim().shade(Color(216, 228, 240)));
+    if (auto it = animalSheets_.find("grouse.idle"); it != animalSheets_.end()) setIcon("mount_roc", it->second.crop(0, 0, 32, 26).trim().shade(Color(240, 200, 120)));
     icons_["levelup"] = named_["mark_new"];
     icons_["shrine"] = named_["statue"];
     icons_["quest"] = named_["mark_done"];

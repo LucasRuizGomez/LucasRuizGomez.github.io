@@ -73,6 +73,7 @@ std::string keyLabel(const std::string& c) {
 void Input::poll() {
     presses.clear();
     clicks.clear();
+    releases.clear();
     padPresses.clear();
     wheel = 0;
     resized = mouseMoved = lostFocus = false;
@@ -116,7 +117,12 @@ void Input::poll() {
                 }
                 break;
             case SDL_MOUSEBUTTONUP:
-                if (e.button.button == SDL_BUTTON_LEFT) mouseLeft = false;
+                mouseX = e.button.x;
+                mouseY = e.button.y;
+                if (e.button.button == SDL_BUTTON_LEFT) {
+                    mouseLeft = false;
+                    releases.push_back({0, mouseX, mouseY});
+                }
                 if (e.button.button == SDL_BUTTON_RIGHT) mouseRight = false;
                 break;
             case SDL_MOUSEWHEEL: wheel += e.wheel.y; break;

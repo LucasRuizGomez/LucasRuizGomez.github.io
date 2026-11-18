@@ -84,6 +84,11 @@ void Sim::updatePlayer() {
     }
     const double mountMul = P.mount.empty() ? 1.0 : db.item(P.mount).mountSpeed;
     const double sp = T.playerSpeed * mag * (P.atkT > 0 ? 0.45 : 1) * speedMul() * mountMul;
+    const bool fly = flying();
+    if (fly) {   // in the air nothing blocks the way and there is nothing to fight or pick up
+        attackBuf_ = shootBuf_ = 0;
+        wantDodge_ = wantInteract_ = wantSkill_ = false;
+    }
 
     // Dodge roll: a quick dash the way you move (or face) that lets hits and bolts pass through
     if (wantDodge_) {
@@ -94,7 +99,7 @@ void Sim::updatePlayer() {
             P.rvx = ml > 0 ? mx : f.x;
             P.rvy = ml > 0 ? my : f.y;
             P.roll = T.rollTicks;
-            P.rollCd = T.rollCooldown;
+            P.rollCd = static_cast<int>(std::lround(T.rollCooldown * (1 - std::clamp(skillStat("roll"), 0.0, 70.0) / 100)));
             play("dodge");
             burst(P.x, P.y, Color(200, 176, 144), 6, 0.7, 0.02);
         }
@@ -105,11 +110,16 @@ void Sim::updatePlayer() {
         if (P.roll % 3 == 0) P.trail.push_back({P.x, P.y, P.face, 10});
         P.roll--;
         P.animT += 2;
+    } else if (P.moving && fly) {
+        P.x = std::clamp(P.x + mx * sp, 12.0, m.w * TILE - 12.0);
+        P.y = std::clamp(P.y + my * sp, 16.0, m.h * TILE - 8.0);
+        P.animT++;
     } else if (P.moving) {
         m.moveBox(P.x, P.y, mx * sp, my * sp, 4, 3, false);
         P.animT++;
         if (!P.mount.empty() && P.animT % 12 == 0) burst(P.x, P.y, Color(184, 154, 112), 2, 0.5, 0.03);
-    } else P.animT = 0;
+    } else if (fly) P.animT++;   // wings keep beating while hovering
+    else P.animT = 0;
     for (auto& t : P.trail) t.t--;
     std::erase_if(P.trail, [](const Trail& t) { return t.t <= 0; });
     if (P.kbx != 0 || P.kby != 0) {
@@ -128,6 +138,14 @@ void Sim::updatePlayer() {
     if (P.whirlCd > 0) P.whirlCd--;
     if (P.whirlT > 0) P.whirlT--;
     if (P.combatT < 100000) P.combatT++;
+    // Second Wind: out of combat, half a heart back every few seconds
+    if (const double regen = skillStat("regen"); regen > 0 && P.combatT > 300 && P.hp < maxHp() && mode == Mode::Play) {
+        if (++P.regenT >= static_cast<int>(600 / regen)) {
+            P.regenT = 0;
+            P.hp++;
+            floater(P.x, P.y - 20, "+0.5", Color(123, 224, 138));
+        }
+    } else P.regenT = 0;
     for (auto& b : P.buffs) b.t--;
     std::erase_if(P.buffs, [](const Buff& b) { return b.t <= 0; });
 
@@ -219,7 +237,7 @@ void Sim::updatePlayer() {
             p.vx = vx * 3.2;
             p.vy = vy * 3.2;
             p.fromPlayer = true;
-            p.dmg = 3 + P.level / db.tuning.damageEvery + statBonus("dmg") / 2;
+            p.dmg = bowDamage();
             p.life = 75;
             p.kind = Projectile::Kind::Arrow;
             m.proj.push_back(p);
@@ -240,8 +258,8 @@ void Sim::updatePlayer() {
         interact(m);
     }
 
-    // Stairs and doorways
-    if (!fade) {
+    // Stairs and doorways (not from the saddle of a flying mount)
+    if (!fade && !fly) {
         const int tc = ifloor(P.x / TILE), tr = ifloor(P.y / TILE);
         const uint8_t under = m.get(tc, tr);
         if (under == STAIRS_DOWN || under == STAIRS_UP)
@@ -266,18 +284,18 @@ void Sim::updateSkills(Map& m) {
     if (wantSkill_) {
         wantSkill_ = false;
         if (!whirlwindUnlocked()) {
-            toast("Whirlwind unlocks at level " + std::to_string(T.whirlLevel) + ".");
+            toast("Learn Whirlwind in the skill tree first.");
             play("deny");
         } else if (P.whirlCd > 0) play("deny");
         else if (P.roll <= 0) {
             dismount();
             P.recallT = 0;
-            P.whirlCd = T.whirlCooldown;
+            P.whirlCd = whirlCooldown();
             P.whirlT = 18;
             play("whirl");
             play("swing");
             shake = std::max(shake, 4.0);
-            const int dmg = static_cast<int>(std::ceil(weaponDamage() * T.whirlMul));
+            const int dmg = static_cast<int>(std::ceil(weaponDamage() * T.whirlMul * (1 + skillStat("whirldmg") / 100)));
             for (auto& e : m.enemies) {
                 if (!e.alive) continue;
                 const double ex = e.x - P.x, ey = (e.y - e.cy) - (P.y - 6), d = hypot2(ex, ey);
@@ -304,12 +322,8 @@ void Sim::updateSkills(Map& m) {
         wantMount_ = false;
         if (!P.mount.empty()) dismount();
         else {
-            const ItemDef* best = nullptr;
-            for (const auto& it : P.inv) {
-                const ItemDef& d = db.item(it.id);
-                if (d.type == ItemType::Mount && (!best || d.mountSpeed > best->mountSpeed)) best = &d;
-            }
-            if (!best) {
+            const std::string pick = chosenMount();
+            if (pick.empty()) {
                 toast("You have no mount. Stablemasters sell them in Greenhollow and Highwatch.");
                 play("deny");
             } else if (!m.outdoor) {
@@ -324,15 +338,13 @@ void Sim::updateSkills(Map& m) {
     if (P.mountCast > 0) {
         if (P.atkT > 0 || P.roll > 0 || P.combatT < 30) P.mountCast = 0;
         else if (--P.mountCast == 0) {
-            const ItemDef* best = nullptr;
-            for (const auto& it : P.inv) {
-                const ItemDef& d = db.item(it.id);
-                if (d.type == ItemType::Mount && (!best || d.mountSpeed > best->mountSpeed)) best = &d;
-            }
-            if (best) {
-                P.mount = best->id;
-                play("mount");
-                burst(P.x, P.y, Color(200, 176, 144), 10, 0.9, 0.02);
+            const std::string pick = chosenMount();
+            if (!pick.empty()) {
+                P.mount = pick;
+                const bool air = db.item(pick).mountFly;
+                play(air ? "fly" : "mount");
+                burst(P.x, P.y, air ? Color(240, 220, 170) : Color(200, 176, 144), air ? 18 : 10, air ? 1.4 : 0.9, 0.02);
+                if (air) toast("You take to the air. Press the mount key over open ground to land.", Color(159, 210, 255));
             }
         }
     }

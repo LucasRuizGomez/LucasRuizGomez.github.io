@@ -22,12 +22,18 @@
     "maxLevel": 12,
     "xpBase": 40,
     "xpGrowth": 1.5,
-    "heartEveryLevels": 2,
+    // Levels no longer give hearts: they give skill points to spend in the skill tree (skills.json).
+    // Max health grows with the Vitality skills, armour and helms, and Heart Crystals forged from the
+    // shards bosses drop ("heartShardsPerHeart" shards make one crystal).
+    "heartEveryLevels": 0,
+    "skillPointsPerLevel": 1,
+    "heartShardsPerHeart": 3,
     "damageEveryLevels": 3,
     "discoverZoneXp": 25
   },
   "skills": {
-    "whirlwind": { "level": 3, "cooldown": 360, "radius": 30, "damageMul": 1.5 }
+    // Whirlwind is learned in the skill tree; these are its base numbers.
+    "whirlwind": { "cooldown": 360, "radius": 30, "damageMul": 1.5 }
   },
   "day": { "lengthTicks": 28800, "startHour": 8 },
   "spawns": {
@@ -40,5 +46,7 @@
   "shrines": { "buffTicks": 3600, "rechargeTicks": 18000 },
   "trees": { "chops": 3, "stumpTicks": 3000, "saplingTicks": 2400 },
   "death": { "goldLostFraction": 0.25 },
+  // Resting or sleeping at a fire is refused during a fight or with a hostile monster this close (pixels).
+  "rest": { "enemyRadius": 160 },
   "autosaveTicks": 1800
 }

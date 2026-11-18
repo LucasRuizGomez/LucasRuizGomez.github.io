@@ -49,14 +49,15 @@ void Sim::killEnemy(Map& m, Enemy& e) {
     const bool fortune = hasBuff("fortune");
     for (const auto& d : def.drops)
         if (rng.chance(d.chance)) dropItem(m, {d.item, d.qty}, e.x, e.y);
-    if (def.goldMax > 0 && rng.chance(def.goldChance)) dropItem(m, {"gold", static_cast<int>(rng.between(def.goldMin, def.goldMax) * (fortune ? 1.5 : 1) * (e.elite ? 2 : 1))}, e.x, e.y);
+    const double goldMul = (fortune ? 1.5 : 1) * (e.elite ? 2 : 1) * (1 + skillStat("gold") / 100);
+    if (def.goldMax > 0 && rng.chance(def.goldChance)) dropItem(m, {"gold", std::max(1, static_cast<int>(rng.between(def.goldMin, def.goldMax) * goldMul))}, e.x, e.y);
     if (def.isBoss()) {
         dropItem(m, randomGear(def.level, 2), e.x - 12, e.y);
         dropItem(m, randomGear(def.level, 1), e.x + 12, e.y);
-        dropItem(m, {"heart", 1}, e.x, e.y + 10);
+        dropItem(m, {"heart_shard", 1}, e.x, e.y + 10);
         dropItem(m, {"potion", 2}, e.x, e.y - 8);
     } else if (e.elite) dropItem(m, randomGear(def.level, 1), e.x, e.y);
-    else if (!def.passive && rng.chance(fortune ? 0.07 : 0.035)) dropItem(m, randomGear(def.level, 0), e.x, e.y);
+    else if (!def.passive && rng.chance((fortune ? 0.07 : 0.035) * (1 + skillStat("loot") / 100))) dropItem(m, randomGear(def.level, 0), e.x, e.y);
     if (!def.passive && (e.elite || rng.chance(db.tuning.globeChance))) {
         Drop g;
         g.globe = true;
@@ -158,7 +159,7 @@ void Sim::updateEnemies(Map& m) {
         // While being knocked back a mob is stunned: it slides but does not walk or turn.
         // Monsters also leave you alone inside a town.
         const bool stunned = !def.isBoss() && std::abs(e.kbx) + std::abs(e.kby) > 0.35;
-        const bool calm = inTown && !def.isBoss();
+        const bool calm = (inTown || flying()) && !def.isBoss();   // nothing can reach a hero on a flying mount
         if (!stunned) switch (def.ai) {
                 case Ai::Charger: {
                     const auto& ch = def.charge;
@@ -449,7 +450,23 @@ void Sim::updateDrops(Map& m) {
         d.vx *= 0.9;
         d.vy *= 0.9;
         const double dx = P.x - d.x, dy = (P.y - 4) - d.y, dist = std::max(1e-6, hypot2(dx, dy));
+        if (d.tossed) {   // thrown away: stays put until the hero has stepped off, then is ordinary loot again
+            if (dist > 30) {
+                d.tossed = false;
+                d.t = 0;
+            }
+            continue;
+        }
+        if (flying()) continue;
         const bool coin = d.item.id == "gold" || d.globe;
+        if (!d.globe) {   // a full bag leaves loot on the ground instead of nagging every frame
+            const ItemDef& idef = db.item(d.item.id);
+            const bool fits = !bagFull() || idef.type == ItemType::Special || (idef.stacks() && hasItem(d.item.id));
+            if (!fits) {
+                if (d.t > 24 && dist < 10 && d.t % 150 == 25) toast("Your bag is full. Open it and throw something away.");
+                continue;
+            }
+        }
         if (d.globe && P.hp >= maxHp()) continue;   // globes wait until you need them
         if (d.t > 24 && dist < (coin ? 60 : 34)) {
             d.x += dx / dist * (coin ? 2.6 : 2);
@@ -470,7 +487,7 @@ void Sim::updateDrops(Map& m) {
             if (addItem(d.item)) {
                 d.gone = true;
                 play(d.item.id == "gold" ? "coin" : rarity >= 3 ? "legendary" : rarity >= 1 ? "gem" : "pick");
-                if (d.item.id != "heart") toast((def.isGear() ? std::string("Found: ") : "+" + std::to_string(qty) + " ") + name, def.isGear() && rarity ? db.rarities[rarity].glow : Color(236, 230, 216));
+                if (d.item.id != "heart" && d.item.id != "heart_shard") toast((def.isGear() ? std::string("Found: ") : "+" + std::to_string(qty) + " ") + name, def.isGear() && rarity ? db.rarities[rarity].glow : Color(236, 230, 216));
             }
         }
     }

@@ -496,7 +496,7 @@ void App::drawPause() {
         text(scheme_ == Scheme::Pad ? "Showing: gamepad" : "Showing: keyboard and mouse", RX + W - 24, DY + 38, pal::faint, 12, 0, Align::Right);
         std::vector<std::pair<std::string, std::string>> lines;
         if (scheme_ == Scheme::Pad)
-            lines = {{"Move", "Left stick / d-pad"}, {"Attack", "X / RB"}, {"Crossbow", "RT (right stick aims)"}, {"Whirlwind", "LT"}, {"Dodge roll", "B"},
+            lines = {{"Move", "Left stick / d-pad"}, {"Attack", "X"}, {"Skill tree", "RB"}, {"Crossbow", "RT (right stick aims)"}, {"Whirlwind", "LT"}, {"Dodge roll", "B"},
                      {"Use, talk", "A"},             {"Quick heal", "Y"},  {"Bag / crafting", "Back / LB"},       {"Mount", "L3"},     {"World map", "R3"}, {"Menu", "Start"}};
         else {
             lines = {{"Move", "WASD / arrows"}, {"Attack", bindLabel("attack") + "  ·  left click"}, {"Crossbow", bindLabel("shoot") + " (auto-aim)  ·  right click"}};

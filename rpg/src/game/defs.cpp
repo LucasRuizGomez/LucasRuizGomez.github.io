@@ -12,7 +12,7 @@ ItemType parseItemType(const std::string& s) {
         {"mat", ItemType::Mat},       {"heal", ItemType::Heal},       {"weapon", ItemType::Weapon}, {"shield", ItemType::Shield},
         {"armor", ItemType::Armor},   {"trinket", ItemType::Trinket}, {"bow", ItemType::Bow},       {"ammo", ItemType::Ammo},
         {"tool", ItemType::Tool},     {"light", ItemType::Light},     {"key", ItemType::Key},       {"special", ItemType::Special},
-        {"trophy", ItemType::Trophy}, {"mount", ItemType::Mount}};
+        {"trophy", ItemType::Trophy}, {"mount", ItemType::Mount},     {"helm", ItemType::Helm},     {"boots", ItemType::Boots}};
     auto it = m.find(s);
     if (it == m.end()) throw std::runtime_error("Unknown item type: " + s);
     return it->second;
@@ -85,11 +85,13 @@ Database Database::load(const std::string& dir) {
         t.maxLevel = l.at("maxLevel");
         t.xpBase = l.at("xpBase");
         t.xpGrowth = l.at("xpGrowth");
-        t.heartEvery = l.at("heartEveryLevels");
+        t.heartEvery = l.value("heartEveryLevels", 0);
+        t.skillPointsPerLevel = l.value("skillPointsPerLevel", 1);
+        t.heartShards = std::max(1, l.value("heartShardsPerHeart", 3));
         t.damageEvery = l.at("damageEveryLevels");
         t.discoverZoneXp = l.at("discoverZoneXp");
         const json& wh = g.at("skills").at("whirlwind");
-        t.whirlLevel = wh.at("level");
+        t.whirlLevel = wh.value("level", 1);
         t.whirlCooldown = wh.at("cooldown");
         t.whirlRadius = wh.at("radius");
         t.whirlMul = wh.at("damageMul");
@@ -107,6 +109,7 @@ Database Database::load(const std::string& dir) {
         t.stumpTicks = g.at("trees").at("stumpTicks");
         t.saplingTicks = g.at("trees").at("saplingTicks");
         t.goldLost = g.at("death").at("goldLostFraction");
+        if (g.contains("rest")) t.restEnemyRadius = g.at("rest").value("enemyRadius", t.restEnemyRadius);
         t.autosaveTicks = g.at("autosaveTicks");
     }
 
@@ -125,12 +128,15 @@ Database Database::load(const std::string& dir) {
             d.cd = e.value("cd", 0);
             d.def = e.value("def", 0);
             d.hp = e.value("hp", 0);
+            d.speed = e.value("speed", 0);
             d.tier = e.value("tier", 0.0);
             d.level = e.value("level", 1);
             d.value = e.value("value", 0);
             d.unique = e.value("unique", false);
             d.mountSprite = e.value("mountSprite", "");
             d.mountSpeed = e.value("mountSpeed", 1.0);
+            d.mountTint = e.value("mountTint", "");
+            d.mountFly = e.value("mountFly", false);
             db.itemIndex_[d.id] = db.items.size();
             db.items.push_back(std::move(d));
         }
@@ -415,6 +421,34 @@ Database Database::load(const std::string& dir) {
         db.defaultUi = j.at("defaults").at("ui");
     }
 
+    // ── skills.json ──
+    {
+        const json j = loadJson(dir + "skills.json");
+        for (const auto& e : j.at("branches")) db.branches.push_back({e.at("id"), e.at("label"), e.value("desc", ""), hex(e.value("color", "#c8a060"))});
+        for (const auto& e : j.at("skills")) {
+            SkillDef s;
+            s.id = e.at("id");
+            s.name = e.at("name");
+            s.branch = e.at("branch");
+            s.desc = e.value("desc", "");
+            s.maxRank = std::max(1, e.value("ranks", 1));
+            s.level = e.value("level", 1);
+            s.col = e.at("pos").at(0);
+            s.row = e.at("pos").at(1);
+            if (e.contains("requires")) {
+                s.requires_ = e.at("requires").at(0);
+                s.requiresRank = e.at("requires").at(1);
+            }
+            s.effects = parseWeights(e.at("effects"));
+            bool known = false;
+            for (const auto& b : db.branches) known = known || b.id == s.branch;
+            if (!known) throw std::runtime_error("Skill " + s.id + " is in unknown branch " + s.branch);
+            db.skills.push_back(std::move(s));
+        }
+        for (const auto& s : db.skills)
+            if (!s.requires_.empty() && !db.skill(s.requires_)) throw std::runtime_error("Skill " + s.id + " requires unknown skill " + s.requires_);
+    }
+
     db.audio = loadJson(dir + "audio.json");
     db.sprites = loadJson(dir + "sprites.json");
     return db;
@@ -467,6 +501,11 @@ const PropDef* Database::prop(const std::string& id) const {
 const AffixDef* Database::affix(const std::string& id) const {
     for (const auto& a : affixes)
         if (a.id == id) return &a;
+    return nullptr;
+}
+const SkillDef* Database::skill(const std::string& id) const {
+    for (const auto& s : skills)
+        if (s.id == id) return &s;
     return nullptr;
 }
 int Database::xpForLevel(int level) const { return static_cast<int>(std::floor(tuning.xpBase * std::pow(tuning.xpGrowth, level - 1))); }

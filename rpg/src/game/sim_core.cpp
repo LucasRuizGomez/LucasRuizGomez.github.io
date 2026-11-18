@@ -79,8 +79,24 @@ void Sim::enterMap(const std::string& id, double x, double y) {
     m.proj.clear();
     m.drops.clear();
     m.corpses.clear();
-    if (!m.outdoor) dismount(true);
-    spawnEnemies(m);
+    if (!m.outdoor) {
+        dismount(true);
+        P.mount.clear();
+    }
+    // Overworld monsters come and go with their spawn points. Dungeon monsters are placed once and stay
+    // dead until the hero goes back outside; only then does every dungeon fill up again.
+    if (m.outdoor) {
+        for (auto& [mid, other] : maps)
+            if (!other.outdoor) other.populated = false;
+        spawnEnemies(m);
+    } else if (!m.populated) {
+        spawnEnemies(m);
+        m.populated = true;
+    } else
+        for (auto& e : m.enemies) {   // the survivors forget the chase
+            e.aggroT = 9999;
+            e.kbx = e.kby = 0;
+        }
     zoneId.clear();
     townId.clear();
     if (!m.outdoor) area = AreaTitle{m.name, m.dungeon ? "Level " + std::to_string(m.dungeon->level) : "", 200};
@@ -231,15 +247,85 @@ void Sim::gainXp(int amount) {
         P.xp -= db.xpForLevel(P.level);
         P.level++;
         P.hp = maxHp();
-        std::string perk = "Health restored";
-        if (P.level % db.tuning.heartEvery == 0) perk = "+1 heart";
+        const int pts = db.tuning.skillPointsPerLevel;
+        std::string perk = "+" + std::to_string(pts) + (pts == 1 ? " skill point" : " skill points");
+        if (db.tuning.heartEvery > 0 && P.level % db.tuning.heartEvery == 0) perk += " · +1 heart";
         if (P.level % db.tuning.damageEvery == 0) perk += " · +1 damage";
-        if (P.level == db.tuning.whirlLevel) perk += " · Whirlwind unlocked";
         showBanner("levelup", "Level " + std::to_string(P.level), perk, Color(90, 60, 160));
         play("levelup");
         burst(P.x, P.y - 10, Color(255, 226, 138), 30, 1.8, -0.01);
     }
     if (P.level >= db.tuning.maxLevel) P.xp = 0;
+}
+
+int Sim::skillRank(const std::string& id) const {
+    auto it = P.skills.find(id);
+    return it == P.skills.end() ? 0 : it->second;
+}
+
+double Sim::skillStat(const std::string& stat) const {
+    double total = 0;
+    for (const auto& [id, rank] : P.skills)
+        if (const SkillDef* s = db.skill(id))
+            for (const auto& [k, v] : s->effects)
+                if (k == stat) total += v * rank;
+    return total;
+}
+
+int Sim::skillPoints() const {
+    int spent = 0;
+    for (const auto& [id, rank] : P.skills) spent += rank;
+    return (P.level - 1) * db.tuning.skillPointsPerLevel - spent;
+}
+
+std::string Sim::skillBlocked(const SkillDef& s) const {
+    const int rank = skillRank(s.id);
+    if (rank >= s.maxRank) return "Fully learned.";
+    if (!s.requires_.empty() && skillRank(s.requires_) < s.requiresRank) {
+        const SkillDef* r = db.skill(s.requires_);
+        return "Learn " + (r ? r->name : s.requires_) + (s.requiresRank > 1 ? " to rank " + std::to_string(s.requiresRank) : std::string()) + " first.";
+    }
+    if (P.level < s.level) return "Requires level " + std::to_string(s.level) + ".";
+    if (skillPoints() <= 0) return "No skill points left. Each level gives one.";
+    return "";
+}
+
+bool Sim::learnSkill(const std::string& id) {
+    const SkillDef* s = db.skill(id);
+    if (!s) return false;
+    if (const std::string why = skillBlocked(*s); !why.empty()) {
+        toast(why);
+        play("deny");
+        return false;
+    }
+    const int before = maxHp();
+    P.skills[id]++;
+    P.hp = std::min(maxHp(), P.hp + std::max(0, maxHp() - before));
+    const int rank = P.skills[id];
+    showBanner("levelup", s->name, s->maxRank > 1 ? "Rank " + std::to_string(rank) + " of " + std::to_string(s->maxRank) : "Learned", Color(90, 60, 160));
+    play("learn");
+    wantSave = true;
+    return true;
+}
+
+int Sim::whirlCooldown() const {
+    const double cut = std::clamp(skillStat("whirlcd"), 0.0, 60.0);
+    return static_cast<int>(std::lround(db.tuning.whirlCooldown * (1 - cut / 100)));
+}
+
+bool Sim::flying() const {
+    if (P.mount.empty()) return false;
+    const ItemDef* d = db.findItem(P.mount);
+    return d && d->mountFly;
+}
+
+std::string Sim::restBlocked() const {
+    if (P.combatT < db.tuning.combatLockTicks) return "You cannot rest in the middle of a fight.";
+    for (const auto& e : map().enemies) {
+        if (!e.alive || e.def->passive) continue;
+        if (hypot2(e.x - P.x, e.y - P.y) < db.tuning.restEnemyRadius) return "Monsters are too close. You cannot rest with enemies nearby.";
+    }
+    return "";
 }
 
 const Enemy* Sim::activeBoss() const {
@@ -334,8 +420,36 @@ void Sim::updatePlace(Map& m) {
 void Sim::dismount(bool quiet) {
     P.mountCast = 0;
     if (P.mount.empty()) return;
+    if (flying()) {   // never drop the hero into a lake or a forest
+        if (!land(quiet)) return;
+        return;
+    }
     P.mount.clear();
     if (!quiet) burst(P.x, P.y, Color(200, 176, 144), 6, 0.7, 0.02);
+}
+
+bool Sim::land(bool quiet) {
+    Map& m = map();
+    const int c = ifloor(P.x / TILE), r = ifloor(P.y / TILE);
+    if (!m.boxFree(P.x, P.y, 4, 3, false)) {
+        const TilePos p = freeNear(m, c, r);
+        if (!m.tileFree(p.c, p.r, false) || hypot2(p.c - c, p.r - r) > 8) {
+            if (!quiet) {
+                toast("Nowhere to land here. Fly over open ground.");
+                play("deny");
+            }
+            return false;
+        }
+        P.x = p.c * TILE + 8;
+        P.y = p.r * TILE + 10;
+    }
+    P.mount.clear();
+    P.mountCast = 0;
+    if (!quiet) {
+        play("fly");
+        burst(P.x, P.y, Color(240, 220, 170), 14, 1.2, 0.03);
+    }
+    return true;
 }
 
 void Sim::travelTo(const std::string& town) {

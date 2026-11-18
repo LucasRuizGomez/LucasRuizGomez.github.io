@@ -12,8 +12,9 @@
 
 namespace hc {
 
-enum class Mode { Title, Play, Pause, Inv, Craft, Shop, Sign, Quests, WorldMap, Travel, Dead, Victory };
-enum class EquipSlot { Weapon, Shield, Armor, Trinket };
+enum class Mode { Title, Play, Pause, Inv, Craft, Shop, Sign, Quests, WorldMap, Travel, Dead, Victory, Skills };
+enum class EquipSlot { Weapon, Shield, Armor, Trinket, Helm, Boots };
+constexpr int EQUIP_SLOTS = 6;
 
 struct Toast {
     std::string text;
@@ -71,9 +72,12 @@ struct Player {
     int face = 1;
     bool moving = false;
     int animT = 0;
-    int hp = 10, level = 1, xp = 0, heartCrystals = 0;
-    std::vector<Item> inv;
-    int equip[4] = {0, 0, 0, 0};   // item uid per EquipSlot, 0 = empty
+    int hp = 10, level = 1, xp = 0, heartCrystals = 0, heartShards = 0;
+    std::vector<Item> inv;          // everything carried, worn gear included (worn gear does not take a bag slot)
+    int equip[EQUIP_SLOTS] = {};    // item uid per EquipSlot, 0 = empty
+    std::map<std::string, int> skills;   // skill id -> rank learned
+    std::string mountPick;          // mount chosen in the bag's mount slot (empty = the fastest one)
+    int regenT = 0;
     int atkT = 0, atkCd = 0, bowCd = 0, bowT = 0, iframes = 0, actCd = 0, roll = 0, rollCd = 0;
     double kbx = 0, kby = 0, rvx = 0, rvy = 0;
     std::vector<int> hitSet;
@@ -157,6 +161,19 @@ class Sim {
 
     // ── inventory and stats (inventory.cpp) ──
     int countItem(const std::string& id) const;
+    int bagUsed() const;                                          // bag slots taken (worn gear and the chosen mount are not in the bag)
+    bool bagFull() const { return bagUsed() >= db.tuning.invSlots; }
+    bool inBag(const Item& it) const;                             // false for worn gear and the chosen mount
+    std::vector<int> bagView() const;                             // indices into P.inv of what the bag grid shows, in order
+    static bool slotAccepts(EquipSlot s, ItemType t);
+    static EquipSlot slotFor(ItemType t);
+    bool equipTo(int invIndex, EquipSlot s);                      // wear a piece in a slot (swaps out what was there)
+    bool unequip(EquipSlot s);                                    // back to the bag, if there is room
+    void moveItem(int from, int to);                              // reorder the bag: swap two entries of P.inv
+    bool setMountPick(const std::string& id);                     // "" clears the choice
+    std::string chosenMount() const;                              // the mount the mount key summons, or ""
+    std::string discardBlocked(const Item& it) const;             // why an item cannot be thrown away, or ""
+    bool discardItem(int invIndex, int qty);                      // throw on the ground in front of the hero
     bool hasItem(const std::string& id) const { return countItem(id) > 0; }
     bool addItem(Item item, bool quiet = false);
     bool removeItem(const std::string& id, int qty);
@@ -175,7 +192,9 @@ class Sim {
     int weaponReach() const;
     int weaponCooldown() const;
     int shieldDef() const;
+    int bowDamage() const;
     double speedMul() const;
+    int gearStat(int ItemDef::*field) const;                      // sum of a base stat over worn gear
     bool hasBuff(const std::string& id) const;
     bool canCraft(const RecipeDef& r) const;
     std::string recipeBlocked(const RecipeDef& r) const;
@@ -199,17 +218,27 @@ class Sim {
     void questEvent(const std::string& type, const std::string& target, const std::string& alt = "");
     void talkTo(Object& npc);
 
-    // ── levels ──
+    // ── levels and the skill tree ──
     void gainXp(int amount);
     int xpToNext() const { return db.xpForLevel(P.level); }
-    bool whirlwindUnlocked() const { return P.level >= db.tuning.whirlLevel; }
+    bool whirlwindUnlocked() const { return skillStat("whirl") > 0; }
+    int whirlCooldown() const;
+    int skillRank(const std::string& id) const;
+    double skillStat(const std::string& stat) const;              // sum of a stat over learned ranks
+    int skillPoints() const;                                      // points left to spend
+    std::string skillBlocked(const SkillDef& s) const;            // why the next rank cannot be learned now, or ""
+    bool learnSkill(const std::string& id);
+
+    // ── mounts and resting ──
+    bool flying() const;                                          // riding a flying mount
+    std::string restBlocked() const;                              // why the hero cannot rest at a fire now, or ""
 
     // ── world queries ──
     double hourOfDay() const;
     double darkness() const;           // 0 = full day, 1 = deep night
     bool isNight() const { return darkness() > 0.5; }
     std::string clockText() const;
-    bool invulnerable() const { return P.iframes > 0 || P.roll > 2; }
+    bool invulnerable() const { return P.iframes > 0 || P.roll > 2 || flying(); }
     const Enemy* activeBoss() const;
     int combatLevel() const;           // 0 calm, 1 fighting, 2 fighting an elite, 3 boss
     const Enemy* meleeTarget() const;
@@ -265,11 +294,12 @@ class Sim {
     void die();
     void dismount(bool quiet = false);
     void sleepUntilMorning();
+    bool land(bool quiet);                                        // leave a flying mount on the nearest free ground
+    void addHeartShard();
     void completeQuest(const QuestDef& q);
     void autoEquip(const Item& it);
     Item* findUid(int uid);
     const Item* findUid(int uid) const;
-    static EquipSlot slotFor(ItemType t);
 };
 
 }   // namespace hc

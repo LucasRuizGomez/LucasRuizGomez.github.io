@@ -1,6 +1,6 @@
 # Hollow Crypt
 
-A top-down open-world action RPG that runs in the browser: six regions, six towns, seven dungeons, 21 quests, crafting, random gear, mounts and a day and night cycle. Written in C++20 on SDL2 and compiled to WebAssembly with Emscripten. The same code also builds as a desktop program.
+A top-down open-world action RPG that runs in the browser: six regions, six towns, seven dungeons, 21 quests, crafting, random gear on a drag-and-drop paper doll, a skill tree, mounts (one of them flies) and a day and night cycle. Written in C++20 on SDL2 and compiled to WebAssembly with Emscripten. The same code also builds as a desktop program.
 
 Play it at [lukeda.me/rpg](https://lukeda.me/rpg/).
 
@@ -29,11 +29,12 @@ The game reads everything below at start-up. Changing a value and rebuilding is 
 | File | Defines |
 |---|---|
 | `game.json` | Global tuning: player speed and timings, levelling, day length, spawning, save slots |
-| `world.json` | Regions, towns and their people, dungeons, shops, points of interest, world size and seed |
+| `world.json` | Regions, towns and their people, dungeons, each town's shops, points of interest, world size and seed |
 | `items.json` | Items, rarities and the random bonuses gear can roll |
 | `enemies.json` | Monsters, bosses and elite variants |
 | `quests.json` | Quests, their objectives, rewards and the order they unlock in |
 | `recipes.json` | Crafting recipes |
+| `skills.json` | The skill tree: branches, skills, their requirements and what each rank gives |
 | `controls.json` | Default key and gamepad bindings, default volumes |
 | `audio.json` | Which sound files play for each event, and the music for each place |
 | `sprites.json` | Where each sprite sits in the art sheets |
@@ -84,7 +85,8 @@ Add these to the URL of a web build (`?autostart&kit&tp=128,40`), or pass them a
 | `map=id` | Start inside a dungeon (ids are in `config/world.json`) |
 | `hour=22` | Set the time of day |
 | `reveal` | Uncover the whole world map and unlock every waypoint |
-| `screen=name` | Open a screen straight away: `inv`, `craft`, `quests`, `map`, `pause`, `controls`, or on the title menu `load`, `new`, `settings` |
+| `screen=name` | Open a screen straight away: `inv`, `skills`, `craft`, `quests`, `map`, `pause`, `controls`, or on the title menu `load`, `new`, `settings` |
+| `fly` | Start in the air on a Great Roc |
 | `mute` | No sound |
 
 ## Deployment

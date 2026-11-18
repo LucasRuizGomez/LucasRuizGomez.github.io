@@ -38,7 +38,10 @@
     "waypoint": { "files": ["spell_01.ogg"], "vol": 0.7 },
     "mount":    { "files": ["wolfman.wav", "ogre1.wav"], "vol": 0.35 },
     "whirl":    { "files": ["metal-ringing.wav"], "vol": 0.7 },
-    "elite":    { "files": ["shade1.wav", "shade4.wav"], "vol": 0.6 }
+    "elite":    { "files": ["shade1.wav", "shade4.wav"], "vol": 0.6 },
+    "drop":     { "files": ["cloth.wav", "item_misc_02.ogg"], "vol": 0.45 },
+    "learn":    { "files": ["spell_02.ogg"], "vol": 0.6 },
+    "fly":      { "files": ["cloth-heavy.wav"], "vol": 0.6 }
   },
   // Music: track -> file in assets/audio/music. Zones, towns and dungeons name their track in world.json;
   // the tracks below are picked by what is happening (see src/view/music_director.cpp).

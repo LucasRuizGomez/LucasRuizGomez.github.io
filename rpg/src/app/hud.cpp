@@ -30,7 +30,17 @@ void App::drawHud() {
         shadowText(lv, 16, y + 13, pal::ltGold, 14, 1);
         const double bx = 22 + textW(lv, 14, 1), bw = 150;
         bar(bx, y + 4, bw, 7, capped ? 1 : static_cast<double>(P.xp) / sim.xpToNext(), pal::xp, Color(40, 30, 60));
-        if (!capped) shadowText(std::to_string(P.xp) + " / " + std::to_string(sim.xpToNext()), bx + bw + 8, y + 12, pal::ltMuted, 11);
+        double after = bx + bw + 8;
+        if (!capped) {
+            const std::string xpText = std::to_string(P.xp) + " / " + std::to_string(sim.xpToNext());
+            shadowText(xpText, after, y + 12, pal::ltMuted, 11);
+            after += textW(xpText, 11) + 14;
+        }
+        if (const int pts = sim.skillPoints(); pts > 0) {   // unspent skill points nag gently
+            g_.setAlpha(0.75 + 0.25 * std::sin(tick * 0.1));
+            shadowText("+" + std::to_string(pts) + (pts == 1 ? " skill point" : " skill points") + " · " + bindLabel("skills"), after, y + 12, pal::ltGold, 12, 1);
+            g_.setAlpha(1);
+        }
         y += 26;
     }
 
@@ -56,17 +66,8 @@ void App::drawHud() {
         const int n = sim.countItem("potion") + sim.countItem("roast") + sim.countItem("bandage") + sim.countItem("meat");
         slots.push_back({btnLabel("heal"), healIcon, "", healIcon.empty() ? "" : std::to_string(n)});
     }
-    slots.push_back({btnLabel("skill"), weapon ? weapon->id : "wood_sword", "", "", static_cast<double>(P.whirlCd) / db_.tuning.whirlCooldown, !sim.whirlwindUnlocked()});
-    {
-        std::string mount;
-        double best = 0;
-        for (const auto& it : P.inv)
-            if (const ItemDef& d = db_.item(it.id); d.type == ItemType::Mount && d.mountSpeed > best) {
-                best = d.mountSpeed;
-                mount = it.id;
-            }
-        if (!mount.empty()) slots.push_back({btnLabel("mount"), mount, "", ""});
-    }
+    slots.push_back({btnLabel("skill"), weapon ? weapon->id : "wood_sword", "", "", static_cast<double>(P.whirlCd) / std::max(1, sim.whirlCooldown()), !sim.whirlwindUnlocked()});
+    if (const std::string mount = sim.chosenMount(); !mount.empty()) slots.push_back({btnLabel("mount"), mount, "", ""});
     for (size_t i = 0; i < slots.size(); i++) {
         const Slot& s = slots[i];
         const double x = 16 + i * 50.0, sy = y + 8;
@@ -77,7 +78,7 @@ void App::drawHud() {
             g_.setAlpha(1);
         } else if (!s.empty.empty()) text(s.empty, x + 22, sy + 24, pal::faint, 10, 1, Align::Center, Baseline::Middle);
         if (i == 4) {   // whirlwind: a ring mark, the unlock level, and the cooldown sweeping down
-            if (s.locked) text("Lv " + std::to_string(db_.tuning.whirlLevel), x + 22, sy + 24, pal::muted, 11, 1, Align::Center, Baseline::Middle);
+            if (s.locked) text("Skill", x + 22, sy + 24, pal::muted, 11, 1, Align::Center, Baseline::Middle);
             else if (s.cool > 0) g_.fillRect(x + 3, sy + 3, 38, std::round(38 * s.cool), Color(20, 14, 10, 150));
             else box(x + 3, sy + 3, 38, 38, Color(0, 0, 0, 0), Color(255, 226, 138, static_cast<uint8_t>(120 + 80 * std::sin(tick * 0.1))), 2);
         }
@@ -184,7 +185,8 @@ void App::drawHud() {
     // Controls hint
     if (sim.mode == Mode::Play) {
         std::string hint;
-        if (scheme_ == Scheme::Pad) hint = "Stick move · X attack · RT crossbow · LT whirlwind · B roll · A use · Y heal · LB craft · Back bag · Start menu";
+        if (scheme_ == Scheme::Pad) hint = "Stick move · X attack · RT crossbow · LT whirlwind · B roll · A use · Y heal · LB craft · RB skills · Back bag · Start menu";
+        else if (sim.flying()) hint = "WASD fly · " + bindLabel("mount") + " land over open ground · " + bindLabel("recall") + " recall · " + bindLabel("map") + " map · Esc menu";
         else {
             const std::string atk = scheme_ == Scheme::Mouse ? "Left click" : bindLabel("attack"), shoot = scheme_ == Scheme::Mouse ? "Right click" : bindLabel("shoot");
             hint = "WASD move · " + atk + " attack · " + shoot + " crossbow · " + bindLabel("dodge") + " roll · " + bindLabel("interact") + " use · " + bindLabel("heal") + " heal · " + bindLabel("bag") +

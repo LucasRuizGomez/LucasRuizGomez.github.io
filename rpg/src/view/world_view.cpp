@@ -442,7 +442,7 @@ void WorldView::render(Sim& sim, int zoom, bool withActors) {
             if (vis(c.e.x, c.e.y, 60)) list.push_back({c.e.y - 2, 4, &c});
         for (const auto& e : m.enemies)
             if (e.alive && vis(e.x, e.y, 64)) list.push_back({e.y, 5, &e});
-        list.push_back({P.y, 6, nullptr});
+        list.push_back({sim.flying() ? 1e9 : P.y, 6, nullptr});   // a flying hero passes over trees and roofs
     }
     std::stable_sort(list.begin(), list.end(), [](const Entry& a, const Entry& b) { return a.key < b.key; });
 
@@ -657,11 +657,21 @@ void WorldView::drawPlayer(Sim& sim) {
     }
     if (!P.mount.empty()) {   // riding: the animal under the hero
         const ItemDef& md = db_.item(P.mount);
-        const AnimalSet& A = spr_.animal(md.mountSprite, P.mount == "mount_stag" ? "#d8e4f0" : "#c8a888");
-        const auto& rows = P.moving ? A.get("run") : A.get("idle");
-        const Sprite& beast = anim(rows[animalRow(P.dir)], P.moving ? P.animT : tick, P.moving ? 5 : 10);
-        g_.draw(beast, std::round(P.x) - 20, std::round(P.y) - 34, 40, 40);
-        y -= 9 + (P.moving ? (P.animT / 5) % 2 : 0);
+        const AnimalSet& A = spr_.animal(md.mountSprite, md.mountTint.empty() ? "#c8a888" : md.mountTint);
+        if (md.mountFly) {   // high above the ground: a shadow below, a big bird with the hero on its back
+            const double alt = 26 + std::round(std::sin(tick * 0.07) * 2);
+            g_.drawTinted(spr_.glow, std::round(P.x) - 20, std::round(P.y) - 6, 40, 12, Color(0, 0, 0, 110));
+            const auto& rows = A.get("walk");
+            const Sprite& bird = anim(rows[animalRow(P.dir)], P.animT, P.moving ? 4 : 6);
+            const double by = std::round(P.y - alt);
+            g_.draw(bird, std::round(P.x) - 32, by - 40, 64, 64);
+            y = by - 37;
+        } else {
+            const auto& rows = P.moving ? A.get("run") : A.get("idle");
+            const Sprite& beast = anim(rows[animalRow(P.dir)], P.moving ? P.animT : tick, P.moving ? 5 : 10);
+            g_.draw(beast, std::round(P.x) - 20, std::round(P.y) - 34, 40, 40);
+            y -= 9 + (P.moving ? (P.animT / 5) % 2 : 0);
+        }
     } else g_.fillRect(x + 11, y + 30, 10, 2, Color(0, 0, 0, 64));
 
     // The hero's sheet only swings sideways, so up/down swings show the blade and an arc

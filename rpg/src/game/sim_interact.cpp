@@ -12,6 +12,10 @@ const int DC4[4] = {0, -1, 1, 0}, DR4[4] = {-1, 0, 0, 1};
 }   // namespace
 
 void Sim::updateFocus(Map& m) {
+    if (flying()) {
+        focus = Focus();
+        return;
+    }
     const Vec2 v = dirVec(P.dir);
     const double px = P.x + v.x * 9, py = P.y - 4 + v.y * 9;
     int best = -1;
@@ -118,6 +122,12 @@ void Sim::interact(Map& m) {
         case ObjKind::Node: harvest(m, o); break;
         case ObjKind::Shrine: useShrine(o); break;
         case ObjKind::Campfire:
+            // No resting with monsters about: sleeping would heal you and skip the fight
+            if (const std::string why = restBlocked(); !why.empty()) {
+                toast(why, Color(255, 154, 122));
+                play("deny");
+                break;
+            }
             P.hp = maxHp();
             play("heal");
             burst(o.c * TILE + 8, o.r * TILE + 4, Color(255, 179, 71), 12, 0.8, -0.03);
@@ -402,7 +412,7 @@ void Sim::updateNight(Map& m) {
 // Fog of war for the minimap and the world map
 void Sim::explore(Map& m) {
     if (m.explored.empty()) return;
-    const int pc = ifloor(P.x / TILE), pr = ifloor(P.y / TILE), R = m.outdoor ? 12 : hasItem("torch") ? 7 : 5;
+    const int pc = ifloor(P.x / TILE), pr = ifloor(P.y / TILE), R = m.outdoor ? (flying() ? 18 : 12) : hasItem("torch") ? 7 : 5;
     for (int r = pr - R; r <= pr + R; r++)
         for (int c = pc - R; c <= pc + R; c++) {
             if (!m.inside(c, r) || (c - pc) * (c - pc) + (r - pr) * (r - pr) > R * R) continue;

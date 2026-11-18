@@ -94,6 +94,7 @@ struct Drop {
     double x = 0, y = 0, vx = 0, vy = 0, z = 0, vz = 0;
     int t = 0;
     bool gone = false, globe = false;
+    bool tossed = false;   // thrown away by the hero: lies still until the hero has walked off, then can be picked up again
 };
 
 struct Corpse {
@@ -140,6 +141,7 @@ struct Map {
     std::string id, name;
     int w = 0, h = 0;
     bool dark = false, outdoor = false;
+    bool populated = false;   // dungeons: monsters were placed and stay put (dead ones too) until the hero goes back outside
     const DungeonDef* dungeon = nullptr;
     std::vector<uint8_t> t, block, explored, zone, reach;
     std::vector<Object> objects;

@@ -388,3 +388,181 @@ TEST_CASE("soak: a random bot plays every map") {
         CHECK(copy.mapId == sim.mapId);
     }
 }
+
+TEST_CASE("bag: worn gear leaves the bag, things can be thrown away and picked up again") {
+    Sim sim = freshGame();
+    const int hp = sim.maxHp();
+    CHECK(sim.addItem({"leather_cap", 1}));   // auto-equips into the empty head slot
+    REQUIRE(sim.equipped(EquipSlot::Helm) != nullptr);
+    CHECK(sim.maxHp() == hp + 1);
+    CHECK(sim.bagUsed() == 0);
+    CHECK(sim.addItem({"leather_boots", 1}));
+    CHECK(sim.speedMul() > 1.0);
+    CHECK(sim.bagView().empty());
+
+    // A worn piece goes back to the bag, and only fits its own slot
+    REQUIRE(sim.unequip(EquipSlot::Helm));
+    CHECK(sim.bagUsed() == 1);
+    const int cap = sim.bagView().front();
+    CHECK_FALSE(sim.equipTo(cap, EquipSlot::Weapon));
+    CHECK(sim.equipTo(cap, EquipSlot::Helm));
+
+    // Throwing away: the item lands in front of the hero and is not sucked straight back in
+    sim.addItem({"wood", 5});
+    const int wood = sim.bagView().front();
+    REQUIRE(sim.discardItem(wood, 2));
+    CHECK(sim.countItem("wood") == 3);
+    REQUIRE(sim.map().drops.size() == 1);
+    CHECK(sim.map().drops.front().tossed);
+    run(sim, 60);
+    CHECK(sim.countItem("wood") == 3);
+    // Walk off and come back: now it is loot again
+    const double x0 = sim.P.x, y0 = sim.P.y;
+    sim.P.x += 48;
+    run(sim, 2);
+    sim.P.x = x0;
+    sim.P.y = y0;
+    run(sim, 90);
+    CHECK(sim.countItem("wood") == 5);
+
+    // Some things never leave the bag
+    sim.addItem({"gold", 10});
+    sim.addItem({"key", 1});
+    for (int i = 0; i < static_cast<int>(sim.P.inv.size()); i++)
+        if (sim.P.inv[i].id == "gold" || sim.P.inv[i].id == "key") CHECK_FALSE(sim.discardItem(i, 1));
+    CHECK(sim.countItem("gold") == 10);
+    CHECK(sim.hasItem("key"));
+
+    // A full bag refuses new things, and throwing one away makes room
+    while (!sim.bagFull()) sim.P.inv.push_back({"torch", 1, 0, 0, {}});
+    CHECK_FALSE(sim.addItem({"stone", 1}, true));
+    CHECK(sim.discardItem(sim.bagView().back(), 1));
+    CHECK(sim.addItem({"stone", 1}, true));
+}
+
+TEST_CASE("max health: levels give skill points, not hearts; three shards make a heart") {
+    Sim sim = freshGame();
+    const int hp = sim.maxHp();
+    sim.gainXp(sim.db.xpForLevel(1) + sim.db.xpForLevel(2));
+    CHECK(sim.P.level == 3);
+    CHECK(sim.maxHp() == hp);
+    CHECK(sim.skillPoints() == 2 * sim.db.tuning.skillPointsPerLevel);
+    for (int i = 1; i < sim.db.tuning.heartShards; i++) sim.addItem({"heart_shard", 1});
+    CHECK(sim.P.heartCrystals == 0);
+    CHECK(sim.maxHp() == hp);
+    sim.addItem({"heart_shard", 1});
+    CHECK(sim.P.heartCrystals == 1);
+    CHECK(sim.P.heartShards == 0);
+    CHECK(sim.maxHp() == hp + 2);
+}
+
+TEST_CASE("skill tree: requirements, points and effects") {
+    Sim sim = freshGame();
+    CHECK_FALSE(sim.learnSkill("strength"));   // no points at level 1
+    sim.gainXp(sim.db.xpForLevel(1) + sim.db.xpForLevel(2) + sim.db.xpForLevel(3));
+    REQUIRE(sim.P.level == 4);
+    REQUIRE(sim.skillPoints() == 3);
+    CHECK_FALSE(sim.whirlwindUnlocked());
+    CHECK_FALSE(sim.learnSkill("whirlwind"));   // needs Strength first
+    const int dmg = sim.weaponDamage();
+    CHECK(sim.learnSkill("strength"));
+    CHECK(sim.weaponDamage() == dmg + 1);
+    CHECK(sim.learnSkill("whirlwind"));
+    CHECK(sim.whirlwindUnlocked());
+    const int hp = sim.maxHp();
+    CHECK(sim.learnSkill("vitality"));
+    CHECK(sim.maxHp() == hp + 2);
+    CHECK(sim.skillPoints() == 0);
+    CHECK_FALSE(sim.learnSkill("vitality"));
+    CHECK_FALSE(sim.learnSkill("cyclone"));   // level 5
+
+    // Skills survive a save
+    Sim other(sim.db, 3);
+    REQUIRE(other.loadGame(sim.saveGame()));
+    CHECK(other.skillRank("strength") == 1);
+    CHECK(other.whirlwindUnlocked());
+    CHECK(other.maxHp() == sim.maxHp());
+}
+
+TEST_CASE("dungeons: the dead stay dead until the hero goes back outside") {
+    Sim sim = freshGame();
+    auto alive = [&] {
+        int n = 0;
+        for (const auto& e : sim.map().enemies) n += e.alive;
+        return n;
+    };
+    const Map& cellar = sim.maps.at("cellar");
+    sim.enterMap("cellar", cellar.start.c * TILE + 8, cellar.start.r * TILE + 10);
+    const int full = alive();
+    REQUIRE(full > 2);
+    for (auto& e : sim.map().enemies)
+        if (!e.def->isBoss()) {
+            sim.damageEnemy(e, 999, 0, 0);
+            break;
+        }
+    CHECK(alive() == full - 1);
+    sim.enterMap("cellar", cellar.start.c * TILE + 8, cellar.start.r * TILE + 10);   // back in from somewhere else underground
+    CHECK(alive() == full - 1);
+    sim.enterMap("over", sim.overworld().start.c * TILE + 8, sim.overworld().start.r * TILE + 10);
+    sim.enterMap("cellar", cellar.start.c * TILE + 8, cellar.start.r * TILE + 10);
+    CHECK(alive() >= full - 1);
+    for (const auto& e : sim.map().enemies) CHECK(e.alive);
+}
+
+TEST_CASE("no resting at a fire during a fight or with monsters nearby") {
+    Sim sim = freshGame();
+    sim.P.combatT = 100000;
+    CHECK(sim.restBlocked().empty());
+    Map& m = sim.map();
+    m.enemies.push_back(sim.makeEnemy(sim.db.enemy("wolf"), sim.P.x + 60, sim.P.y, false));
+    CHECK_FALSE(sim.restBlocked().empty());
+    m.enemies.back().x = sim.P.x + 400;
+    CHECK(sim.restBlocked().empty());
+    sim.P.combatT = 0;
+    CHECK_FALSE(sim.restBlocked().empty());
+}
+
+TEST_CASE("towns sell different things") {
+    const Database& db = database();
+    std::set<std::string> seen;
+    for (const auto& t : db.towns)
+        for (const auto& n : t.npcs)
+            if (n.role == "merchant") CHECK(seen.insert(n.shop).second);   // no two traders share a stock
+    CHECK(seen.size() >= 4);
+    const ShopDef* vale = db.shop("vale_stable");
+    const ShopDef* peak = db.shop("peak_stable");
+    REQUIRE(vale);
+    REQUIRE(peak);
+    bool roc = false;
+    for (const auto& e : peak->buy) roc = roc || e.item == "mount_roc";
+    for (const auto& e : vale->buy) CHECK(e.item != "mount_roc");
+    CHECK(roc);
+}
+
+TEST_CASE("flying mount: crosses water, cannot be hurt, lands only on open ground") {
+    Sim sim = freshGame();
+    sim.addItem({"mount_roc", 1}, true);
+    sim.P.mount = "mount_roc";
+    REQUIRE(sim.flying());
+    Map& m = sim.map();
+    // A lake shore: walkable ground with water to the east
+    int wc = -1, wr = -1;
+    for (int r = 10; r < m.h - 10 && wc < 0; r++)
+        for (int c = 10; c < m.w - 20 && wc < 0; c++)
+            if (m.get(c, r) == WATER && m.get(c + 1, r) == WATER && m.get(c + 2, r) == WATER && m.tileFree(c - 1, r, false)) {
+                wc = c;
+                wr = r;
+            }
+    REQUIRE(wc >= 0);
+    sim.enterMap("over", (wc - 1) * TILE + 8, wr * TILE + 10);
+    SimInput in;
+    in.moveX = 1;
+    run(sim, 20, in);
+    CHECK(sim.P.x > (wc + 1) * TILE);   // out over the water
+    const int hp = sim.P.hp;
+    sim.hurtPlayer(4, sim.P.x - 10, sim.P.y);
+    CHECK(sim.P.hp == hp);
+    sim.action("mount", false);
+    run(sim, 2);
+    if (!sim.flying()) CHECK(sim.map().boxFree(sim.P.x, sim.P.y, 4, 3, false));   // never set down in the lake
+}

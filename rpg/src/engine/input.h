@@ -25,6 +25,7 @@ class Input {
     // ── this frame ──
     std::vector<KeyPress> presses;
     std::vector<MouseClick> clicks;
+    std::vector<MouseClick> releases;      // mouse buttons let go this frame (for drag and drop)
     std::vector<std::string> padPresses;   // gamepad buttons that went down this frame
     double wheel = 0;
     bool quit = false, resized = false, mouseMoved = false, lostFocus = false;

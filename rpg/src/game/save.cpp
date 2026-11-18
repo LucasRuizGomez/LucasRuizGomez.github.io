@@ -84,8 +84,10 @@ json Sim::saveGame() const {
     s["summary"] = saveSummary();
     s["map"] = mapId;
     json& p = s["player"];
-    p = {{"name", P.name}, {"x", P.x}, {"y", P.y}, {"hp", P.hp}, {"level", P.level}, {"xp", P.xp}, {"hearts", P.heartCrystals}, {"lastTown", P.lastTown}, {"mount", P.mount}};
-    p["equip"] = {P.equip[0], P.equip[1], P.equip[2], P.equip[3]};
+    p = {{"name", P.name}, {"x", P.x}, {"y", P.y}, {"hp", P.hp}, {"level", P.level}, {"xp", P.xp}, {"hearts", P.heartCrystals}, {"shards", P.heartShards},
+         {"lastTown", P.lastTown}, {"mount", P.mount}, {"mountPick", P.mountPick}, {"skills", P.skills}};
+    p["equip"] = json::array();
+    for (int uid : P.equip) p["equip"].push_back(uid);
     p["inv"] = json::array();
     for (const auto& it : P.inv) p["inv"].push_back(itemToJson(it));
     p["buffs"] = json::array();
@@ -146,6 +148,14 @@ bool Sim::loadGame(const json& s) {
     P.level = std::clamp(p.value("level", 1), 1, db.tuning.maxLevel);
     P.xp = p.value("xp", 0);
     P.heartCrystals = p.value("hearts", 0);
+    P.heartShards = p.value("shards", 0);
+    if (p.contains("skills") && p.at("skills").is_object())
+        for (auto it = p.at("skills").begin(); it != p.at("skills").end(); ++it)
+            if (const SkillDef* sd = db.skill(it.key())) P.skills[it.key()] = std::clamp(it.value().get<int>(), 0, sd->maxRank);
+    while (skillPoints() < 0 && !P.skills.empty()) {   // the tree changed since the save: refund what no longer fits
+        auto last = std::prev(P.skills.end());
+        if (--last->second <= 0) P.skills.erase(last);
+    }
     P.lastTown = p.value("lastTown", "greenhollow");
     if (!db.town(P.lastTown)) P.lastTown = db.towns.front().id;
     nextUid_ = 1;
@@ -157,10 +167,14 @@ bool Sim::loadGame(const json& s) {
             P.inv.push_back(it);
         }
     }
-    for (int i = 0; i < 4; i++) {
-        P.equip[i] = p.at("equip").at(i).get<int>();
-        if (!findUid(P.equip[i])) P.equip[i] = 0;
+    const json& eq = p.at("equip");   // saves from before helms and boots have four slots
+    for (int i = 0; i < EQUIP_SLOTS && i < static_cast<int>(eq.size()); i++) {
+        P.equip[i] = eq.at(i).get<int>();
+        const Item* it = findUid(P.equip[i]);
+        if (!it || !slotAccepts(static_cast<EquipSlot>(i), db.item(it->id).type)) P.equip[i] = 0;
     }
+    P.mountPick = p.value("mountPick", "");
+    if (!P.mountPick.empty() && (!db.findItem(P.mountPick) || !hasItem(P.mountPick))) P.mountPick.clear();
     if (p.contains("buffs"))
         for (const auto& b : p.at("buffs")) P.buffs.push_back({b.at(0).get<std::string>(), b.at(1).get<int>()});
     const std::string mount = p.value("mount", "");
@@ -263,7 +277,13 @@ bool Sim::loadGame(const json& s) {
         }
 
     enterMap(wantMap, p.value("x", 0.0), p.value("y", 0.0));
-    if (!map().boxFree(P.x, P.y, 4, 3, false)) {   // the world changed under an old save: fall back to the map's entrance
+    const ItemDef* mountDef = mount.empty() ? nullptr : db.findItem(mount);
+    const bool inAir = mountDef && mountDef->mountFly && hasItem(mount) && map().outdoor;   // saved in flight, maybe over a lake
+    if (inAir) {
+        P.x = std::clamp(P.x, 12.0, map().w * TILE - 12.0);
+        P.y = std::clamp(P.y, 16.0, map().h * TILE - 8.0);
+        updateCamera(true);
+    } else if (!map().boxFree(P.x, P.y, 4, 3, false)) {   // the world changed under an old save: fall back to the map's entrance
         const TilePos st = map().start;
         P.x = st.c * TILE + 8;
         P.y = st.r * TILE + 10;

@@ -36,6 +36,7 @@ class App {
     void frame();
     void shutdown();
     bool running = true;
+    static constexpr int DOLL_SLOTS = EQUIP_SLOTS + 1;   // worn gear plus the mount
 
   private:
     // ── platform and game ──
@@ -143,6 +144,32 @@ class App {
     void setCraftCat(int step);
     void craftSelected(int times);
     std::vector<const TownDef*> travelList() const;
+
+    // ── bag with paper doll, and the skill tree (bag.cpp) ──
+    struct Zone {   // where a dragged item can land: kind 0 = bag cell, 1 = doll slot
+        double x, y, w, h;
+        int kind, index;
+    };
+    struct Drag {
+        int kind = -1, index = -1;   // what the mouse picked up (same kinds as Zone)
+        double x0 = 0, y0 = 0;
+        bool moved = false, wasSel = false;
+    };
+    std::vector<Zone> zones_;
+    Drag drag_;
+    double invRect_[4] = {0, 0, 0, 0};
+    int skillSel_ = 0;
+    std::vector<Vec2> skillPos_;
+    const Item* dollItem(int k) const;
+    int invIndexOf(const Item* it) const;
+    int selectedInvIndex() const;
+    void invActivate();
+    void invDiscard(bool all);
+    void invMove(const std::string& dir);
+    void invPress(int kind, int index);
+    void invRelease(double ux, double uy);
+    void drawSkills();
+    void skillMove(const std::string& dir);
 
     // ── menus (menus.cpp) ──
     enum class TitleView { Main, Load, NewGame, Settings, Credits } titleView_ = TitleView::Main;

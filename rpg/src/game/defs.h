@@ -11,7 +11,7 @@
 
 namespace hc {
 
-enum class ItemType { Mat, Heal, Weapon, Shield, Armor, Trinket, Bow, Ammo, Tool, Light, Key, Special, Trophy, Mount };
+enum class ItemType { Mat, Heal, Weapon, Shield, Armor, Trinket, Bow, Ammo, Tool, Light, Key, Special, Trophy, Mount, Helm, Boots };
 
 struct ItemDef {
     std::string id, name, desc;
@@ -19,13 +19,17 @@ struct ItemDef {
     int heal = 0;                       // heal items: half hearts restored
     int dmg = 0, reach = 0, cd = 0;     // weapons
     int def = 0;                        // shields: damage blocked from strong hits
-    int hp = 0;                         // armor: extra half hearts
+    int hp = 0;                         // armor, helms: extra half hearts
+    int speed = 0;                      // boots: percent of movement speed
     double tier = 0;
     int level = 1, value = 0;
     bool unique = false;
-    std::string mountSprite;
+    std::string mountSprite, mountTint;
     double mountSpeed = 1;
-    bool isGear() const { return type == ItemType::Weapon || type == ItemType::Shield || type == ItemType::Armor || type == ItemType::Trinket; }
+    bool mountFly = false;              // a flying mount crosses water, forests and rocks
+    bool isGear() const {
+        return type == ItemType::Weapon || type == ItemType::Shield || type == ItemType::Armor || type == ItemType::Trinket || type == ItemType::Helm || type == ItemType::Boots;
+    }
     bool stacks() const { return !isGear(); }
 };
 
@@ -160,6 +164,21 @@ struct QuestDef {
     std::vector<std::pair<std::string, int>> items;
 };
 
+// One node of the skill tree. Every rank adds `effects` (stat -> amount) to the hero.
+struct SkillDef {
+    std::string id, name, branch, desc;
+    int maxRank = 1, level = 1;      // level: hero level needed to learn the first rank
+    double col = 1, row = 0;         // position in its branch: columns 0..2, rows from the top
+    std::string requires_;           // skill id that must be learned first
+    int requiresRank = 1;
+    std::vector<std::pair<std::string, double>> effects;
+};
+
+struct BranchDef {
+    std::string id, label, desc;
+    Color color;
+};
+
 struct ActionDef {
     std::string id, label;
     std::vector<std::string> keys;
@@ -173,7 +192,8 @@ struct Tuning {
     int rollTicks = 16, rollCooldown = 40, attackTicks = 14, inputBuffer = 10, baseHp = 10, invSlots = 30, hitInvuln = 60;
     int recallTicks = 210, mountCastTicks = 45, combatLockTicks = 240;
     int fistDmg = 1, fistReach = 9, fistCd = 18;
-    int maxLevel = 12, heartEvery = 2, damageEvery = 3, discoverZoneXp = 25;
+    int maxLevel = 12, heartEvery = 0, damageEvery = 3, discoverZoneXp = 25;   // heartEvery 0 = levels give no hearts
+    int skillPointsPerLevel = 1, heartShards = 3;
     double xpBase = 40, xpGrowth = 1.5;
     int whirlLevel = 3, whirlCooldown = 360;
     double whirlRadius = 30, whirlMul = 1.5;
@@ -184,6 +204,7 @@ struct Tuning {
     int shrineBuff = 3600, shrineRecharge = 18000;
     int treeChops = 3, stumpTicks = 3000, saplingTicks = 2400;
     double goldLost = 0.25;
+    double restEnemyRadius = 160;   // no resting or sleeping at a fire with a hostile monster this close
     int autosaveTicks = 1800;
 };
 
@@ -205,6 +226,7 @@ class Database {
     const NpcDef* npc(const std::string& id) const;
     const PropDef* prop(const std::string& id) const;
     const AffixDef* affix(const std::string& id) const;
+    const SkillDef* skill(const std::string& id) const;
     int xpForLevel(int level) const;   // xp needed to go from `level` to the next
 
     Tuning tuning;
@@ -220,6 +242,8 @@ class Database {
     std::vector<DungeonDef> dungeons;
     std::vector<QuestDef> quests;
     std::vector<ActionDef> actions;
+    std::vector<BranchDef> branches;
+    std::vector<SkillDef> skills;
     std::map<std::string, ShopDef> shops;
     std::map<std::string, PropDef> props;
     std::map<std::string, int> pois;

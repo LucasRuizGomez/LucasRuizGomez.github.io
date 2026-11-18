@@ -32,11 +32,11 @@ The simulation never calls into the app. Everything it wants to tell the outside
 | `world.h`, `map.cpp` | `Map` and what lives on it (objects, enemies, projectiles, drops), plus collision and pathfinding |
 | `worldgen.cpp` | Builds the overworld and every dungeon from a seed |
 | `sim.h` | `Sim`: the whole running game. The methods are implemented across the `sim_*.cpp` files below |
-| `sim_core.cpp` | Lifecycle, the tick, camera, spawning, day and night |
-| `sim_player.cpp` | Movement, attacks, rolling, skills, mounts |
+| `sim_core.cpp` | Lifecycle, the tick, camera, spawning (dungeons refill only after the hero has been outside), day and night, the skill tree |
+| `sim_player.cpp` | Movement, attacks, rolling, Whirlwind, mounts (including flight) |
 | `sim_enemies.cpp` | Enemy behaviour, bosses, projectiles |
 | `sim_interact.cpp` | Chests, gathering, shrines, doors, traps |
-| `inventory.cpp` | Bag, equipment, stats, crafting, shops |
+| `inventory.cpp` | Bag, the six equipment slots, throwing things away, stats, crafting, shops |
 | `loot.cpp` | Gear rarity and random bonuses |
 | `quests.cpp` | Quest availability, progress and rewards |
 | `save.cpp` | Saves as JSON, with a version number; older versions are refused rather than half-loaded |
