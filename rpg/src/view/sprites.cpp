@@ -391,76 +391,34 @@ const CharSet& Sprites::character(const std::string& sprite, const std::string& 
     return chars_[key] = std::move(set);
 }
 
-const CharSet& Sprites::hero(const std::string& helm, const std::string& body, const std::string& feet, const std::string& shield) {
-    const std::string key = "hero|" + helm + "|" + body + "|" + feet + "|" + shield;
+const CharSet& Sprites::hero(const std::vector<std::string>& layers) {
+    std::string key = "doll";
+    for (const auto& l : layers) key += "|" + l;
     if (auto it = chars_.find(key); it != chars_.end()) return it->second;
-    // The knight's palette (after the colour grade): outline, steel light, steel shade, green tunic, white blade
-    Image pal(5, 1);
-    const Color raw[5] = {Color(5, 4, 3), Color(197, 199, 221), Color(154, 151, 185), Color(93, 155, 121), Color(255, 255, 255)};
-    for (int i = 0; i < 5; i++) std::copy(&raw[i].r, &raw[i].r + 4, pal.at(i, 0));
-    const Image gp = pal.graded(Image::grade);
-    auto same = [](const uint8_t* p, const uint8_t* q) { return p[3] > 0 && p[0] == q[0] && p[1] == q[1] && p[2] == q[2]; };
-    const uint8_t *OUT = gp.at(0, 0), *LIT = gp.at(1, 0), *SHADE = gp.at(2, 0), *TUNIC = gp.at(3, 0), *BLADE = gp.at(4, 0);
-    // colours for each part, graded like the rest of the art: [light, shade]
-    auto tone = [](const std::string& h, Color fallback) {
-        const Color c = h.empty() ? fallback : hex(h);
-        Image im(2, 1);
-        const Color lit(static_cast<uint8_t>(std::min(255, c.r * 135 / 100 + 12)), static_cast<uint8_t>(std::min(255, c.g * 135 / 100 + 12)), static_cast<uint8_t>(std::min(255, c.b * 135 / 100 + 12)));
-        const Color shade(static_cast<uint8_t>(c.r * 88 / 100), static_cast<uint8_t>(c.g * 88 / 100), static_cast<uint8_t>(c.b * 88 / 100));
-        std::copy(&lit.r, &lit.r + 4, im.at(0, 0));
-        std::copy(&shade.r, &shade.r + 4, im.at(1, 0));
-        return im.graded(Image::grade);
-    };
-    // nothing worn: a dark hood, a linen shirt, rag-wrapped feet, a pack on the back
-    const Image tHelm = tone(helm, Color(96, 80, 72)), tBody = tone(body, Color(150, 136, 110)), tFeet = tone(feet, Color(86, 72, 60)),
-                tShield = tone(shield, Color(92, 74, 56));
-    CharSet set;
-    for (const auto& [name, src] : charSheets_) {
-        if (name.rfind("ch8.", 0) != 0) continue;
-        Image im = src;
-        for (int fx = 0; fx + 32 <= im.w; fx += 32) {
-            // the frame's silhouette: top of the head, soles of the feet
-            int top = 32, bottom = 0;
-            for (int y = 0; y < std::min(32, im.h); y++)
-                for (int x = fx; x < fx + 32; x++)
-                    if (src.at(x, y)[3] && !same(src.at(x, y), BLADE)) {
-                        top = std::min(top, y);
-                        bottom = std::max(bottom, y);
-                    }
-            auto body = [&](int x, int y) {
-                if (x < fx || y < 0 || x >= fx + 32 || y >= std::min(32, im.h)) return false;
-                const uint8_t* p = src.at(x, y);
-                return same(p, LIT) || same(p, SHADE) || same(p, TUNIC);
-            };
-            for (int y = 0; y < std::min(32, im.h); y++)
-                for (int x = fx; x < fx + 32; x++) {
-                    uint8_t* d = im.at(x, y);
-                    const uint8_t* p = src.at(x, y);
-                    if (!p[3]) continue;
-                    if (same(p, BLADE)) {   // the painted sword (and the slash smear)
-                        d[3] = 0;
-                        continue;
-                    }
-                    if (same(p, OUT)) {   // its outline goes too: outline that touches no body
-                        if (!body(x - 1, y) && !body(x + 1, y) && !body(x, y - 1) && !body(x, y + 1)) d[3] = 0;
-                        continue;
-                    }
-                    const bool lit = same(p, LIT), shade = same(p, SHADE), tunic = same(p, TUNIC);
-                    if (!lit && !shade && !tunic) continue;
-                    const int lx = x - fx;
-                    const Image* t = nullptr;
-                    if (y <= top + 8 && !tunic) t = &tHelm;                    // head
-                    else if (y >= bottom - 1) t = &tFeet;                       // feet
-                    else if (shade && lx >= 21) t = &tShield;                   // the shield slung on the off side
-                    else t = &tBody;                                            // body and arms
-                    const uint8_t* c = t->at(lit ? 0 : tunic ? 0 : 1, 0);
-                    if (tunic && t == &tBody) c = t->at(1, 0);
-                    std::copy(c, c + 3, d);
-                }
-        }
-        set.anims[name.substr(4)] = strip(im, 32, 32);
+    Image doll(32, 32);
+    for (const auto& l : layers) {
+        const Image part = Image::load(root_ + "assets/dcss/doll/" + l + ".png");
+        if (!part.empty()) doll.blit(part, 0, 0);
     }
-    if (!set.anims.count("walk") && set.anims.count("run")) set.anims["walk"] = set.anims["run"];
+    // The doll faces left; the sets face right and are flipped for the left
+    doll = doll.flipX();
+    auto shifted = [&](int dy) {
+        Image im(32, 32);
+        im.blit(doll, 0, dy);
+        return g_->makeSprite(im);
+    };
+    CharSet set;
+    set.anims["idle"] = {shifted(0), shifted(0), shifted(1), shifted(0)};   // breathing
+    set.anims["walk"] = {shifted(0), shifted(-1), shifted(0), shifted(-1)};  // a step with a bob
+    set.anims["atk"] = {shifted(0), shifted(1), shifted(1), shifted(0)};
+    set.anims["thrust"] = {shifted(0), shifted(1)};
+    Frames dead;
+    for (int i = 0; i < 4; i++) {   // topples over
+        Image im(32, 32);
+        im.blit(i < 2 ? doll : doll.rot90(1), 0, i < 2 ? i * 2 : 6);
+        dead.push_back(g_->makeSprite(im));
+    }
+    set.anims["dead"] = dead;
     return chars_[key] = std::move(set);
 }
 

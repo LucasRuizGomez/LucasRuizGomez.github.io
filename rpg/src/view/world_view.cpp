@@ -1027,11 +1027,29 @@ void WorldView::drawPlayer(Sim& sim) {
     const Player& P = sim.P;
     const int tick = sim.tickCount, atkT = db_.tuning.attackTicks;
     // The hero wears what is equipped: helm, armour, boots and shield colour the sprite, the weapon is drawn in hand
-    auto wearOf = [&](EquipSlot s) {
+    // paper-doll layers: what is worn, over plain clothes (a dark coat and a hood when nothing better is on)
+    auto layersOf = [&](EquipSlot s, const char* none) {
         const Item* it = sim.equipped(s);
-        return it ? db_.item(it->id).wear : std::string();
+        std::string d = it ? db_.item(it->id).doll : std::string();
+        if (d.empty()) d = none;
+        std::vector<std::string> out;
+        for (size_t i = 0, j; i < d.size(); i = j + 1) {
+            j = d.find('+', i);
+            if (j == std::string::npos) j = d.size();
+            if (j > i) out.push_back(d.substr(i, j - i));
+        }
+        return out;
     };
-    const CharSet& S = spr_.hero(wearOf(EquipSlot::Helm), wearOf(EquipSlot::Armor), wearOf(EquipSlot::Boots), wearOf(EquipSlot::Shield));
+    std::vector<std::string> layers = {"base.human_male", "legs.pants_brown"};
+    const auto body = layersOf(EquipSlot::Armor, "body.coat_black");
+    for (const auto& l : body) if (l.rfind("legs.", 0) == 0) layers.push_back(l);
+    for (const auto& l : layersOf(EquipSlot::Boots, "boots.short_brown")) layers.push_back(l);
+    for (const auto& l : body) if (l.rfind("legs.", 0) != 0) layers.push_back(l);
+    layers.push_back("cloak.black");
+    layers.push_back("hair.brown_1");
+    for (const auto& l : layersOf(EquipSlot::Helm, "head.hood_gray")) layers.push_back(l);
+    for (const auto& l : layersOf(EquipSlot::Shield, "")) layers.push_back(l);
+    const CharSet& S = spr_.hero(layers);
     const bool flip = P.face < 0;
     // a swing leans the hero into the blow
     const double swingP = P.atkT > 0 ? 1 - static_cast<double>(P.atkT) / atkT : 0, lunge = P.atkT > 0 ? 2.5 * std::sin(PI * swingP) : 0;
@@ -1083,7 +1101,7 @@ void WorldView::drawPlayer(Sim& sim) {
     const Sprite* blade = nullptr;
     if (weapon)
         if (auto rot = spr_.weaponRot.find(weapon->id); rot != spr_.weaponRot.end()) blade = &rot->second[0];   // pointing up
-    double bladeA = flip ? 0.62 : PI - 0.62, hx = x + (flip ? 20 : 12), hy = y + 27;   // at rest: down and back
+    double bladeA = flip ? PI - 1.1 : 1.1, hx = x + (flip ? 9 : 23), hy = y + 21;   // at rest: held low in the sword hand
     const bool swinging = P.atkT > 0 && sim.mode != Mode::Dead;
     double f = 0;
     if (swinging) {

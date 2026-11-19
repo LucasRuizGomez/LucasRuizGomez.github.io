@@ -88,6 +88,8 @@ Database Database::load(const std::string& dir) {
         t.xpGrowth = l.at("xpGrowth");
         t.heartEvery = l.value("heartEveryLevels", 0);
         t.skillPointsPerLevel = l.value("skillPointsPerLevel", 1);
+        t.xpKillsBase = l.value("xpKillsBase", 0.0);
+        t.xpKillsPerLevel = l.value("xpKillsPerLevel", 0.0);
         t.xpLateFrom = l.value("xpLateFrom", 9999);
         t.xpLateDiv = std::max(1.0, l.value("xpLateDiv", 100.0));
         t.skillPointEvery = std::max(1, l.value("skillPointEvery", 1));
@@ -140,7 +142,7 @@ Database Database::load(const std::string& dir) {
             d.mountSprite = e.value("mountSprite", "");
             d.mountSpeed = e.value("mountSpeed", 1.0);
             d.mountTint = e.value("mountTint", "");
-            d.wear = e.value("wear", "");
+            d.doll = e.value("doll", "");
             d.mountFly = e.value("mountFly", false);
             db.itemIndex_[d.id] = db.items.size();
             db.items.push_back(std::move(d));
@@ -598,8 +600,10 @@ const SkillDef* Database::skill(const std::string& id) const {
     return nullptr;
 }
 int Database::xpForLevel(int level) const {
-    const double late = std::max(0, level - tuning.xpLateFrom);
-    return static_cast<int>(std::floor(tuning.xpBase * std::pow(tuning.xpGrowth, level - 1) * (1 + late * late / tuning.xpLateDiv)));
+    const double late = std::max(0, level - tuning.xpLateFrom), lateMul = 1 + late * late / tuning.xpLateDiv;
+    if (tuning.xpKillsBase > 0)   // kills of monsters your own level, each worth 45 + 5 * level
+        return static_cast<int>(std::floor((45 + 5.0 * level) * (tuning.xpKillsBase + tuning.xpKillsPerLevel * level) * lateMul));
+    return static_cast<int>(std::floor(tuning.xpBase * std::pow(tuning.xpGrowth, level - 1) * lateMul));
 }
 
 }   // namespace hc

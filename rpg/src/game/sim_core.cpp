@@ -145,7 +145,7 @@ Enemy Sim::makeEnemy(const EnemyDef& def, double x, double y, bool allowElite) {
     e.hh = def.hh;
     e.t = rng.range(60);
     e.aggroT = 9999;
-    if (allowElite && !def.isBoss() && !def.passive && !db.elites.empty() && rng.chance(db.tuning.eliteChance)) {
+    if (allowElite && !def.isBoss() && !def.passive && !db.elites.empty() && rng.chance(db.tuning.eliteChance + def.level * 0.0008)) {   // the deeper the land, the more elites
         e.elite = &db.elites[rng.range(static_cast<int>(db.elites.size()))];
         e.hp = e.maxHp = static_cast<int>(std::ceil(def.hp * 2.5));
         e.dmg += e.elite->dmgAdd;
@@ -442,7 +442,7 @@ void Sim::updatePlace(Map& m) {
         if (!town) area = AreaTitle{z.name, "Levels " + std::to_string(z.levelMin) + " to " + std::to_string(z.levelMax), 200};
         if (zonesFound.insert(z.id).second && zonesFound.size() > 1) {
             toast("Discovered: " + z.name, Color(242, 210, 122));
-            gainXp(db.tuning.discoverZoneXp);
+            gainXp(db.tuning.discoverZoneXp * (45 + 5 * z.levelMin));
         }
     }
 }

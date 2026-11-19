@@ -46,6 +46,8 @@ The simulation never calls into the app. Everything it wants to tell the outside
 
 **Units.** Positions are in art pixels (one tile is 16), time is in ticks (60 per second), health and damage are in half hearts.
 
+**Balance.** `tools/balance.py` sets every monster's health, damage and experience, and every weapon's damage, from its level (the formulas are at the top of the script); run it after adding or moving a monster. Levels cost kills of monsters your own level, about ten for level 2 and hundreds near 99 (`game.json`, `leveling`).
+
 ## Rendering (`src/view`, `src/engine`)
 
 - `Gfx` wraps `SDL_Renderer` with a canvas-like transform (scale and offset), so the world is drawn in art pixels and the interface in a virtual 1280×720 space.

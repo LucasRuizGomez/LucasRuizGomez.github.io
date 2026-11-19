@@ -1,6 +1,6 @@
 # Hollow Crypt
 
-A top-down open-world action RPG that runs in the browser: six regions walled off from each other and opened one by one as their bosses fall (the Diablo way), high ground and cliffs, over 50 kinds of monster, six towns, seven dungeons, 39 buildings to walk into, over 60 townsfolk to talk to, 57 quests with rewards to choose from, crafting, random gear on a drag-and-drop paper doll that shows on the hero, sword swings in any direction, levels up to 99, a skill tree of 33 skills with five active ones, mounts (one of them flies) and a day and night cycle, all in a grim, washed-out look. Written in C++20 on SDL2 and compiled to WebAssembly with Emscripten. The same code also builds as a desktop program.
+A top-down open-world action RPG that runs in the browser: ten regions walled off from each other and opened one by one as their bosses fall (the Diablo way), high ground and cliffs, over 70 kinds of monster, seven towns, eleven dungeons with a boss at the end of each, 39 buildings to walk into, over 60 townsfolk to talk to, 57 quests with rewards to choose from, crafting, random gear on a drag-and-drop paper doll that shows on the hero, sword swings in any direction, levels up to 99, a skill tree of 33 skills with five active ones, mounts (one of them flies) and a day and night cycle, all in a grim, washed-out look. Written in C++20 on SDL2 and compiled to WebAssembly with Emscripten. The same code also builds as a desktop program.
 
 Play it at [lukeda.me/rpg](https://lukeda.me/rpg/).
 

@@ -453,11 +453,12 @@ void App::drawSkills() {
         box(nx, ny, nodeW, nodeH, fill, sel ? pal::sel : open ? pal::gold : pal::line, sel ? 3 : open ? 2 : 1);
         if (open && !sel) box(nx - 2, ny - 2, nodeW + 4, nodeH + 4, Color(0, 0, 0, 0), Color(255, 210, 90, static_cast<uint8_t>(90 + 80 * std::sin(sim.tickCount * 0.12))), 1);
         // Icon (OwlishMedia) in an octagonal frame (Keiffer), greyed out until it can be learned; name and rank pips beside it
-        box(nx + 7, ny + 7, 32, 32, rank ? (br ? br->color.alpha(0.85) : pal::gold) : Color(40, 32, 26), Color(0, 0, 0, 0));
-        if (!rank && !open) g_.setAlpha(0.35);
-        if (!s.icon.empty()) drawSpr(spr_.get(s.icon), nx + 11, ny + 11, 24);
+        // the Dungeon Crawl icon in a brass-rimmed well; dark until it can be learned
+        box(nx + 5, ny + 5, 36, 36, Color(10, 8, 7), rank ? (br ? br->color : pal::gold) : Color(110, 88, 54), rank ? 2 : 1);
+        if (!rank && !open) g_.setAlpha(0.3);
+        else if (!rank) g_.setAlpha(0.7);
+        if (!s.icon.empty()) drawSpr(spr_.get(s.icon), nx + 7, ny + 7, 32);
         g_.setAlpha(1);
-        drawSpr(spr_.get("skill_frame"), nx + 4, ny + 4, 38);
         const auto lines = wrap(s.name, nodeW - 48, 11, 1);
         for (size_t l = 0; l < lines.size() && l < 2; l++) text(lines[l], nx + 45, ny + 15 + l * 12.0, rank || open ? pal::text : pal::faint, 11, 1);
         for (int r = 0; r < s.maxRank; r++) {   // one pip per rank

@@ -37,7 +37,27 @@
       "water": 0.2, "trees": 0.62, "rocks": 0.52, "flowers": 0.0, "tree": "pine", "snow": true,
       "ground": "#e4ecf6", "foliage": "#c8dcec", "music": "mountains", "density": 11,
       "spawns": [["frost_wolf", 5], ["ice_hawk", 3], ["frost_elk", 2], ["snow_hare", 2], ["miner", 1], ["frost_wraith", 3], ["ice_beast", 3], ["barrow_knight", 2], ["vampire_countess", 1], ["flying_skull", 2]],
-      "nodes": { "stone": 6, "herb": 2, "iron": 6, "coal": 5 } }
+      "nodes": { "stone": 6, "herb": 2, "iron": 6, "coal": 5 } },
+    { "id": "blight", "gate": "crypt", "name": "The Blighted Fields", "levels": [73, 81], "centers": [[290, 150], [282, 110]],
+      "water": 0.18, "trees": 0.74, "rocks": 0.86, "flowers": 0.0, "tree": "dead",
+      "ground": "#8a8670", "foliage": "#7a7462", "music": "marsh", "density": 12,
+      "spawns": [["zombie_ogre", 3], ["plague_rat", 1], ["shambler", 2], ["hell_hound", 3], ["death_yak", 2], ["vampire_knight", 1], ["mummy", 2]],
+      "nodes": { "stone": 4, "herb": 3, "iron": 4, "coal": 4 } },
+    { "id": "bonewaste", "gate": "plague_barrow", "name": "The Bone Wastes", "levels": [79, 89], "centers": [[340, 96], [318, 60]],
+      "water": 0.1, "trees": 0.86, "rocks": 0.62, "flowers": 0.0, "tree": "dead", "sandy": true,
+      "ground": "#a49a80", "foliage": "#8a8270", "music": "mountains", "density": 12,
+      "spawns": [["bone_giant", 3], ["servitor", 2], ["flying_skull", 2], ["revenant", 2], ["phantom", 2], ["death_yak", 1]],
+      "nodes": { "stone": 6, "iron": 5, "coal": 4 } },
+    { "id": "blackmire", "gate": "ossuary", "name": "Blackmire Weald", "levels": [86, 94], "centers": [[372, 160], [350, 140]],
+      "water": 0.3, "trees": 0.5, "rocks": 0.88, "flowers": 0.0, "tree": "dead",
+      "ground": "#6a7060", "foliage": "#5a6050", "music": "forest", "density": 13,
+      "spawns": [["vine_stalker", 3], ["black_bear", 2], ["flayed_ghost", 3], ["vampire_lord", 2], ["spectre", 2], ["marsh_leech", 1]],
+      "nodes": { "herb": 6, "stone": 3, "iron": 3 } },
+    { "id": "ashen", "gate": "thornheart", "name": "The Ashen Reach", "levels": [92, 99], "centers": [[372, 34], [340, 24]],
+      "water": 0.08, "trees": 0.84, "rocks": 0.6, "flowers": 0.0, "tree": "dead", "snow": true,
+      "ground": "#9a9a9e", "foliage": "#8a8a90", "music": "mountains", "density": 13,
+      "spawns": [["eidolon", 3], ["spectre", 2], ["shadow_wraith", 2], ["bone_giant", 2], ["vampire_lord", 1], ["hell_hound", 2]],
+      "nodes": { "stone": 5, "iron": 6, "coal": 5 } }
   ],
 
   // Points of interest scattered over the wilderness (how many of each the generator tries to place).
@@ -127,6 +147,16 @@
   // "lines": what they say, one line per conversation, in turn.
   // "sprite" is a fortress-kit character (ch1..ch9), "tint" recolours it.
   "towns": [
+    { "id": "gallowmere", "name": "Gallowmere", "at": [262, 140], "radius": 13, "stalls": 1, "zone": "blight", "music": "town_c",
+      "features": ["campfire", "waypoint", "fence"],
+      "npcs": [
+        { "id": "mother_ash", "name": "Mother Ashe", "sprite": "ch6", "tint": "#9a8a8a", "role": "quest",
+          "lines": ["You killed the King? Then you have only woken what he was keeping asleep. Look east.", "The fields died the winter the crown fell. The plague walks on two legs now, and it is very fat.", "Gallowmere was a market. Now it is a gallows and a mere, and not much else."] },
+        { "id": "grave_sutler", "name": "The Grave Sutler", "sprite": "ch2", "tint": "#8a8a7a", "role": "merchant", "shop": "east_sutler",
+          "lines": ["I sell to the living. Fewer customers every week, so the prices only go up.", "Potions, bolts, bandages. Bring coin, or bring something I can sell to the next fool.", "The Bone Wastes? I buy what comes back out. Not much does."] },
+        { "id": "hangman", "name": "Hangman Odo", "sprite": "ch9", "tint": "#7a7068",
+          "lines": ["Every rope on the gallows is for something that came back. They keep coming back.", "Beyond the bones there is a black wood. Beyond the wood, ash. Beyond the ash, I do not like to think.", "If you go east, go at noon. Nothing good walks those fields at night."] }
+      ] },
     { "id": "greenhollow", "name": "Greenhollow", "at": [44, 152], "radius": 20, "stalls": 1, "zone": "vale", "music": "town_a",
       "features": ["campfire", "waypoint", "fence", "start"],
       "npcs": [
@@ -186,6 +216,22 @@
   // "under" puts the entrance inside another dungeon (stairs behind its boss) instead of on the overworld.
   // entrance: sprite drawn over the stairs tile (door | cave | mine).
   "dungeons": [
+    { "id": "plague_barrow", "name": "The Plague Barrow", "kind": "generated", "at": [300, 160], "entrance": "cave", "level": 81,
+      "size": [60, 46], "rooms": 9, "seed": 606, "tint": "#a8b090", "music": "dungeon_deep",
+      "enemies": ["zombie_ogre", "shambler", "mummy", "plague_rat", "hell_hound"], "boss": "plague_lord", "traps": 5,
+      "reward": [["gold", 220], ["potion", 3], ["heart_shard", 1]] },
+    { "id": "ossuary", "name": "The Great Ossuary", "kind": "generated", "at": [352, 84], "entrance": "door", "level": 87,
+      "size": [62, 46], "rooms": 9, "seed": 707, "tint": "#d8d0c0", "music": "dungeon_crypt",
+      "enemies": ["bone_giant", "servitor", "flying_skull", "revenant"], "boss": "bone_colossus", "traps": 5,
+      "reward": [["gold", 260], ["potion", 3], ["heart_shard", 1]] },
+    { "id": "thornheart", "name": "Thornheart Hollow", "kind": "generated", "at": [378, 150], "entrance": "cave", "level": 93,
+      "size": [62, 48], "rooms": 10, "seed": 808, "tint": "#88a080", "music": "dungeon_caves",
+      "enemies": ["vine_stalker", "flayed_ghost", "black_bear", "spectre"], "boss": "thorn_mother", "traps": 6,
+      "reward": [["gold", 300], ["potion", 4], ["heart_shard", 1]] },
+    { "id": "citadel", "name": "The Ashen Citadel", "kind": "generated", "at": [376, 26], "entrance": "door", "level": 98,
+      "size": [64, 48], "rooms": 11, "seed": 909, "tint": "#b0a8b8", "music": "dungeon_crypt",
+      "enemies": ["eidolon", "shadow_wraith", "vampire_knight", "phantom", "bone_giant"], "boss": "ashen_herald", "traps": 6,
+      "reward": [["gold", 500], ["potion", 5], ["heart_shard", 1]] },
     { "id": "cellar", "name": "The Old Cellar", "kind": "generated", "at": [70, 138], "entrance": "mine", "level": 9,
       "size": [44, 36], "rooms": 5, "seed": 101, "tint": "#c8b8a0", "music": "dungeon_cellars",
       "enemies": ["cellar_rat", "plague_rat", "bandit", "grave_robber", "bandit_archer"], "boss": "bandit_chief", "traps": 1,
@@ -218,6 +264,8 @@
   // Every town has its own stock: the vale sells basics, the road peddler light gear, the harbour food and ore,
   // the marsh camp potions at a premium, and the two forges their own lines of iron and steel.
   "shops": {
+    "east_sutler":   { "title": "Grave Sutler", "buy": [["potion", 1, 30], ["bandage", 1, 8], ["roast", 1, 10], ["arrows", 10, 14], ["torch", 1, 10]],
+                       "sell": { "iron": 4, "coal": 3, "hide": 3, "frost_shard": 7, "bark": 5 } },
     "vale_trader":   { "title": "Village Trader", "buy": [["bandage", 1, 3], ["roast", 1, 6], ["torch", 1, 5], ["pickaxe", 1, 10], ["arrows", 10, 6], ["wood_sword", 1, 6], ["wood_shield", 1, 8], ["leather_cap", 1, 12]],
                        "sell": { "meat": 1, "herb": 1, "wood": 1, "stone": 1, "hide": 2 } },
     "road_peddler":  { "title": "Road Peddler", "buy": [["arrows", 10, 5], ["bandage", 1, 3], ["leather_armor", 1, 18], ["leather_boots", 1, 15], ["band", 1, 20], ["torch", 1, 6]],

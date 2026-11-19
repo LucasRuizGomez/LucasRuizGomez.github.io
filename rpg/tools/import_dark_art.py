@@ -4,7 +4,7 @@
 
 undead_dir:  the unpacked "Free Undead Tileset Top Down" (CraftPix), the folder that holds PNG/
 vampire_dir: the unpacked "Free Vampire 4-Direction Pixel Character Sprite Pack" (CraftPix), the folder that holds PNG/
-dcss_dir:    the unpacked "Dungeon Crawl Stone Soup Full" (CC0), the folder that holds monster/
+dcss_dir:    the unpacked "Dungeon Crawl Stone Soup Full" (CC0), the folder that holds monster/ and player/
 
 Vampire sheets come as 64x64 frames (rows: down, up, left, right); they are cut down to 32x32 frames around
 the figure so they load like the hunt-pack animals.
@@ -38,7 +38,26 @@ DCSS = {  # game name: path under monster/
     'barrow_knight': 'undead/skeletal_warrior_new', 'ice_beast': 'animals/ice_beast', 'shadow_wraith': 'undead/shadow_wraith',
     'mummy': 'undead/mummy', 'skull': 'undead/flying_skull', 'phantom': 'undead/phantasmal_warrior', 'revenant': 'undead/revenant',
     'hound': 'animals/hound', 'skeleton': 'undead/skeletons/skeleton_humanoid_small_new', 'zombie_hound': 'undead/zombies/zombie_hound',
+    # the old cartoon beasts and soldiers, replaced
+    'hog': 'animals/hog_new', 'hell_hog': 'animals/hell_hog_new', 'wolf': 'animals/wolf', 'yak': 'animals/yak_new', 'quokka': 'animals/quokka_new',
+    'bandit': 'unique/joseph_new', 'outlaw_archer': 'human_old', 'smuggler': 'unique/donald_new', 'smuggler_pike': 'unique/frederick_new',
+    'death_knight': 'death_knight', 'dwarf_knight': 'deep_dwarf_death_knight', 'hooded': 'necromancer_old', 'dwarf': 'deep_dwarf',
+    'dwarf_berserker': 'deep_dwarf_berserker', 'treant': 'fungi_plants/treant',
+    # the far east
+    'zombie_ogre': 'undead/zombies/zombie_ogre', 'bone_giant': 'undead/skeletons/skeleton_humanoid_large_new', 'spectre': 'undead/silent_spectre',
+    'flayed_ghost': 'undead/flayed_ghost_new', 'eidolon': 'undead/eidolon', 'hell_hound': 'animals/hell_hound_new', 'death_yak': 'animals/death_yak_new',
+    'black_bear': 'animals/black_bear_new', 'vine_stalker': 'fungi_plants/vine_stalker', 'servitor': 'undead/profane_servitor',
+    'plague_lord': 'undead/rotting_hulk_new', 'bone_dragon': 'undead/bone_dragon_new', 'thorn_mother': 'fungi_plants/thorn_hunter',
+    'ashen_herald': 'undead/ancient_lich_new', 'vampire_knight': 'undead/vampire_knight_new',
+    # bosses
+    'gruff': 'unique/edmund_new', 'marrow': 'hell_knight_new', 'warden': 'dryad', 'frost_giant': 'frost_giant_new', 'wight_king': 'undead/wight_king',
 }
+
+# The hero's paper doll: layers drawn in order (base, legs, boots, body, cloak, hair, head, shield)
+DOLL = ['base/human_male', 'legs/pants_brown', 'legs/pants_black', 'legs/leg_armor_2', 'boots/short_brown', 'boots/middle_brown', 'boots/mesh_black',
+        'boots/mesh_white', 'body/coat_black', 'body/leather_armor', 'body/chainmail', 'body/plate_black', 'cloak/black', 'cloak/gray',
+        'hair/brown_1', 'head/hood_gray', 'head/cap_black_1', 'head/iron_1', 'head/fhelm_gray_3', 'hand_left/buckler_round_2',
+        'hand_left/shield_middle_gray', 'hand_left/shield_knight_gray']
 
 VAMP_ANIMS = {'Idle': 'idle', 'Walk': 'walk', 'Run': 'run', 'Attack': 'attack', 'Death': 'dead', 'Hurt': 'hurt'}
 
@@ -53,6 +72,11 @@ def main(undead, vamp, dcss):
     os.makedirs(out, exist_ok=True)
     for name, path in DCSS.items():
         shutil.copy(os.path.join(dcss, 'monster', path + '.png'), os.path.join(out, name + '.png'))
+    out = os.path.join(ASSETS, 'dcss', 'doll')
+    os.makedirs(out, exist_ok=True)
+    player = os.path.join(dcss, '..', 'Dungeon Crawl Stone Soup Full', 'player') if not os.path.isdir(os.path.join(dcss, 'player')) else os.path.join(dcss, 'player')
+    for part in DOLL:
+        shutil.copy(os.path.join(player, part + '.png'), os.path.join(out, part.replace('/', '.') + '.png'))
     out = os.path.join(ASSETS, 'generated', 'vampires')
     os.makedirs(out, exist_ok=True)
     for v in (1, 2, 3):

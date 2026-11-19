@@ -31,7 +31,7 @@ void App::drawHud() {
         slots.push_back(s);
     }
     {
-        Slot s{btnLabel("skill"), "owl_shuriken", "", ""};
+        Slot s{btnLabel("skill"), "ic_whirlwind", "", ""};
         s.locked = !sim.whirlwindUnlocked();
         s.cool = static_cast<double>(P.whirlCd) / std::max(1, sim.whirlCooldown());
         s.ready = !s.locked && P.whirlCd <= 0;
@@ -87,9 +87,10 @@ void App::drawHud() {
         const double x = bx0 + 14 + i * (SS + GAP), sy = by0 + 18;
         slotBox(x, sy, SS, SS, s.locked);
         if (!s.icon.empty()) {
-            const bool glyph = s.icon.rfind("owl_", 0) == 0;
+            const bool glyph = s.icon.rfind("owl_", 0) == 0, skillIcon = s.icon.rfind("ic_", 0) == 0;
             g_.setAlpha(s.locked ? 0.22 : s.dim ? 0.4 : 1);
             if (glyph) drawSpr(spr_.get(s.icon), x + 7, sy + 7, 32, Color(236, 196, 110));
+            else if (skillIcon) drawSpr(spr_.get(s.icon), x + 4, sy + 4, SS - 8);
             else drawSpr(spr_.icon(s.icon), x + 7, sy + 7, 32);
             g_.setAlpha(1);
         } else if (!s.label.empty()) text(s.label, x + SS / 2, sy + SS / 2 + 1, pal::faint, 11, 1, Align::Center, Baseline::Middle);

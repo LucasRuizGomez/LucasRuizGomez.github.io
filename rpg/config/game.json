@@ -3,7 +3,7 @@
   // health and damage in half hearts.
   "title": "Hollow Crypt",
   "saveSlots": 4,
-  "world": { "width": 256, "height": 192, "seed": 1337 },
+  "world": { "width": 400, "height": 192, "seed": 1337 },
   "player": {
     "speed": 1.3,
     "rollTicks": 16,
@@ -19,14 +19,17 @@
   },
   "fists": { "dmg": 1, "reach": 9, "cd": 18 },
   "leveling": {
-    // Levels run to 99. Experience for the next level: xpBase * xpGrowth^(level-1), multiplied past "xpLateFrom"
-    // by 1 + (level - xpLateFrom)^2 / xpLateDiv, so the last levels are a long climb. The story ends around 80-89.
-    // Monsters well below your level give little experience; those above give a bonus (sim_enemies.cpp).
+    // Levels run to 99, the way WoW paces them: a monster of your level gives 45 + 5 * level experience, and a
+    // level costs that many times (xpKillsBase + xpKillsPerLevel * level) kills, multiplied past "xpLateFrom" by
+    // 1 + (level - xpLateFrom)^2 / xpLateDiv. About 10 kills for level 2, 60 at level 50, several hundred near 99.
+    // Monsters far beneath you turn grey and give nothing; those above give a bonus (sim_enemies.cpp).
     "maxLevel": 99,
-    "xpBase": 40,
-    "xpGrowth": 1.05,
-    "xpLateFrom": 60,
-    "xpLateDiv": 150,
+    "xpBase": 1,
+    "xpGrowth": 1,
+    "xpKillsBase": 9,
+    "xpKillsPerLevel": 1.0,
+    "xpLateFrom": 55,
+    "xpLateDiv": 220,
     // Levels no longer give hearts: every "skillPointEvery" levels give a point to spend in the skill tree (skills.json).
     // Max health grows with the Vitality skills, armour and helms, and Heart Crystals forged from the
     // shards bosses drop ("heartShardsPerHeart" shards make one crystal).
@@ -35,7 +38,7 @@
     "skillPointEvery": 2,
     "heartShardsPerHeart": 4,
     "damageEveryLevels": 12,
-    "discoverZoneXp": 250
+    "discoverZoneXp": 4
   },
   "skills": {
     // Whirlwind is learned in the skill tree; these are its base numbers.
@@ -46,7 +49,7 @@
     "activeRadius": 30,
     "despawnRadius": 46,
     "respawnTicks": 7200,
-    "eliteChance": 0.07,
+    "eliteChance": 0.06,
     "globeChance": 0.12
   },
   "shrines": { "buffTicks": 3600, "rechargeTicks": 18000 },

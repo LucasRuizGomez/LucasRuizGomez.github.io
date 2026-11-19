@@ -53,11 +53,11 @@ void Sim::killEnemy(Map& m, Enemy& e) {
     if (def.goldMax > 0 && rng.chance(def.goldChance)) dropItem(m, {"gold", std::max(1, static_cast<int>(rng.between(def.goldMin, def.goldMax) * goldMul))}, e.x, e.y);
     if (def.isBoss()) {
         dropItem(m, randomGear(def.level, 2), e.x - 12, e.y);
-        dropItem(m, randomGear(def.level, 1), e.x + 12, e.y);
+        if (rng.chance(0.4)) dropItem(m, randomGear(def.level, 1), e.x + 12, e.y);
         dropItem(m, {"heart_shard", 1}, e.x, e.y + 10);
         dropItem(m, {"potion", 2}, e.x, e.y - 8);
-    } else if (e.elite) dropItem(m, randomGear(def.level, 1), e.x, e.y);
-    else if (!def.passive && rng.chance((fortune ? 0.07 : 0.035) * (1 + skillStat("loot") / 100))) dropItem(m, randomGear(def.level, 0), e.x, e.y);
+    } else if (e.elite && rng.chance(0.5)) dropItem(m, randomGear(def.level, 1), e.x, e.y);
+    else if (!def.passive && rng.chance((fortune ? 0.03 : 0.015) * (1 + skillStat("loot") / 100))) dropItem(m, randomGear(def.level, 0), e.x, e.y);
     if (!def.passive && (e.elite || rng.chance(db.tuning.globeChance))) {
         Drop g;
         g.globe = true;
@@ -74,8 +74,10 @@ void Sim::killEnemy(Map& m, Enemy& e) {
     }
     int xp = def.xp * (e.elite ? 3 : 1);
     // Experience follows the gap in levels: little from monsters far beneath you, a bonus for those above
-    if (const int gap = P.level - def.level; gap > 6) xp = std::max(1, static_cast<int>(xp * std::max(0.05, 1 - (gap - 6) * 0.07)));
-    else if (gap < 0) xp = static_cast<int>(xp * (1 + std::min(0.5, -gap * 0.03)));
+    const int gap = P.level - def.level, grey = 5 + P.level / 10;
+    if (gap >= grey) xp = 0;   // grey: too weak to teach you anything
+    else if (gap > 0) xp = static_cast<int>(xp * (1 - static_cast<double>(gap) / (grey + 1)));
+    else if (gap < 0) xp = static_cast<int>(xp * (1 + std::min(0.25, -gap * 0.05)));
     gainXp(xp);
     questEvent("kill", def.id, def.tag);
 
@@ -290,7 +292,7 @@ void Sim::updateEnemies(Map& m) {
             }
         faceMotion(e, e.x - ox, e.y - oy);
         // Soldiers standing still turn on the spot to face you
-        if (!e.moving && !stunned && def.look == Look::Human && d < 170 && (!def.isBoss() || e.active)) e.face = dx < 0 ? -1 : 1;
+        if (!e.moving && !stunned && (def.look == Look::Human || def.look == Look::Static) && d < 170 && (!def.isBoss() || e.active)) e.face = dx < 0 ? -1 : 1;
 
         if (!invulnerable() && e.alive && !def.passive && !calm) {
             const double cd = hypot2(P.x - e.x, (P.y - 5) - (e.y - e.cy));

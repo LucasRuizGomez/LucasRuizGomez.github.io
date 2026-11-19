@@ -147,6 +147,7 @@ struct OverworldGen {
             }
         river(100, 40, H - 1, 90, 112);
         river(184, 0, 100, 174, 192);
+        if (W > 300) river(312, 0, H - 1, 300, 326);   // the black river that bounds the far east
         for (int r = 0; r < H; r++)
             for (int c = 0; c < W; c++)
                 if (c < 2 || r < 2 || c >= W - 2 || r >= H - 2) m.set(c, r, TREE);

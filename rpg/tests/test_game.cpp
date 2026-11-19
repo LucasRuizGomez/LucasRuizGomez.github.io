@@ -47,12 +47,12 @@ TEST_CASE("config loads and cross-references resolve") {
     const Database& db = database();
     CHECK(db.items.size() > 30);
     CHECK(db.enemies.size() > 25);
-    CHECK(db.zones.size() == 6);
-    CHECK(db.towns.size() == 6);
-    CHECK(db.dungeons.size() == 7);
+    CHECK(db.zones.size() == 10);
+    CHECK(db.towns.size() == 7);
+    CHECK(db.dungeons.size() == 11);
     CHECK(db.quests.size() >= 20);
-    CHECK(db.enemy("wolf").look == Look::Animal);   // inherited from its base
-    CHECK(db.enemy("wolf").hp == 8);
+    CHECK(db.enemy("wolf").look == Look::Static);   // inherited from its base
+    CHECK(db.enemy("wolf").hp > db.enemy("fox").hp);   // "base" copies, the variant overrides
     CHECK(db.item("iron_sword").isGear());
     CHECK(db.item("wood").stacks());
     CHECK(db.xpForLevel(2) > db.xpForLevel(1));

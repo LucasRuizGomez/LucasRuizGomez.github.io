@@ -25,7 +25,7 @@ struct ItemDef {
     int level = 1, value = 0;
     bool unique = false;
     std::string mountSprite, mountTint;
-    std::string wear;                   // worn gear: the colour it gives the hero's sprite (hex)
+    std::string doll;                   // worn gear: paper-doll layers on the hero (assets/dcss/doll), joined by '+'
     double mountSpeed = 1;
     bool mountFly = false;              // a flying mount crosses water, forests and rocks
     bool isGear() const {
@@ -230,7 +230,7 @@ struct Tuning {
     int fistDmg = 1, fistReach = 9, fistCd = 18;
     int maxLevel = 12, heartEvery = 0, damageEvery = 3, discoverZoneXp = 25;   // heartEvery 0 = levels give no hearts
     int skillPointsPerLevel = 1, heartShards = 3, skillPointEvery = 1, xpLateFrom = 9999;
-    double xpBase = 40, xpGrowth = 1.5, xpLateDiv = 100;
+    double xpBase = 40, xpGrowth = 1.5, xpLateDiv = 100, xpKillsBase = 0, xpKillsPerLevel = 0;
     int whirlLevel = 3, whirlCooldown = 360;
     double whirlRadius = 30, whirlMul = 1.5;
     int dayLength = 28800;

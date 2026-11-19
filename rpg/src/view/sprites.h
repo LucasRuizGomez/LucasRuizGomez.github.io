@@ -41,9 +41,9 @@ class Sprites {
     const Frames& frames(const std::string& name) const;     // animation strips from sprites.json
     const Sprite& icon(const std::string& id) const;         // item icons and a few banner icons
     const CharSet& character(const std::string& sprite, const std::string& tint);
-    // The hero, dressed in what is worn: colours (hex) for the helm, body armour, boots and shield; empty = none.
-    // The kit's painted sword is taken out, so the real weapon can be drawn in the hand.
-    const CharSet& hero(const std::string& helm, const std::string& body, const std::string& feet, const std::string& shield);
+    // The hero: a Dungeon Crawl paper doll, its layers (assets/dcss/doll/<layer>.png) stacked in order. The still
+    // picture is given idle, walk and death frames so it plays like the animated characters.
+    const CharSet& hero(const std::vector<std::string>& layers);
     const AnimalSet& animal(const std::string& sprite, const std::string& tint);
     const Sprite& monster(const std::string& name, const std::string& tint);   // assets/dcss/<name>.png, tinted
     const Sprite& undead(const std::string& name);                               // assets/undead/<name>.png

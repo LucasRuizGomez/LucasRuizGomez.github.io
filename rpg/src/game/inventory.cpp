@@ -426,7 +426,7 @@ int Sim::weaponDamage() const {
     return (w ? db.item(w->id).dmg : db.tuning.fistDmg) + P.level / db.tuning.damageEvery + statBonus("dmg");
 }
 int Sim::bowDamage() const {
-    return 3 + P.level / db.tuning.damageEvery + affixSum(*this, "dmg") / 2 + static_cast<int>(std::lround(skillStat("dmg"))) + statBonus("bow");
+    return 2 + P.level / 10 + affixSum(*this, "dmg") / 2 + static_cast<int>(std::lround(skillStat("dmg"))) + statBonus("bow");
 }
 int Sim::weaponReach() const {
     const Item* w = equipped(EquipSlot::Weapon);

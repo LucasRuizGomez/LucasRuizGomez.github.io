@@ -173,7 +173,7 @@ void Sim::openChest(Map& m, Object& o) {
         for (auto& it : o.loot)
             if (db.item(it.id).isGear() && !it.uid) it = makeGear(it.id, reward ? 1 : 0, 1.5);
         if (reward) o.loot.push_back(randomGear(o.lootLevel, 2));
-        else if (rng.chance(0.35)) o.loot.push_back(randomGear(o.lootLevel, 0));
+        else if (rng.chance(0.2)) o.loot.push_back(randomGear(o.lootLevel, 0));
     }
     o.opened = true;
     o.openAt = tickCount;

@@ -335,10 +335,10 @@ void Sim::updatePlayer() {
 
 const std::vector<Sim::Ability>& Sim::abilities() {
     static const std::vector<Ability> A = {
-        {"warcry", "War Cry", "owl_brave", 1200},
-        {"leap", "Leap Slam", "owl_strengthen", 600},
-        {"stoneskin", "Stone Skin", "owl_stone", 1500},
-        {"volley", "Volley", "owl_crossbow", 420},
+        {"warcry", "War Cry", "ic_warcry", 1200},
+        {"leap", "Leap Slam", "ic_leap", 600},
+        {"stoneskin", "Stone Skin", "ic_stoneskin", 1500},
+        {"volley", "Volley", "ic_volley", 420},
     };
     return A;
 }
