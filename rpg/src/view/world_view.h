@@ -55,6 +55,11 @@ class WorldView {
     void drawDetail(Map& m, int c, int r);
     bool propFor(Map& m, MapView& v, int c, int r, Prop& out);
     bool decorFor(Map& m, int c, int r, Prop& out);
+    void drawTravel(Sim& sim, const Object& o);
+  public:
+    // what the hero is wearing, as knight layers (assets/lpc), in drawing order
+    std::vector<std::string> heroLayers(const Sim& sim) const;
+  private:
     void refreshProps(Map& m, MapView& v, int c, int r);
     const TileSet& tilesAt(Map& m, MapView& v, int c, int r);
     void drawObject(Sim& sim, Map& m, const Object& o);

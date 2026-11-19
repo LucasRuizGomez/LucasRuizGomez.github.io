@@ -49,6 +49,10 @@ DCSS = {  # game name: path under monster/
     'black_bear': 'animals/black_bear_new', 'vine_stalker': 'fungi_plants/vine_stalker', 'servitor': 'undead/profane_servitor',
     'plague_lord': 'undead/rotting_hulk_new', 'bone_dragon': 'undead/bone_dragon_new', 'thorn_mother': 'fungi_plants/thorn_hunter',
     'ashen_herald': 'undead/ancient_lich_new', 'vampire_knight': 'undead/vampire_knight_new',
+    # the realms
+    'plague_eater': 'undead/necrophage_new', 'bone_hound': 'undead/skeletons/skeleton_quadruped_large_new', 'rotcap': 'fungi_plants/wandering_mushroom_new',
+    'wolf_spider': 'animals/wolf_spider_new', 'ash_giant': 'fire_giant_new', 'ash_wraith': 'undead/wraith', 'drowned_reaver': 'merfolk_impaler_new',
+    'siren': 'siren_new', 'drowned_crab': 'undead/zombies/zombie_crab', 'kraken_spawn': 'undead/zombies/zombie_octopode', 'drowned_queen': 'unique/ilsuiw_new',
     # bosses
     'gruff': 'unique/edmund_new', 'marrow': 'hell_knight_new', 'warden': 'dryad', 'frost_giant': 'frost_giant_new', 'wight_king': 'undead/wight_king',
 }

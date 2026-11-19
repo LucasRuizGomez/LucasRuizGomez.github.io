@@ -44,6 +44,9 @@ class Sprites {
     // The hero: a Dungeon Crawl paper doll, its layers (assets/dcss/doll/<layer>.png) stacked in order. The still
     // picture is given idle, walk and death frames so it plays like the animated characters.
     const CharSet& hero(const std::vector<std::string>& layers);
+    // The knight: LPC layers (assets/lpc/<layer>.<anim>.png, 40x40 frames, rows down, up, left, right) stacked in
+    // order. Anims: walk (frame 0 standing), slash, hurt (falls), idle, shoot.
+    const AnimalSet& knight(const std::vector<std::string>& layers);
     const AnimalSet& animal(const std::string& sprite, const std::string& tint);
     const Sprite& monster(const std::string& name, const std::string& tint);   // assets/dcss/<name>.png, tinted
     const Sprite& undead(const std::string& name);                               // assets/undead/<name>.png

@@ -39,6 +39,8 @@ The music is unmodified apart from the file names. Attribution is required: it i
 | `undead/` | *Free Undead Tileset Top Down Pixel Art* | CraftPix.net | CraftPix free licence | Big dead and dark trees, boulders, ruins, graves, bones, thorns (copied by `tools/import_dark_art.py`) |
 | `generated/vampires/` | *Free Vampire 4-Direction Pixel Character Sprite Pack* | CraftPix.net | CraftPix free licence | The three vampires, cut to 32x32 frames by `tools/import_dark_art.py` |
 | `dcss/` | *Dungeon Crawl Stone Soup* tiles | The Dungeon Crawl Stone Soup artists ([OpenGameArt](https://opengameart.org/content/dungeon-crawl-32x32-tiles)) | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) | Rats, jackals, ravens, cultists, the risen dead, spiders, bats, wights, ghouls, wraiths and more |
+| `lpc/` | *Universal LPC Spritesheet Character Generator* (Liberated Pixel Cup) | Many LPC artists: the full list of authors for every layer used is in [`lpc/CREDITS.csv`](lpc/CREDITS.csv) | CC-BY-SA 3.0 / GPL 3.0 / OGA-BY 3.0 (per file, see `lpc/CREDITS.csv`) | The knight: body, plate, mail and leather armour, helms, hood, cape, shields. Fetched and cut to 40x40 by `tools/import_lpc.py`; these files keep their share-alike licences |
+| `generated/item_icons.png`, `generated/skill_icons.png` | *Dungeon Crawl Stone Soup* tiles | The Dungeon Crawl Stone Soup artists | CC0 | Item and skill icons, packed by `tools/add_gear.py` and `tools/pack_skill_icons.py` |
 
 ## Typeface
 

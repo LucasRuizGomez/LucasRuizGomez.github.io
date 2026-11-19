@@ -34,15 +34,30 @@ Item Sim::makeGear(const std::string& id, int minRarity, double luck) {
     return it;
 }
 
+// The map you are on (or the one a dungeon opens onto): its own gear only drops there
+std::string Sim::currentRealm() const {
+    const Map& m = map();
+    if (m.outdoor) return m.id;
+    const DungeonDef* d = m.dungeon;
+    while (d && !d->under.empty()) d = db.dungeon(d->under);
+    return d ? d->realm : "over";
+}
+
 Item Sim::randomGear(int level, int minRarity) {
+    const std::string realm = currentRealm();
     std::vector<const ItemDef*> pool;
+    auto allowed = [&](const ItemDef& d) { return d.isGear() && (d.realm.empty() || d.realm == realm); };
     for (const auto& d : db.items)
-        if (d.isGear() && d.level <= level + 8 && d.level >= level - 32 && d.id != "kings_edge") pool.push_back(&d);
+        if (allowed(d) && d.level <= level + 8 && d.level >= level - 32 && d.id != "kings_edge") {
+            pool.push_back(&d);
+            if (!d.realm.empty()) pool.push_back(&d);   // a map's own gear turns up twice as often there
+        }
     if (pool.empty())
         for (const auto& d : db.items)
-            if (d.isGear() && d.level <= level + 8) pool.push_back(&d);
+            if (allowed(d) && d.level <= level + 8) pool.push_back(&d);
     if (pool.empty()) return {"bandage", 1};
-    return makeGear(pool[rng.range(static_cast<int>(pool.size()))]->id, minRarity, 1.0 + level * 0.08);
+    // a little more luck deeper in the world, but fine and rare gear stays rare
+    return makeGear(pool[rng.range(static_cast<int>(pool.size()))]->id, minRarity, 1.0 + std::min(level, 99) * 0.012);
 }
 
 void Sim::dropItem(Map& m, Item item, double x, double y) {

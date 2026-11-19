@@ -193,6 +193,8 @@ void App::loadSettings() {
     set_.music = std::clamp(j.value("music", set_.music), 0.0, 1.0);
     set_.ui = std::clamp(j.value("ui", set_.ui), 0.5, 2.0);
     set_.muted = j.value("muted", false);
+    set_.soft = j.value("soft", true);
+    set_.depth = j.value("depth", true);
     if (j.contains("binds") && j.at("binds").is_object())
         for (const auto& a : db_.actions)
             if (j.at("binds").contains(a.id) && j.at("binds").at(a.id).is_array() && !j.at("binds").at(a.id).empty()) {
@@ -204,7 +206,7 @@ void App::loadSettings() {
 }
 
 void App::saveSettings() {
-    json j = {{"sfx", set_.sfx}, {"music", set_.music}, {"ui", set_.ui}, {"muted", set_.muted}, {"binds", set_.binds}};
+    json j = {{"sfx", set_.sfx}, {"music", set_.music}, {"ui", set_.ui}, {"muted", set_.muted}, {"soft", set_.soft}, {"depth", set_.depth}, {"binds", set_.binds}};
     platform::storageSet(SETTINGS_KEY, j.dump());
 }
 
@@ -463,7 +465,8 @@ void App::handleKey(const std::string& code, bool shift) {
             break;
         }
         case Mode::WorldMap:
-            if (act == "quests") setMode(Mode::Quests);
+            if (code == "Tab" || act == "bag") mapWhole_ = !mapWhole_;   // this region / the whole map
+            else if (act == "quests") setMode(Mode::Quests);
             else if (act == "map" || code == "Escape" || enter || code == "Space") sim.mode = Mode::Play;
             break;
         case Mode::Travel: {
@@ -675,6 +678,18 @@ void App::depthOfField(int DW, int DH) {
     g_.clear(Color(0, 0, 0, 0));
     g_.draw(blurTex_, 0, 0, blurTex2_.w, blurTex2_.h);
     g_.setTarget(nullptr);
+    // Soft image: a lightly blurred copy over the whole scene takes the hard edge off every pixel, with a faint
+    // bloom in the lights; the scene underneath keeps its detail
+    if (set_.soft) {
+        g_.setAlpha(0.42);
+        g_.draw(blurTex_, 0, 0, DW, DH);
+        g_.setAlpha(1);
+        g_.drawTinted(blurTex2_, 0, 0, DW, DH, Color(70, 64, 58, 255), true);   // the glow of what is bright
+    }
+    if (!set_.depth) {
+        g_.setAlpha(1);
+        return;
+    }
     const int N = 24;
     const double band = DH * 0.3;
     for (int i = 0; i < N; i++) {
@@ -707,7 +722,7 @@ void App::render() {
         g_.setSmooth(blurTex_, true);
         g_.setSmooth(blurTex2_, true);
     }
-    const bool dof = sceneTex_ && blurTex_ && blurTex2_ && sim.mode != Mode::Title;
+    const bool dof = sceneTex_ && blurTex_ && blurTex2_ && sim.mode != Mode::Title && (set_.soft || set_.depth);
     if (dof) g_.setBaseTarget(&sceneTex_);
     world_->render(sim, zoom_, sim.mode != Mode::Title);
     if (dof) {

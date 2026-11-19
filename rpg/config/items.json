@@ -2,7 +2,7 @@
   // type: mat | heal | weapon | shield | armor | trinket | helm | boots | bow | ammo | tool | light | key | special | trophy | mount
   // Gear (weapon, shield, armor, trinket, helm, boots) never stacks: every piece is its own item and can roll a rarity with affixes.
   // "value" is the base price in gold; merchants pay a fraction of it. "level" gates random drops and purchases.
-  // "doll" (shields, armour, helms, boots): the paper-doll layers (assets/dcss/doll) the piece puts on the hero; "+" joins several.
+  // "doll" (shields, armour, helms, boots): the LPC layers (assets/lpc) the piece puts on the hero; "+" joins several.
   "items": [
     { "id": "wood",   "name": "Wood",     "type": "mat", "value": 1, "desc": "Chopped from trees. Used in most recipes." },
     { "id": "stone",  "name": "Stone",    "type": "mat", "value": 1, "desc": "Mined from mossy grey rocks." },
@@ -30,26 +30,26 @@
 
     { "id": "wood_sword",   "name": "Wooden Sword",   "type": "weapon", "dmg": 2, "reach": 13, "cd": 22, "tier": 1,   "level": 1,  "value": 4,  "desc": "A whittled blade. Better than fists." },
     { "id": "iron_sword",   "name": "Iron Sword",     "type": "weapon", "dmg": 3, "reach": 15, "cd": 22, "tier": 2,   "level": 9,  "value": 18, "desc": "Honest iron with a good edge." },
-    { "id": "steel_spear",  "name": "Steel Spear",    "type": "weapon", "dmg": 5, "reach": 21, "cd": 24, "tier": 2.5, "level": 25,  "value": 30, "desc": "Long reach. Forged at a fire." },
+    { "id": "steel_spear",  "name": "Steel Spear",    "type": "weapon", "dmg": 6, "reach": 21, "cd": 24, "tier": 2.5, "level": 25,  "value": 30, "desc": "Long reach. Forged at a fire." },
     { "id": "knight_blade", "name": "Knight's Blade", "type": "weapon", "dmg": 7, "reach": 17, "cd": 20, "tier": 3,   "level": 41,  "value": 48, "desc": "A soldier's sword, quick and well balanced." },
     { "id": "frost_brand",  "name": "Frost Brand",    "type": "weapon", "dmg": 9, "reach": 18, "cd": 20, "tier": 4,   "level": 57,  "value": 80, "desc": "Cold to the touch. Forged in Highwatch." },
-    { "id": "kings_edge",   "name": "King's Edge",    "type": "weapon", "dmg": 11, "reach": 19, "cd": 18, "tier": 5,  "level": 73, "value": 160, "desc": "The blade the Hollow King carried in life." },
+    { "id": "kings_edge",   "name": "King's Edge",    "type": "weapon", "dmg": 10, "reach": 19, "cd": 18, "tier": 5,  "level": 73, "value": 160, "desc": "The blade the Hollow King carried in life." },
 
-    { "id": "wood_shield",     "name": "Wooden Shield",     "type": "shield", "doll": "hand_left.buckler_round_2", "def": 1, "tier": 1, "level": 1, "value": 6,  "desc": "Blocks 1 damage from strong hits." },
-    { "id": "iron_shield",     "name": "Iron Shield",       "type": "shield", "doll": "hand_left.shield_middle_gray", "def": 2, "tier": 2, "level": 25, "value": 26, "desc": "Blocks 2 damage from strong hits." },
-    { "id": "champion_shield", "name": "Champion's Shield", "type": "shield", "doll": "hand_left.shield_knight_gray", "def": 3, "tier": 3, "level": 57, "value": 90, "desc": "Blocks 3 damage from strong hits." },
+    { "id": "wood_shield",     "name": "Wooden Shield",     "type": "shield", "doll": "shield_crusader", "def": 1, "tier": 1, "level": 1, "value": 6,  "desc": "Blocks 1 damage from strong hits." },
+    { "id": "iron_shield",     "name": "Iron Shield",       "type": "shield", "doll": "shield_crusader", "def": 2, "tier": 2, "level": 25, "value": 26, "desc": "Blocks 2 damage from strong hits." },
+    { "id": "champion_shield", "name": "Champion's Shield", "type": "shield", "doll": "shield_crusader", "def": 3, "tier": 3, "level": 57, "value": 90, "desc": "Blocks 3 damage from strong hits." },
 
-    { "id": "leather_armor", "name": "Leather Jerkin", "type": "armor", "doll": "body.leather_armor", "hp": 1, "tier": 1, "level": 9, "value": 14, "desc": "Adds half a heart of health." },
-    { "id": "chain_armor",   "name": "Chain Hauberk",  "type": "armor", "doll": "body.chainmail+legs.pants_black", "hp": 2, "tier": 2, "level": 33, "value": 40, "desc": "Adds 1 heart of health." },
-    { "id": "plate_armor",   "name": "Plate Cuirass",  "type": "armor", "doll": "body.plate_black+legs.leg_armor_2", "hp": 3, "tier": 3, "level": 57, "value": 95, "desc": "Adds a heart and a half of health." },
+    { "id": "leather_armor", "name": "Leather Jerkin", "type": "armor", "doll": "torso_leather", "hp": 1, "tier": 1, "level": 9, "value": 14, "desc": "Adds half a heart of health." },
+    { "id": "chain_armor",   "name": "Chain Hauberk",  "type": "armor", "doll": "torso_chain", "hp": 2, "tier": 2, "level": 33, "value": 40, "desc": "Adds 1 heart of health." },
+    { "id": "plate_armor",   "name": "Plate Cuirass",  "type": "armor", "doll": "torso_plate+arms_plate+pauldrons+legs_plate", "hp": 3, "tier": 3, "level": 57, "value": 95, "desc": "Adds a heart and a half of health." },
 
-    { "id": "leather_cap",  "name": "Leather Cap",  "type": "helm", "doll": "head.cap_black_1", "hp": 1, "tier": 1, "level": 1, "value": 10, "desc": "Boiled leather. Adds half a heart of health." },
-    { "id": "iron_helm",    "name": "Iron Helm",    "type": "helm", "doll": "head.iron_1", "hp": 1, "tier": 2, "level": 25, "value": 32, "desc": "A plain iron pot. Adds half a heart of health." },
-    { "id": "great_helm",   "name": "Great Helm",   "type": "helm", "doll": "head.fhelm_gray_3", "hp": 1, "def": 1, "tier": 3, "level": 57, "value": 85, "desc": "Full-faced steel. Adds half a heart and blocks 1 damage from strong hits." },
+    { "id": "leather_cap",  "name": "Leather Cap",  "type": "helm", "doll": "leather_cap", "hp": 1, "tier": 1, "level": 1, "value": 10, "desc": "Boiled leather. Adds half a heart of health." },
+    { "id": "iron_helm",    "name": "Iron Helm",    "type": "helm", "doll": "barbuta", "hp": 1, "tier": 2, "level": 25, "value": 32, "desc": "A plain iron pot. Adds half a heart of health." },
+    { "id": "great_helm",   "name": "Great Helm",   "type": "helm", "doll": "greathelm", "hp": 1, "def": 1, "tier": 3, "level": 57, "value": 85, "desc": "Full-faced steel. Adds half a heart and blocks 1 damage from strong hits." },
 
-    { "id": "leather_boots", "name": "Leather Boots", "type": "boots", "doll": "boots.middle_brown", "speed": 5,  "tier": 1, "level": 1, "value": 12, "desc": "Soft soles for long roads." },
-    { "id": "iron_greaves",  "name": "Iron Greaves",  "type": "boots", "doll": "boots.mesh_black", "speed": 8,  "tier": 2, "level": 33, "value": 36, "desc": "Heavy, but well fitted." },
-    { "id": "frost_treads",  "name": "Frost Treads",  "type": "boots", "doll": "boots.mesh_white", "speed": 12, "tier": 3, "level": 57, "value": 90, "desc": "Highwatch boots that never slip on ice." },
+    { "id": "leather_boots", "name": "Leather Boots", "type": "boots", "doll": "boots", "speed": 5,  "tier": 1, "level": 1, "value": 12, "desc": "Soft soles for long roads." },
+    { "id": "iron_greaves",  "name": "Iron Greaves",  "type": "boots", "doll": "boots_plate", "speed": 8,  "tier": 2, "level": 33, "value": 36, "desc": "Heavy, but well fitted." },
+    { "id": "frost_treads",  "name": "Frost Treads",  "type": "boots", "doll": "boots_plate", "speed": 12, "tier": 3, "level": 57, "value": 90, "desc": "Highwatch boots that never slip on ice." },
 
     { "id": "band",   "name": "Copper Band",    "type": "trinket", "tier": 1, "level": 9, "value": 12, "desc": "A plain ring. Its worth is in what it was enchanted with." },
     { "id": "signet", "name": "Traveller's Signet", "type": "trinket", "tier": 2, "level": 41, "value": 40, "desc": "Worn by those who walk far from home." },
@@ -57,7 +57,43 @@
     { "id": "mount_boar", "name": "War Boar",   "type": "mount", "unique": true, "level": 17, "value": 60,  "mountSprite": "boar", "mountTint": "#c8a888", "mountSpeed": 1.6, "desc": "A saddle-broken boar. Summon it outdoors to ride 60% faster." },
     { "id": "mount_stag", "name": "Frost Stag", "type": "mount", "unique": true, "level": 49, "value": 180, "mountSprite": "deer", "mountTint": "#d8e4f0", "mountSpeed": 2.0, "desc": "Swift and sure-footed. Summon it outdoors to ride twice as fast." },
     { "id": "mount_roc",  "name": "Great Roc",  "type": "mount", "unique": true, "level": 65, "value": 450, "mountSprite": "grouse", "mountTint": "#f0c878", "mountSpeed": 2.3, "mountFly": true,
-      "desc": "A giant bird broken to the saddle. Summon it outdoors to fly over forests, lakes and mountains, out of reach of monsters." }
+      "desc": "A giant bird broken to the saddle. Summon it outdoors to fly over forests, lakes and mountains, out of reach of monsters." },
+    // the wider range of gear (tools/add_gear.py); "realm": found only on that map
+    {"id": "rusty_dagger", "name": "Rusted Dagger", "type": "weapon", "dmg": 2, "reach": 11, "cd": 14, "tier": 1.1, "level": 3, "value": 10, "desc": "Quick, short and pitted with rust."},
+    {"id": "hand_axe", "name": "Woodsman's Axe", "type": "weapon", "dmg": 4, "reach": 14, "cd": 24, "tier": 1.6, "level": 12, "value": 28, "desc": "Made for timber. Works on other things."},
+    {"id": "falchion", "name": "Falchion", "type": "weapon", "dmg": 4, "reach": 15, "cd": 20, "tier": 2.0, "level": 20, "value": 44, "desc": "A heavy single edge, good for hacking."},
+    {"id": "war_mace", "name": "Flanged Mace", "type": "weapon", "dmg": 7, "reach": 14, "cd": 26, "tier": 2.4, "level": 28, "value": 60, "desc": "Slow, and it does not care about armour."},
+    {"id": "bearded_axe", "name": "Bearded Axe", "type": "weapon", "dmg": 8, "reach": 15, "cd": 24, "tier": 2.8, "level": 36, "value": 76, "desc": "The hook of its beard pulls shields aside."},
+    {"id": "morning_star", "name": "Morning Star", "type": "weapon", "dmg": 9, "reach": 16, "cd": 24, "tier": 3.2, "level": 44, "value": 92, "desc": "A ball of spikes on a chain."},
+    {"id": "bastard_sword", "name": "Bastard Sword", "type": "weapon", "dmg": 8, "reach": 16, "cd": 20, "tier": 3.6, "level": 52, "value": 108, "desc": "A hand and a half of good steel."},
+    {"id": "halberd", "name": "Halberd", "type": "weapon", "dmg": 12, "reach": 21, "cd": 26, "tier": 4.0, "level": 60, "value": 124, "desc": "Axe, spike and hook on a long haft."},
+    {"id": "headsman_axe", "name": "Headsman's Axe", "type": "weapon", "dmg": 15, "reach": 17, "cd": 30, "tier": 4.4, "level": 68, "value": 140, "desc": "Made for one blow. It rarely needs two."},
+    {"id": "greatsword", "name": "Greatsword", "type": "weapon", "dmg": 16, "reach": 19, "cd": 28, "tier": 4.8, "level": 76, "value": 156, "desc": "Taller than a boy and twice as heavy."},
+    {"id": "plague_cleaver", "name": "Plague Cleaver", "type": "weapon", "dmg": 15, "reach": 17, "cd": 26, "tier": 4.9, "level": 78, "value": 160, "realm": "blight", "desc": "Still wet with something green. Found only in the Blighted Fields."},
+    {"id": "bone_reaver", "name": "Bone Reaver", "type": "weapon", "dmg": 16, "reach": 21, "cd": 26, "tier": 5.2, "level": 84, "value": 172, "realm": "bonewaste", "desc": "A blade of fused bone on a spine. Found only in the Bone Wastes."},
+    {"id": "tidecaller", "name": "Tidecaller", "type": "weapon", "dmg": 15, "reach": 21, "cd": 24, "tier": 5.4, "level": 88, "value": 180, "realm": "sunken", "desc": "It hums when the sea is near. Found only on the Sunken Isle."},
+    {"id": "briarblade", "name": "Briarblade", "type": "weapon", "dmg": 12, "reach": 16, "cd": 18, "tier": 5.6, "level": 92, "value": 188, "realm": "blackmire", "desc": "Thorns grow along its spine. Found only in Blackmire Weald."},
+    {"id": "ashbringer", "name": "Ashbringer", "type": "weapon", "dmg": 16, "reach": 19, "cd": 24, "tier": 5.8, "level": 97, "value": 198, "realm": "ashen", "desc": "Warm to the touch, always. Found only in the Ashen Reach."},
+    {"id": "gambeson", "name": "Padded Gambeson", "type": "armor", "hp": 1, "doll": "torso_leather", "tier": 1.3, "level": 6, "value": 16, "desc": "Quilted cloth. Better than a shirt."},
+    {"id": "ring_mail", "name": "Ring Mail", "type": "armor", "hp": 2, "doll": "torso_chain", "tier": 2.1, "level": 22, "value": 48, "desc": "Iron rings sewn on leather."},
+    {"id": "scale_mail", "name": "Scale Mail", "type": "armor", "hp": 2, "def": 1, "doll": "torso_chain", "tier": 2.9, "level": 38, "value": 80, "desc": "Overlapping scales of steel."},
+    {"id": "banded_mail", "name": "Banded Mail", "type": "armor", "hp": 3, "doll": "torso_plate+arms_plate+pauldrons+legs_plate", "tier": 3.7, "level": 54, "value": 112, "desc": "Bands of steel over mail."},
+    {"id": "black_plate", "name": "Blackened Plate", "type": "armor", "hp": 4, "doll": "torso_plate+arms_plate+pauldrons+legs_plate", "tier": 4.5, "level": 70, "value": 144, "desc": "Plate burnt black in some old fire."},
+    {"id": "ossuary_plate", "name": "Ossuary Plate", "type": "armor", "hp": 5, "doll": "torso_plate+arms_plate+pauldrons+legs_plate", "tier": 5.2, "level": 85, "value": 174, "realm": "bonewaste", "desc": "Bone and iron fused together. Found only in the Bone Wastes."},
+    {"id": "drowned_mail", "name": "Drowned Mail", "type": "armor", "hp": 5, "def": 1, "doll": "torso_plate+arms_plate+pauldrons+legs_plate", "tier": 5.5, "level": 89, "value": 182, "realm": "sunken", "desc": "Scales that never dry. Found only on the Sunken Isle."},
+    {"id": "kettle_hat", "name": "Kettle Hat", "type": "helm", "hp": 1, "doll": "barbuta", "tier": 1.7, "level": 14, "value": 32, "desc": "A brimmed iron pot."},
+    {"id": "sallet", "name": "Sallet", "type": "helm", "hp": 1, "def": 1, "doll": "barbuta", "tier": 2.7, "level": 34, "value": 72, "desc": "A sweeping helm with an etched brow."},
+    {"id": "visored_helm", "name": "Visored Helm", "type": "helm", "hp": 2, "doll": "greathelm", "tier": 3.9, "level": 58, "value": 120, "desc": "A slit to see through, and nothing more."},
+    {"id": "horned_helm", "name": "Horned Helm", "type": "helm", "hp": 2, "def": 1, "doll": "greathelm", "tier": 4.6, "level": 72, "value": 148, "desc": "Horns for show, steel for keeping."},
+    {"id": "plague_mask", "name": "Plague Mask", "type": "helm", "hp": 2, "def": 1, "doll": "greathelm", "tier": 5.0, "level": 79, "value": 162, "realm": "blight", "desc": "The beak is stuffed with herbs. Found only in the Blighted Fields."},
+    {"id": "ashen_crown", "name": "Ashen Crown", "type": "helm", "hp": 3, "def": 1, "doll": "greathelm", "tier": 5.8, "level": 96, "value": 196, "realm": "ashen", "desc": "A crown of grey iron. Found only in the Ashen Reach."},
+    {"id": "riding_boots", "name": "Riding Boots", "type": "boots", "speed": 6, "doll": "boots", "tier": 1.9, "level": 18, "value": 40, "desc": "Tall boots, good for long roads."},
+    {"id": "sabatons", "name": "Sabatons", "type": "boots", "speed": 8, "doll": "boots_plate", "tier": 3.3, "level": 46, "value": 96, "desc": "Plated boots that ring on stone."},
+    {"id": "witchbark_boots", "name": "Witchbark Boots", "type": "boots", "speed": 14, "doll": "boots_plate", "tier": 5.5, "level": 91, "value": 186, "realm": "blackmire", "desc": "They never sink in the mire. Found only in Blackmire Weald."},
+    {"id": "round_shield", "name": "Round Shield", "type": "shield", "def": 1, "doll": "shield_crusader", "tier": 1.8, "level": 16, "value": 36, "desc": "Boards and a boss of iron."},
+    {"id": "kite_shield", "name": "Kite Shield", "type": "shield", "def": 2, "doll": "shield_crusader", "tier": 3.0, "level": 40, "value": 84, "desc": "Long enough to cover a knee."},
+    {"id": "tower_shield", "name": "Tower Shield", "type": "shield", "def": 3, "doll": "shield_crusader", "tier": 4.2, "level": 64, "value": 132, "desc": "A wall you carry."},
+    {"id": "coral_buckler", "name": "Coral Buckler", "type": "shield", "def": 4, "doll": "shield_crusader", "tier": 5.3, "level": 87, "value": 178, "realm": "sunken", "desc": "Grown, not forged. Found only on the Sunken Isle."}
   ],
 
   // Rarity tiers for dropped gear. "affixes" is how many random bonuses a piece of that rarity rolls.

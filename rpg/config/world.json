@@ -38,26 +38,31 @@
       "ground": "#e4ecf6", "foliage": "#c8dcec", "music": "mountains", "density": 11,
       "spawns": [["frost_wolf", 5], ["ice_hawk", 3], ["frost_elk", 2], ["snow_hare", 2], ["miner", 1], ["frost_wraith", 3], ["ice_beast", 3], ["barrow_knight", 2], ["vampire_countess", 1], ["flying_skull", 2]],
       "nodes": { "stone": 6, "herb": 2, "iron": 6, "coal": 5 } },
-    { "id": "blight", "gate": "crypt", "name": "The Blighted Fields", "levels": [73, 81], "centers": [[290, 150], [282, 110]],
+    { "id": "blight", "realm": "blight", "name": "The Blighted Fields", "levels": [73, 81], "centers": [[60, 60], [118, 72]],
       "water": 0.18, "trees": 0.74, "rocks": 0.86, "flowers": 0.0, "tree": "dead",
       "ground": "#8a8670", "foliage": "#7a7462", "music": "marsh", "density": 12,
-      "spawns": [["zombie_ogre", 3], ["plague_rat", 1], ["shambler", 2], ["hell_hound", 3], ["death_yak", 2], ["vampire_knight", 1], ["mummy", 2]],
+      "spawns": [["zombie_ogre", 3], ["plague_rat", 1], ["shambler", 2], ["hell_hound", 3], ["death_yak", 2], ["vampire_knight", 1], ["mummy", 2], ["plague_eater", 3]],
       "nodes": { "stone": 4, "herb": 3, "iron": 4, "coal": 4 } },
-    { "id": "bonewaste", "gate": "plague_barrow", "name": "The Bone Wastes", "levels": [79, 89], "centers": [[340, 96], [318, 60]],
+    { "id": "bonewaste", "realm": "bonewaste", "name": "The Bone Wastes", "levels": [79, 89], "centers": [[60, 50], [118, 80]],
       "water": 0.1, "trees": 0.86, "rocks": 0.62, "flowers": 0.0, "tree": "dead", "sandy": true,
       "ground": "#a49a80", "foliage": "#8a8270", "music": "mountains", "density": 12,
-      "spawns": [["bone_giant", 3], ["servitor", 2], ["flying_skull", 2], ["revenant", 2], ["phantom", 2], ["death_yak", 1]],
+      "spawns": [["bone_giant", 3], ["servitor", 2], ["flying_skull", 2], ["revenant", 2], ["phantom", 2], ["death_yak", 1], ["bone_hound", 3]],
       "nodes": { "stone": 6, "iron": 5, "coal": 4 } },
-    { "id": "blackmire", "gate": "ossuary", "name": "Blackmire Weald", "levels": [86, 94], "centers": [[372, 160], [350, 140]],
+    { "id": "blackmire", "realm": "blackmire", "name": "Blackmire Weald", "levels": [86, 94], "centers": [[60, 72], [118, 50]],
       "water": 0.3, "trees": 0.5, "rocks": 0.88, "flowers": 0.0, "tree": "dead",
       "ground": "#6a7060", "foliage": "#5a6050", "music": "forest", "density": 13,
-      "spawns": [["vine_stalker", 3], ["black_bear", 2], ["flayed_ghost", 3], ["vampire_lord", 2], ["spectre", 2], ["marsh_leech", 1]],
+      "spawns": [["vine_stalker", 3], ["black_bear", 2], ["flayed_ghost", 3], ["vampire_lord", 2], ["spectre", 2], ["marsh_leech", 1], ["rotcap", 3], ["wolf_spider", 3]],
       "nodes": { "herb": 6, "stone": 3, "iron": 3 } },
-    { "id": "ashen", "gate": "thornheart", "name": "The Ashen Reach", "levels": [92, 99], "centers": [[372, 34], [340, 24]],
+    { "id": "ashen", "realm": "ashen", "name": "The Ashen Reach", "levels": [92, 99], "centers": [[60, 44], [118, 74]],
       "water": 0.08, "trees": 0.84, "rocks": 0.6, "flowers": 0.0, "tree": "dead", "snow": true,
       "ground": "#9a9a9e", "foliage": "#8a8a90", "music": "mountains", "density": 13,
-      "spawns": [["eidolon", 3], ["spectre", 2], ["shadow_wraith", 2], ["bone_giant", 2], ["vampire_lord", 1], ["hell_hound", 2]],
-      "nodes": { "stone": 5, "iron": 6, "coal": 5 } }
+      "spawns": [["eidolon", 3], ["spectre", 2], ["shadow_wraith", 2], ["bone_giant", 2], ["vampire_lord", 1], ["hell_hound", 2], ["ash_giant", 3], ["ash_wraith", 3]],
+      "nodes": { "stone": 5, "iron": 6, "coal": 5 } },
+    { "id": "sunken", "realm": "sunken", "name": "The Sunken Isle", "levels": [84, 91], "centers": [[84, 60]],
+      "water": 0.32, "trees": 0.72, "rocks": 0.84, "flowers": 0.0, "tree": "dead", "sandy": true,
+      "ground": "#86968c", "foliage": "#76867c", "music": "coast", "density": 13,
+      "spawns": [["drowned_reaver", 4], ["siren", 3], ["drowned_crab", 3], ["kraken_spawn", 2], ["drowned_soul", 2], ["bog_body", 1]],
+      "nodes": { "stone": 4, "herb": 3, "iron": 3 } }
   ],
 
   // Points of interest scattered over the wilderness (how many of each the generator tries to place).
@@ -147,7 +152,7 @@
   // "lines": what they say, one line per conversation, in turn.
   // "sprite" is a fortress-kit character (ch1..ch9), "tint" recolours it.
   "towns": [
-    { "id": "gallowmere", "name": "Gallowmere", "at": [262, 140], "radius": 13, "stalls": 1, "zone": "blight", "music": "town_c",
+    { "id": "gallowmere", "realm": "blight", "name": "Gallowmere", "at": [40, 62], "radius": 13, "stalls": 1, "zone": "blight", "music": "town_c",
       "features": ["campfire", "waypoint", "fence"],
       "npcs": [
         { "id": "mother_ash", "name": "Mother Ashe", "sprite": "ch6", "tint": "#9a8a8a", "role": "quest",
@@ -215,20 +220,45 @@
   // kind "generated": rooms chained by corridors from the seed. kind "crypt": the hand-built Hollow Crypt.
   // "under" puts the entrance inside another dungeon (stairs behind its boss) instead of on the overworld.
   // entrance: sprite drawn over the stairs tile (door | cave | mine).
+  // Realms: maps of their own beyond the main one (the Borderlands way), each reached in its own way once a boss
+  // has fallen. travel.kind: carriage | portal | ferry | ritual | lift. travel.from: the map it leaves from, by the
+  // town named in travel.town. arrive: where you step out. shape: land | island (sea all around).
+  "realms": [
+    { "id": "blight", "name": "The Blighted Fields", "size": [168, 120], "seed": 2101, "shape": "land", "requires": "crypt", "arrive": [44, 76],
+      "travel": { "kind": "carriage", "from": "over", "town": "crossroads", "label": "Board the black carriage",
+                  "locked": "The coachman will not drive east while the Hollow King still sits his throne." } },
+    { "id": "bonewaste", "name": "The Bone Wastes", "size": [168, 120], "seed": 2202, "shape": "land", "requires": "plague_barrow", "arrive": [26, 60],
+      "travel": { "kind": "portal", "from": "blight", "town": "gallowmere", "label": "Step through the bone gate",
+                  "locked": "The bone gate is dark. Something fat and rotten in the Plague Barrow keeps it shut." } },
+    { "id": "sunken", "name": "The Sunken Isle", "size": [168, 120], "seed": 2303, "shape": "island", "requires": "ossuary", "arrive": [50, 70],
+      "travel": { "kind": "ferry", "from": "over", "town": "saltmere", "label": "Pay the ferryman",
+                  "locked": "The ferryman will not row out while the Bone Colossus still walks." } },
+    { "id": "blackmire", "name": "Blackmire Weald", "size": [168, 120], "seed": 2404, "shape": "land", "requires": "abyss_grotto", "arrive": [26, 72],
+      "travel": { "kind": "ritual", "from": "over", "town": "fenwatch", "label": "Kneel in the circle",
+                  "locked": "The circle is cold. The Drowned Queen still sings beneath the isle." } },
+    { "id": "ashen", "name": "The Ashen Reach", "size": [168, 120], "seed": 2505, "shape": "land", "requires": "thornheart", "arrive": [30, 96],
+      "travel": { "kind": "lift", "from": "over", "town": "highwatch", "label": "Ride the old lift",
+                  "locked": "The lift chains are bound with thorns. The Thornmother must die first." } }
+  ],
+
   "dungeons": [
-    { "id": "plague_barrow", "name": "The Plague Barrow", "kind": "generated", "at": [300, 160], "entrance": "cave", "level": 81,
+    { "id": "abyss_grotto", "realm": "sunken", "name": "The Abyssal Grotto", "kind": "generated", "at": [120, 48], "entrance": "cave", "level": 91,
+      "size": [62, 46], "rooms": 10, "seed": 1010, "tint": "#80a8b0", "music": "dungeon_deep",
+      "enemies": ["drowned_reaver", "siren", "drowned_crab", "kraken_spawn"], "boss": "drowned_queen", "traps": 5,
+      "reward": [["gold", 280], ["potion", 4], ["heart_shard", 1]] },
+    { "id": "plague_barrow", "realm": "blight", "name": "The Plague Barrow", "kind": "generated", "at": [136, 92], "entrance": "cave", "level": 81,
       "size": [60, 46], "rooms": 9, "seed": 606, "tint": "#a8b090", "music": "dungeon_deep",
       "enemies": ["zombie_ogre", "shambler", "mummy", "plague_rat", "hell_hound"], "boss": "plague_lord", "traps": 5,
       "reward": [["gold", 220], ["potion", 3], ["heart_shard", 1]] },
-    { "id": "ossuary", "name": "The Great Ossuary", "kind": "generated", "at": [352, 84], "entrance": "door", "level": 87,
+    { "id": "ossuary", "realm": "bonewaste", "name": "The Great Ossuary", "kind": "generated", "at": [140, 32], "entrance": "door", "level": 87,
       "size": [62, 46], "rooms": 9, "seed": 707, "tint": "#d8d0c0", "music": "dungeon_crypt",
       "enemies": ["bone_giant", "servitor", "flying_skull", "revenant"], "boss": "bone_colossus", "traps": 5,
       "reward": [["gold", 260], ["potion", 3], ["heart_shard", 1]] },
-    { "id": "thornheart", "name": "Thornheart Hollow", "kind": "generated", "at": [378, 150], "entrance": "cave", "level": 93,
+    { "id": "thornheart", "realm": "blackmire", "name": "Thornheart Hollow", "kind": "generated", "at": [140, 92], "entrance": "cave", "level": 93,
       "size": [62, 48], "rooms": 10, "seed": 808, "tint": "#88a080", "music": "dungeon_caves",
       "enemies": ["vine_stalker", "flayed_ghost", "black_bear", "spectre"], "boss": "thorn_mother", "traps": 6,
       "reward": [["gold", 300], ["potion", 4], ["heart_shard", 1]] },
-    { "id": "citadel", "name": "The Ashen Citadel", "kind": "generated", "at": [376, 26], "entrance": "door", "level": 98,
+    { "id": "citadel", "realm": "ashen", "name": "The Ashen Citadel", "kind": "generated", "at": [130, 24], "entrance": "door", "level": 98,
       "size": [64, 48], "rooms": 11, "seed": 909, "tint": "#b0a8b8", "music": "dungeon_crypt",
       "enemies": ["eidolon", "shadow_wraith", "vampire_knight", "phantom", "bone_giant"], "boss": "ashen_herald", "traps": 6,
       "reward": [["gold", 500], ["potion", 5], ["heart_shard", 1]] },

@@ -61,6 +61,7 @@ void Sim::updateFocus(Map& m) {
             case ObjKind::Node: label = o.res == "stone" ? "Mine" : o.res == "iron" ? "Mine iron" : o.res == "coal" ? "Mine coal" : "Pick herb"; break;
             case ObjKind::Shrine: label = "Awaken"; break;
             case ObjKind::Waypoint: label = "Travel"; break;
+            case ObjKind::Travel: label = o.text.empty() ? "Travel" : o.text; break;
             case ObjKind::Sign: label = o.id == "fallen" ? "Search" : "Read"; break;
             default: break;
         }
@@ -117,6 +118,7 @@ void Sim::interact(Map& m) {
         case ObjKind::Npc: talkTo(o); break;
         case ObjKind::Node: harvest(m, o); break;
         case ObjKind::Shrine: useShrine(o); break;
+        case ObjKind::Travel: useTravel(o); break;
         case ObjKind::Campfire:
             // No resting with monsters about: sleeping would heal you and skip the fight
             if (const std::string why = restBlocked(); !why.empty()) {
@@ -395,7 +397,7 @@ void Sim::updateNight(Map& m) {
         for (int i = 0; i < 300 && n < 4; i++) {
             const double a = rng.next() * PI * 2, d = 200 + rng.next() * 80, x = P.x + std::cos(a) * d, y = P.y + std::sin(a) * d;
             const int c = ifloor(x / TILE), r = ifloor(y / TILE);
-            if (c < 2 || r < 2 || c >= m.w - 2 || r >= m.h - 2 || !m.reach[m.idx(c, r)] || !m.tileFree(c, r, false) || townAt(db, c, r, 4)) continue;
+            if (c < 2 || r < 2 || c >= m.w - 2 || r >= m.h - 2 || !m.reach[m.idx(c, r)] || !m.tileFree(c, r, false) || townAt(db, c, r, 4, m.id)) continue;
             Enemy e = makeEnemy(*pack, c * TILE + 8, r * TILE + 12, false);
             e.night = true;
             m.enemies.push_back(e);

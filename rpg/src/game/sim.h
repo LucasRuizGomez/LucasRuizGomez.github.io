@@ -148,6 +148,7 @@ class Sim {
     bool nightPack = false;
     std::set<std::string> bossesDefeated, zonesFound, waypoints, shrinesFound;
     void openZoneGates(bool announce);   // lifts every region gate whose boss is dead
+    void useTravel(const Object& o);     // carriage, portal, ferry, ritual circle, lift
     void gateHint(Map& m);
     int gateHintAt_ = 0;
     std::map<std::string, QuestState> quests;
@@ -215,6 +216,7 @@ class Sim {
     // ── loot (loot.cpp) ──
     Item makeGear(const std::string& id, int minRarity = 0, double luck = 1);
     Item randomGear(int level, int minRarity = 0);
+    std::string currentRealm() const;   // "over" or the realm the hero is in
     void dropItem(Map& m, Item item, double x, double y);
 
     // ── quests (quests.cpp) ──

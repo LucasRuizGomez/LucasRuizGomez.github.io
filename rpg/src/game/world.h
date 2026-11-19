@@ -40,7 +40,8 @@ struct Item {
     std::vector<std::pair<std::string, int>> affixes;   // affix id, rolled value
 };
 
-enum class ObjKind : uint8_t { Chest, Node, Campfire, Npc, Prop, WallTorch, Gate, Entrance, Trap, Stump, Pot, Shrine, Waypoint, Sign };
+// Travel: the way to another map (id = that map, sprite = carriage | portal | ferry | ritual | lift, res = the boss that must fall)
+enum class ObjKind : uint8_t { Chest, Node, Campfire, Npc, Prop, WallTorch, Gate, Entrance, Trap, Stump, Pot, Shrine, Waypoint, Sign, Travel };
 
 struct Object {
     ObjKind kind = ObjKind::Prop;
@@ -205,12 +206,13 @@ struct WorldGenResult {
     std::map<std::string, Map> maps;
 };
 Map generateOverworld(const Database& db);
+Map generateRealm(const Database& db, const std::string& id);   // a map of its own (realms in world.json)
 Map generateDungeon(const Database& db, const DungeonDef& def, const Map& overworld);
 // The inside of a town building; `door` is its door tile on the overworld (the way back out is just below it).
 Map generateInterior(const Database& db, const BuildingDef& def, TilePos door);
 // Zone that a tile of the overworld belongs to.
 const ZoneDef& zoneAt(const Database& db, const Map& over, int c, int r);
 // Town whose grounds contain the tile, or null.
-const TownDef* townAt(const Database& db, int c, int r, int margin = 0);
+const TownDef* townAt(const Database& db, int c, int r, int margin = 0, const std::string& realm = "over");
 
 }   // namespace hc

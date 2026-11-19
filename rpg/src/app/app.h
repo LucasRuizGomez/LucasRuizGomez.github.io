@@ -20,6 +20,8 @@ namespace hc {
 struct Settings {
     double sfx = 0.8, music = 0.5, ui = 1.0;
     bool muted = false, fullscreen = false;
+    bool soft = true;     // soften the pixels: a filtered glow of the scene laid over it (a painted, less pixelly look)
+    bool depth = true;    // depth of field: the top and bottom of the view blur
     std::map<std::string, std::vector<std::string>> binds;   // action id -> up to two key codes
 };
 
@@ -90,6 +92,7 @@ class App {
     SimInput buildSimInput();
     void updateMusic();
     void render();
+    bool mapWhole_ = false;   // the map screen shows the whole map instead of the region you stand in
     Sprite sceneTex_, blurTex_, blurTex2_;   // the world drawn off-screen, and small soft copies of it for depth of field
     void depthOfField(int DW, int DH);
     void runDebugSwitches();

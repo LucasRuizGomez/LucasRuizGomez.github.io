@@ -25,8 +25,9 @@ Sim::Sim(const Database& database, uint32_t seed) : db(database), rng(seed) {}
 void Sim::buildWorld() {
     maps.clear();
     maps.emplace("over", generateOverworld(db));
+    for (const auto& r : db.realms) maps.emplace(r.id, generateRealm(db, r.id));   // the maps beyond: one each
     const Map& over = maps.at("over");
-    for (const auto& d : db.dungeons) maps.emplace(d.id, generateDungeon(db, d, over));
+    for (const auto& d : db.dungeons) maps.emplace(d.id, generateDungeon(db, d, maps.count(d.realm) ? maps.at(d.realm) : over));
     for (const auto& b : db.buildings)
         if (auto it = over.doors.find(b.id); it != over.doors.end()) maps.emplace("b_" + b.id, generateInterior(db, b, it->second));
     worldReady = true;
@@ -38,6 +39,30 @@ void Sim::applyWorldFlags() {
         if (doorOpen) openDoor(it->second, true);
         if (bossesDefeated.count("crypt")) it->second.set(32, 3, STAIRS_DOWN);
     }
+}
+
+// Board the carriage, step through the portal...: off to the map beyond, if its boss's predecessor has fallen
+void Sim::useTravel(const Object& o) {
+    if (!o.res.empty() && !bossesDefeated.count(o.res)) {
+        const RealmDef* r = db.realm(o.id);
+        toast(r ? r->locked : "The way is shut.", Color(255, 190, 120));
+        play("deny");
+        return;
+    }
+    if (!maps.count(o.id)) return;
+    const std::string from = mapId, dest = o.id;
+    play(o.sprite == "portal" || o.sprite == "ritual" ? "waypoint" : "door");
+    transition([this, from, dest] {
+        const Map& to = maps.at(dest);
+        TilePos p = to.start;
+        for (const auto& t : to.objects)   // step out beside the way back
+            if (t.kind == ObjKind::Travel && t.id == from) p = {t.c, t.r + 1};
+        p = freeNear(to, p.c, p.r);
+        enterMap(dest, p.c * TILE + 8, p.r * TILE + 10);
+        P.dir = Dir::Down;
+        mode = Mode::Play;
+        wantSave = true;
+    });
 }
 
 void Sim::openZoneGates(bool announce) {
@@ -424,7 +449,7 @@ void Sim::updateFx() {
 void Sim::updatePlace(Map& m) {
     if (!m.outdoor) return;
     const int c = ifloor(P.x / TILE), r = ifloor(P.y / TILE);
-    const TownDef* town = townAt(db, c, r, 0);
+    const TownDef* town = townAt(db, c, r, 0, m.id);
     const std::string newTown = town ? town->id : "";
     const ZoneDef& z = zoneAt(db, m, c, r);
     if (newTown != townId) {
@@ -487,12 +512,12 @@ void Sim::travelTo(const std::string& town) {
     if (!t) return;
     play("waypoint");
     transition([this, t] {
-        const Map& over = overworld();
+        const Map& over = maps.count(t->realm) ? maps.at(t->realm) : overworld();
         TilePos p{t->at.c, t->at.r + 3};
         for (const auto& o : over.objects)
             if (o.kind == ObjKind::Waypoint && o.id == t->id) p = {o.c, o.r + 1};
         p = freeNear(over, p.c, p.r);
-        enterMap("over", p.c * TILE + 8, p.r * TILE + 10);
+        enterMap(over.id, p.c * TILE + 8, p.r * TILE + 10);
         P.dir = Dir::Down;
         mode = Mode::Play;
         wantSave = true;
@@ -507,12 +532,12 @@ void Sim::respawn() {
     if (lost) removeItem("gold", lost);
     const TownDef* t = db.town(P.lastTown);
     if (!t) t = &db.towns.front();
-    const Map& over = overworld();
+    const Map& over = maps.count(t->realm) ? maps.at(t->realm) : overworld();
     TilePos p{t->at.c, t->at.r + 3};
     for (const auto& o : over.objects)
         if (o.kind == ObjKind::Campfire && o.id == t->id) p = {o.c, o.r + 1};
     p = freeNear(over, p.c, p.r);
-    enterMap("over", p.c * TILE + 8, p.r * TILE + 10);
+    enterMap(over.id, p.c * TILE + 8, p.r * TILE + 10);
     mode = Mode::Play;
     toast(lost ? "You wake by the fire in " + t->name + ". You dropped " + std::to_string(lost) + " gold." : "You wake by the fire in " + t->name + ".", Color(242, 210, 122));
     wantSave = true;

@@ -68,6 +68,8 @@ std::vector<App::OptionRow> App::optionRows() {
                             set_.fullscreen = !set_.fullscreen;
                             g_.setFullscreen(set_.fullscreen);
                         }});
+    rows.push_back({"Soft image", set_.soft ? "On" : "Off", "", [this](int) { set_.soft = !set_.soft; }});
+    rows.push_back({"Depth of field", set_.depth ? "On" : "Off", "", [this](int) { set_.depth = !set_.depth; }});
     rows.push_back({"Controls", "", "", nullptr, nullptr, true});
     for (const auto& a : db_.actions) {
         std::string keys;
@@ -235,8 +237,8 @@ void App::drawTitleMain() {
         const double W = 330, H = 178, X = uiW() - W - std::max(40.0, uiW() * 0.07), Y = cy - 10;
         panel(X, Y, W, H);
         text("Last adventure", X + 22, Y + 32, pal::faint, 12, 2);
-        const Frames& idle = spr_.character("ch8", "").get("idle");
-        drawSpr(idle[(frameNo_ / 12) % idle.size()], X + 16, Y + 40, 72);
+        const AnimalSet& K = spr_.knight({"cape_bg", "body", "head", "pants", "boots", "shirt", "cape_fg", "hood"});
+        if (K.anims.count("idle") && !K.get("idle")[0].empty()) drawSpr(K.get("idle")[0][(frameNo_ / 30) % K.get("idle")[0].size()], X + 12, Y + 36, 80);
         text(s.name, X + 100, Y + 66, pal::text, 20, 1);
         text("Level " + std::to_string(s.level) + (s.victory ? " · King slain" : ""), X + 100, Y + 88, pal::gold, 14, 1);
         text(s.place, X + 100, Y + 108, pal::muted, 13);
@@ -328,7 +330,8 @@ void App::drawCredits() {
         {"Sound effects", "artisticdude, \"RPG Sound Pack\" · rubberduck, \"80 CC0 RPG SFX\" (CC0)"},
         {"Towns, props, water", "ArMM1998, \"Zelda-like tilesets and sprites\" (CC0)"},
         {"Characters, terrain", "CraftPix: medieval fortress kit, hunt animals, rocks, undead tileset, vampires"},
-        {"Monsters", "Dungeon Crawl Stone Soup tiles (CC0)"},
+        {"Monsters, items, icons", "Dungeon Crawl Stone Soup tiles (CC0)"},
+        {"The knight", "Liberated Pixel Cup artists, Universal LPC generator (CC-BY-SA / GPL, see CREDITS.md)"},
         {"Interface art", "CraftPix: basic pixel art UI for RPG"},
         {"Typefaces", "Almendra, Ana Sanfelippo · Pirata One, Rodrigo Fuenzalida & Nicolas Massi (SIL OFL 1.1)"},
         {"Libraries", "SDL2, SDL_mixer, stb, nlohmann/json, doctest, Emscripten"},
@@ -442,8 +445,10 @@ void App::drawPause() {
     const double DW = std::min(340.0, uiW() * 0.42), DH = uiH() - 32, DX = 16, DY = 16;
     panel(DX, DY, DW, DH);
     text("Paused", DX + 22, DY + 38, pal::faint, 13, 2);
-    const Frames& idle = spr_.character("ch8", "").get("idle");
-    drawSpr(idle[(frameNo_ / 12) % idle.size()], DX + 12, DY + 44, 72);
+    {
+        const AnimalSet& K = spr_.knight(world_->heroLayers(sim));
+        if (K.anims.count("idle") && !K.get("idle")[0].empty()) drawSpr(K.get("idle")[0][(frameNo_ / 30) % K.get("idle")[0].size()], DX + 8, DY + 40, 80);
+    }
     text(P.name, DX + 94, DY + 72, pal::text, 20, 1);
     text("Level " + std::to_string(P.level), DX + 94, DY + 94, pal::gold, 14, 1);
     const bool capped = P.level >= db_.tuning.maxLevel;

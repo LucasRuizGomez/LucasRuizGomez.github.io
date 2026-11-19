@@ -31,6 +31,7 @@ The simulation never calls into the app. Everything it wants to tell the outside
 | `defs.h/.cpp` | `Database`: the contents of `config/*.json` as structs. Loaded once, never changed |
 | `world.h`, `map.cpp` | `Map` and what lives on it (objects, enemies, projectiles, drops), plus collision and pathfinding |
 | `worldgen.cpp` | Builds the overworld (towns with a door on every building, plateaus ringed by cliffs and climbed by ramps, rock walls between regions with a gate on each road in) and every dungeon from a seed |
+| `worldgen.cpp` (realms) | `generateRealm` builds each land beyond the main map (`realms` in `world.json`) with the same generator, using only its own regions, towns and dungeons; `ObjKind::Travel` objects (carriage, portal, ferry, ritual, lift) link the maps |
 | `interiors.cpp` | Builds the inside of each town building from `buildings.json` |
 | `sim.h` | `Sim`: the whole running game. The methods are implemented across the `sim_*.cpp` files below |
 | `sim_core.cpp` | Lifecycle, the tick, camera, spawning (dungeons refill only after the hero has been outside), day and night, the skill tree |

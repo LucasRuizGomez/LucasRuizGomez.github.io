@@ -218,9 +218,11 @@ void App::drawInventory() {
     text("Level " + std::to_string(P.level), dx0 + DW, Y + 38, pal::gold, 13, 1, Align::Right);
     box(dx0, gy, DW, CH, pal::well, pal::line);
     {
-        const CharSet& cs = spr_.character("ch8", "");
-        const Frames& idle = cs.get("idle");
-        if (!idle.empty()) drawSpr(idle[(sim.tickCount / 12) % idle.size()], dx0 + DW / 2 - 60, gy + CH / 2 - 64, 120);
+        const AnimalSet& K = spr_.knight(world_->heroLayers(sim));
+        if (K.anims.count("idle")) {
+            const Frames& idle = K.get("idle")[0];
+            if (!idle.empty()) drawSpr(idle[(sim.tickCount / 30) % idle.size()], dx0 + DW / 2 - 70, gy + CH / 2 - 84, 140);
+        }
     }
     const double colX[3] = {dx0 + 10, dx0 + DW / 2 - S / 2, dx0 + DW - 10 - S}, rowY[4] = {gy + 10, gy + CH * 0.27, gy + CH * 0.52, gy + CH - 10 - S};
     for (int k = 0; k < DOLL_SLOTS; k++) {

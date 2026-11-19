@@ -225,12 +225,85 @@ bool WorldView::propFor(Map& m, MapView& v, int c, int r, Prop& out) {
     return true;
 }
 
+// The ways to other maps, each its own thing: a black carriage, a gate of bones, a moored boat with its ferryman,
+// a ritual circle ringed with candles, an old mine lift on its chains.
+void WorldView::drawTravel(Sim& sim, const Object& o) {
+    const double x = o.c * TILE, y = o.r * TILE;
+    const int tick = sim.tickCount;
+    const bool open = o.res.empty() || sim.bossesDefeated.count(o.res);
+    const Color ink(14, 11, 10), wood(70, 52, 38), woodHi(104, 80, 56), iron(80, 80, 88), ironHi(130, 130, 140);
+    if (o.sprite == "carriage") {
+        g_.drawTinted(spr_.glow, x - 18, y + 8, 52, 14, Color(0, 0, 0, 120));
+        g_.fillRect(x - 12, y - 14, 34, 22, ink);                    // the coach
+        g_.fillRect(x - 11, y - 13, 32, 20, Color(32, 28, 30));
+        g_.fillRect(x - 11, y - 13, 32, 2, Color(60, 52, 54));
+        g_.fillRect(x - 6, y - 9, 8, 7, Color(open ? 120 : 40, open ? 96 : 34, 50));   // a lamplit window
+        g_.fillRect(x + 6, y - 9, 8, 7, Color(open ? 120 : 40, open ? 96 : 34, 50));
+        g_.fillRect(x - 14, y - 16, 38, 3, Color(48, 40, 40));       // the roof
+        for (int w = 0; w < 2; w++) {                                // wheels
+            const double wx = x - 9 + w * 24, wy = y + 6;
+            g_.fillRect(wx - 4, wy - 4, 9, 9, ink);
+            g_.fillRect(wx - 3, wy - 3, 7, 7, wood);
+            g_.fillRect(wx, wy - 3, 1, 7, ink);
+            g_.fillRect(wx - 3, wy, 7, 1, ink);
+        }
+        g_.fillRect(x + 23, y - 10, 2, 6, ironHi);                   // the lantern
+        g_.drawTinted(spr_.glow, x + 16, y - 16, 16, 16, Color(255, 180, 90, static_cast<uint8_t>(110 + 40 * std::sin(tick * 0.1))), true);
+        g_.fillRect(x - 22, y + 2, 10, 3, wood);                     // the shafts
+    } else if (o.sprite == "portal") {
+        const Sprite& pt = spr_.monster("portal", "");
+        if (open) g_.drawTinted(spr_.glow, x - 14, y - 22, 44, 44, Color(200, 120, 255, static_cast<uint8_t>(90 + 60 * std::sin(tick * 0.08))), true);
+        if (pt) g_.draw(pt, x - 16, y - 26, 48, 48);
+        else g_.fillRect(x - 8, y - 20, 32, 34, Color(60, 20, 80));
+    } else if (o.sprite == "ferry") {
+        g_.fillRect(x - 14, y + 4, 44, 8, Color(20, 30, 36, 160));      // dark water by the jetty
+        g_.fillRect(x - 12, y - 2, 40, 2, ink);                       // the boat
+        g_.fillRect(x - 10, y, 36, 5, wood);
+        g_.fillRect(x - 8, y + 5, 32, 2, Color(46, 34, 26));
+        g_.fillRect(x - 10, y, 36, 1, woodHi);
+        g_.fillRect(x + 16, y - 16, 2, 18, wood);                     // the pole
+        g_.fillRect(x + 4, y - 14, 6, 12, Color(30, 28, 32));        // the ferryman, hooded
+        g_.fillRect(x + 5, y - 17, 4, 4, Color(24, 22, 26));
+        g_.fillRect(x - 16, y - 6, 3, 14, wood);                      // a mooring post
+        g_.drawTinted(spr_.glow, x - 22, y - 16, 14, 14, Color(255, 200, 120, 90), true);
+    } else if (o.sprite == "ritual") {
+        const double cx = x + 8, cy = y + 4;
+        for (int i = 0; i < 48; i++) {                                // the circle
+            const double a = i / 48.0 * PI * 2;
+            g_.fillRect(std::round(cx + std::cos(a) * 18), std::round(cy + std::sin(a) * 9), 1, 1, Color(open ? 200 : 110, open ? 60 : 40, 50));
+        }
+        for (int i = 0; i < 6; i++) {                                 // candles
+            const double a = i / 6.0 * PI * 2 + 0.3;
+            const double kx = std::round(cx + std::cos(a) * 18), ky = std::round(cy + std::sin(a) * 9);
+            g_.fillRect(kx, ky - 4, 2, 4, Color(210, 200, 180));
+            if (open) g_.drawTinted(spr_.glow, kx - 4, ky - 10, 10, 10, Color(255, 170, 80, static_cast<uint8_t>(120 + 60 * std::sin(tick * 0.2 + i))), true);
+        }
+        g_.fillRect(cx - 3, cy - 2, 6, 3, Color(90, 30, 30));          // the effigy at its heart
+        g_.fillRect(cx - 1, cy - 10, 2, 9, Color(60, 46, 36));
+        g_.fillRect(cx - 4, cy - 8, 8, 2, Color(60, 46, 36));
+    } else {   // lift
+        g_.fillRect(x - 10, y - 30, 3, 40, wood);                     // the frame
+        g_.fillRect(x + 23, y - 30, 3, 40, wood);
+        g_.fillRect(x - 12, y - 32, 40, 4, woodHi);
+        for (int i = 0; i < 9; i++) g_.fillRect(x + 1 + (i % 2), y - 28 + i * 3, 1, 2, ironHi);   // the chains
+        for (int i = 0; i < 9; i++) g_.fillRect(x + 15 + (i % 2), y - 28 + i * 3, 1, 2, ironHi);
+        g_.fillRect(x - 6, y - 2, 28, 10, ink);                       // the cage
+        g_.fillRect(x - 5, y - 1, 26, 8, iron);
+        for (int i = 0; i < 6; i++) g_.fillRect(x - 3 + i * 5, y - 1, 1, 8, ironHi);
+        g_.drawTinted(spr_.glow, x + 20, y - 26, 14, 14, Color(255, 190, 110, 90), true);
+    }
+    if (!open) {   // a padlock of shadow until the way is opened
+        g_.fillRect(x + 4, y - 30, 8, 7, Color(20, 16, 14, 200));
+        g_.fillRect(x + 6, y - 33, 4, 3, Color(20, 16, 14, 200));
+    }
+}
+
 // Small things standing on open ground, region by region: grave markers in old burial grounds, bones, thorns,
 // weeds, stumps, the arms of the drowned in the marsh, ice crystals in the north. Walked through, never blocking.
 bool WorldView::decorFor(Map& m, int c, int r, Prop& out) {
     if (m.objectAt(c, r) || m.block[m.idx(c, r)] || m.heightAt(c, r) != m.heightAt(c, r + 1)) return false;
     for (const auto& t : db_.towns)
-        if (std::abs(t.at.c - c) < t.radius + 3 && std::abs(t.at.r - r) < t.radius + 3) return false;
+        if (t.realm == m.id && std::abs(t.at.c - c) < t.radius + 3 && std::abs(t.at.r - r) < t.radius + 3) return false;
     const std::string& z = zoneAt(db_, m, c, r).id;
     const double roll = hash2(c, r, 140);
     // burial grounds: patches where the dead were laid, thick with markers
@@ -1005,6 +1078,7 @@ void WorldView::drawObject(Sim& sim, Map& m, const Object& o) {
             break;
         }
         case ObjKind::Entrance: drawAt(spr_.get(o.sprite), x + 8, y + 18); break;
+        case ObjKind::Travel: drawTravel(sim, o); break;
         case ObjKind::Shrine: {
             const bool ready = tick >= o.at;
             if (ready) g_.drawTinted(spr_.glow, x - 16, y - 30, 48, 56, Color(196, 160, 255, static_cast<uint8_t>(110 + 60 * std::sin(tick * 0.06))), true);
@@ -1023,16 +1097,11 @@ void WorldView::drawObject(Sim& sim, Map& m, const Object& o) {
     }
 }
 
-void WorldView::drawPlayer(Sim& sim) {
-    const Player& P = sim.P;
-    const int tick = sim.tickCount, atkT = db_.tuning.attackTicks;
-    // The hero wears what is equipped: helm, armour, boots and shield colour the sprite, the weapon is drawn in hand
-    // paper-doll layers: what is worn, over plain clothes (a dark coat and a hood when nothing better is on)
-    auto layersOf = [&](EquipSlot s, const char* none) {
-        const Item* it = sim.equipped(s);
-        std::string d = it ? db_.item(it->id).doll : std::string();
-        if (d.empty()) d = none;
+std::vector<std::string> WorldView::heroLayers(const Sim& sim) const {
+    auto layersOf = [&](EquipSlot s) {
         std::vector<std::string> out;
+        const Item* it = sim.equipped(s);
+        const std::string d = it ? db_.item(it->id).doll : std::string();
         for (size_t i = 0, j; i < d.size(); i = j + 1) {
             j = d.find('+', i);
             if (j == std::string::npos) j = d.size();
@@ -1040,42 +1109,70 @@ void WorldView::drawPlayer(Sim& sim) {
         }
         return out;
     };
-    std::vector<std::string> layers = {"base.human_male", "legs.pants_brown"};
-    const auto body = layersOf(EquipSlot::Armor, "body.coat_black");
-    for (const auto& l : body) if (l.rfind("legs.", 0) == 0) layers.push_back(l);
-    for (const auto& l : layersOf(EquipSlot::Boots, "boots.short_brown")) layers.push_back(l);
-    for (const auto& l : body) if (l.rfind("legs.", 0) != 0) layers.push_back(l);
-    layers.push_back("cloak.black");
-    layers.push_back("hair.brown_1");
-    for (const auto& l : layersOf(EquipSlot::Helm, "head.hood_gray")) layers.push_back(l);
-    for (const auto& l : layersOf(EquipSlot::Shield, "")) layers.push_back(l);
-    const CharSet& S = spr_.hero(layers);
+    const auto armor = layersOf(EquipSlot::Armor), helm = layersOf(EquipSlot::Helm), boots = layersOf(EquipSlot::Boots), shield = layersOf(EquipSlot::Shield);
+    auto has = [](const std::vector<std::string>& v, const char* p) {
+        for (const auto& l : v)
+            if (l.rfind(p, 0) == 0) return true;
+        return false;
+    };
+    // behind, body, legs, feet, chest, arms, shoulders, the cape over them, the head, the shield in front
+    std::vector<std::string> L = {"cape_bg", "body", "head"};
+    L.push_back(has(armor, "legs_") ? "legs_plate" : "pants");
+    if (boots.empty()) L.push_back("boots");
+    for (const auto& b : boots) L.push_back(b);
+    bool chest = false;
+    for (const auto& a : armor)
+        if (a.rfind("torso_", 0) == 0) L.push_back(a), chest = true;
+    if (!chest) L.push_back("shirt");
+    for (const auto& a : armor)
+        if (a == "arms_plate" || a == "pauldrons") L.push_back(a);
+    L.push_back("cape_fg");
+    if (helm.empty()) L.push_back("hood");
+    for (const auto& h : helm) L.push_back(h);
+    for (const auto& s : shield) L.push_back(s);
+    return L;
+}
+
+void WorldView::drawPlayer(Sim& sim) {
+    const Player& P = sim.P;
+    const int tick = sim.tickCount, atkT = db_.tuning.attackTicks;
+    const AnimalSet& K = spr_.knight(heroLayers(sim));
     const bool flip = P.face < 0;
     // a swing leans the hero into the blow
     const double swingP = P.atkT > 0 ? 1 - static_cast<double>(P.atkT) / atkT : 0, lunge = P.atkT > 0 ? 2.5 * std::sin(PI * swingP) : 0;
-    const double x = std::round(P.x + std::cos(P.swingA) * lunge) - 16;
-    double y = std::round(P.y + std::sin(P.swingA) * lunge * 0.6) - 30;
+    const double x = std::round(P.x + std::cos(P.swingA) * lunge) - 20;
+    double y = std::round(P.y + std::sin(P.swingA) * lunge * 0.6) - 39;
+    // the knight faces the way he walks, or the way the blade swings
+    const Dir facing = P.atkT > 0 ? snap4(std::cos(P.swingA), std::sin(P.swingA)) : P.dir;
+    const int row = animalRow(facing);
+    auto frames = [&](const char* name) -> const Frames& {
+        static const Frames none;
+        return K.anims.count(name) ? K.get(name)[row] : none;
+    };
     if (P.leapT > 0) {   // Leap Slam: high in an arc, a shadow on the ground below
         const double k = 1 - P.leapT / 22.0;
         g_.drawTinted(spr_.glow, std::round(P.x) - 12, std::round(P.y) - 4, 24, 8, Color(0, 0, 0, 120));
         y -= std::round(std::sin(PI * k) * 18);
     }
     if (sim.mode == Mode::Dead) {
-        const Frames& dead = S.get("dead");
-        g_.draw(dead[std::min(dead.size() - 1, static_cast<size_t>((tick - sim.deadAt) / 10))], x, y, flip);
+        const Frames& dead = frames("hurt");
+        if (!dead.empty()) g_.draw(dead[std::min(dead.size() - 1, static_cast<size_t>((tick - sim.deadAt) / 10))], x, y);
         return;
     }
     if (P.iframes > 0 && P.roll <= 0 && (tick >> 2) % 2 == 0) return;
-    const Sprite* img;
-    const bool side = P.dir == Dir::Left || P.dir == Dir::Right;
-    if (P.atkT > 0 && side) img = &progress(S.get("atk"), atkT, P.atkT);
-    else if (P.bowT > 0) img = &progress(S.get("thrust"), 10, P.bowT);
-    else if (!P.mount.empty()) img = &S.get("idle")[0];
-    else img = P.moving || P.roll > 0 ? &anim(S.get("walk"), P.animT, 7) : &anim(S.get("idle"), tick, 12);
+    const Frames& walk = frames("walk");
+    if (walk.empty()) return;
+    static Frames walking;   // the walk cycle without its standing frame
+    walking.assign(walk.begin() + std::min<size_t>(1, walk.size() - 1), walk.end());
+    const Sprite* img = &walk[0];
+    if (P.atkT > 0 && !frames("slash").empty()) img = &progress(frames("slash"), atkT, P.atkT);
+    else if (P.bowT > 0 && !frames("shoot").empty()) img = &progress(frames("shoot"), 10, P.bowT);
+    else if (!P.mount.empty()) img = &walk[0];
+    else if (P.moving || P.roll > 0) img = &anim(walking, P.animT, 5);
+    else if (!frames("idle").empty()) img = &anim(frames("idle"), tick, 30);
 
     for (const auto& t : P.trail) {   // white ghosts behind a dodge roll
-        const Sprite& ghost = S.get("walk")[0];
-        g_.drawTinted(ghost, std::round(t.x) - 16, std::round(t.y) - 30, 32, 32, Color(255, 255, 255, static_cast<uint8_t>(t.t / 10.0 * 0.5 * 255)), true, t.face < 0);
+        g_.drawTinted(walk[0], std::round(t.x) - 20, std::round(t.y) - 39, 40, 40, Color(255, 255, 255, static_cast<uint8_t>(t.t / 10.0 * 0.5 * 255)), true);
     }
     if (!P.mount.empty()) {   // riding: the animal under the hero
         const ItemDef& md = db_.item(P.mount);
@@ -1094,31 +1191,33 @@ void WorldView::drawPlayer(Sim& sim) {
             g_.draw(beast, std::round(P.x) - 20, std::round(P.y) - 34, 40, 40);
             y -= 9 + (P.moving ? (P.animT / 5) % 2 : 0);
         }
-    } else g_.fillRect(x + 11, y + 30, 10, 2, Color(0, 0, 0, 64));
+    } else g_.drawTinted(spr_.glow, std::round(P.x) - 8, std::round(P.y) - 3, 16, 6, Color(0, 0, 0, 120));
 
-    // The weapon: held low at the side, or swept through an arc (any direction) with a smear of light behind it
+    // The weapon: sheathed until it swings, then swept through an arc (any direction) with a smear of light behind it
     const Item* weapon = sim.equipped(EquipSlot::Weapon);
     const Sprite* blade = nullptr;
     if (weapon)
         if (auto rot = spr_.weaponRot.find(weapon->id); rot != spr_.weaponRot.end()) blade = &rot->second[0];   // pointing up
-    double bladeA = flip ? PI - 1.1 : 1.1, hx = x + (flip ? 9 : 23), hy = y + 21;   // at rest: held low in the sword hand
+    double bladeA = 0, hx = x + 20, hy = y + 28;
     const bool swinging = P.atkT > 0 && sim.mode != Mode::Dead;
+    if (!swinging) blade = nullptr;   // the knight's sword is sheathed between blows
+    (void)flip;
     double f = 0;
     if (swinging) {
         f = atkT - P.atkT;
         bladeA = P.swingA + P.swingSide * Sim::swingOffset(f);
-        hx = x + 16 + std::cos(bladeA) * 3;
-        hy = y + 22 + std::sin(bladeA) * 3;
+        hx = x + 20 + std::cos(bladeA) * 3;
+        hy = y + 28 + std::sin(bladeA) * 3;
     }
     if (!P.mount.empty() && !swinging) blade = nullptr;   // riding: the sword stays sheathed
     auto weaponPass = [&] {
         if (blade && *blade) {
             // weapon art is drawn for the bag; in the hand it is a little smaller
-            const double k = std::min(1.0, 17.0 / std::max(1, blade->h)), px = blade->w / 2.0, py = blade->h - 2.0;
+            const double k = std::min(1.0, 14.0 / std::max(1, blade->h)), px = blade->w / 2.0, py = blade->h - 2.0;
             g_.drawRotated(*blade, hx - px * k, hy - py * k, bladeA + PI / 2, px, py, k);
         }
         if (swinging && f >= 2 && f <= 11) {   // the smear: arcs trailing behind the edge, fading
-            const double R = blade ? std::max(10.0, std::min(17.0, blade->h - 2.0) + 2) : 9.0, cx = x + 16, cy = y + 22;
+            const double R = blade ? std::max(9.0, std::min(14.0, blade->h - 2.0) + 2) : 8.0, cx = x + 20, cy = y + 28;
             const double fade = f <= 8 ? 1 : 1 - (f - 8) / 4.0;
             const double start = P.swingA + P.swingSide * (-Sim::SWING_SPAN), trail = 1.3;
             double a0 = bladeA - P.swingSide * trail;
@@ -1131,9 +1230,9 @@ void WorldView::drawPlayer(Sim& sim) {
             }
         }
     };
-    const bool bladeBehind = std::sin(bladeA) < -0.25 || (!swinging && P.dir == Dir::Up);
+    const bool bladeBehind = std::sin(bladeA) < -0.25 || facing == Dir::Up;
     if (bladeBehind) weaponPass();
-    g_.draw(*img, x, y, flip);
+    g_.draw(*img, x, y);
     if (!bladeBehind) weaponPass();
 
     if (P.whirlT > 0) {   // whirlwind: an expanding ring of steel
@@ -1142,7 +1241,7 @@ void WorldView::drawPlayer(Sim& sim) {
         pixelArc(P.x, P.y - 6, 6 + k * (db_.tuning.whirlRadius - 10), tick * 0.9, tick * 0.9 + 2.2, Color(255, 236, 170));
     }
     if (P.recallT > 0) g_.drawTinted(spr_.glow, P.x - 18, P.y - 30, 36, 40, Color(140, 200, 255, static_cast<uint8_t>(120 + 80 * std::sin(tick * 0.3))), true);
-    if (P.mountCast > 0) g_.fillRect(x + 6, y - 4, 20.0 * (1 - static_cast<double>(P.mountCast) / db_.tuning.mountCastTicks), 2, Color(242, 210, 122));
+    if (P.mountCast > 0) g_.fillRect(x + 10, y + 12, 20.0 * (1 - static_cast<double>(P.mountCast) / db_.tuning.mountCastTicks), 2, Color(242, 210, 122));
     for (const auto& b : P.buffs)
         if (b.t > 0 && (b.t > 300 || (tick >> 3) % 2)) {
             const Color col = b.id == "frenzy" ? Color(255, 110, 80) : b.id == "protection" ? Color(200, 200, 215) : b.id == "swift" ? Color(140, 230, 255) : Color(255, 220, 110);
@@ -1290,10 +1389,11 @@ void WorldView::drawLighting(Sim& sim, Map& m, int zoom, double alpha, Color col
         else if (o.kind == ObjKind::Campfire) light(o.c * TILE + 8, o.r * TILE + 6, 110 + std::sin(tick * 0.15) * 5);
         else if (o.kind == ObjKind::Shrine && tick >= o.at) light(o.c * TILE + 8, o.r * TILE, 40);
         else if (o.kind == ObjKind::Waypoint) light(o.c * TILE + 8, o.r * TILE + 8, 44);
+        else if (o.kind == ObjKind::Travel) light(o.c * TILE + 8, o.r * TILE + 4, o.sprite == "portal" || o.sprite == "ritual" ? 56 : 36);
     }
     if (m.outdoor)   // town windows keep the streets lit at night
         for (const auto& t : db_.towns)
-            if (std::abs(t.at.c * TILE - sim.P.x) < 600 && std::abs(t.at.r * TILE - sim.P.y) < 500) light(t.at.c * TILE + 8, t.at.r * TILE + 8, t.radius * TILE * 0.9);
+            if (t.realm == m.id && std::abs(t.at.c * TILE - sim.P.x) < 600 && std::abs(t.at.r * TILE - sim.P.y) < 500) light(t.at.c * TILE + 8, t.at.r * TILE + 8, t.radius * TILE * 0.9);
     for (const auto& p : m.proj)
         if (p.kind == Projectile::Kind::Knife) light(p.x, p.y, 14);
     for (const auto& e : m.enemies) {

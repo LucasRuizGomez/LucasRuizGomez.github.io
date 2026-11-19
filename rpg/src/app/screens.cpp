@@ -200,62 +200,100 @@ void App::drawSign() {
     text("Close", X + W - 90 + kw + 8, Y + H - 21, pal::muted, 13, 0, Align::Left, Baseline::Middle);
 }
 
-// The whole realm, with fog over what you have not walked yet and marks for where your quests point.
+// The map you are on: by default only the region you stand in, drawn large; Tab shows the whole map. Fog over what
+// you have not walked yet, marks for towns, dungeons, the ways to other maps and where your quests point.
 void App::drawWorldMap() {
     Sim& sim = *sim_;
     dim(0.7);
-    Map& over = sim.overworld();
+    // which outdoor map: the one you are on, or the one a dungeon opens onto
+    std::string mapId = sim.map().outdoor ? sim.mapId : "over";
+    if (const DungeonDef* d = sim.map().dungeon) {
+        while (d && !d->under.empty()) d = db_.dungeon(d->under);
+        if (d) mapId = d->realm;
+    }
+    if (!sim.maps.count(mapId)) mapId = "over";
+    Map& over = sim.maps.at(mapId);
     const Sprite& mini = world_->minimap(sim, over);
+    // the region: its bounding box, a little padded
+    int zi = -1;
+    if (sim.map().outdoor) zi = over.zone[over.idx(std::clamp(ifloor(sim.P.x / TILE), 0, over.w - 1), std::clamp(ifloor(sim.P.y / TILE), 0, over.h - 1))];
+    else if (const ZoneDef* z = db_.zone(sim.zoneId)) zi = z->index;
+    int c0 = 0, r0 = 0, c1 = over.w - 1, r1 = over.h - 1;
+    if (!mapWhole_ && zi >= 0) {
+        c0 = over.w, r0 = over.h, c1 = 0, r1 = 0;
+        for (int r = 0; r < over.h; r++)
+            for (int c = 0; c < over.w; c++)
+                if (over.zone[over.idx(c, r)] == zi) {
+                    c0 = std::min(c0, c), c1 = std::max(c1, c);
+                    r0 = std::min(r0, r), r1 = std::max(r1, r);
+                }
+        c0 = std::max(0, c0 - 4), r0 = std::max(0, r0 - 4), c1 = std::min(over.w - 1, c1 + 4), r1 = std::min(over.h - 1, r1 + 4);
+        if (c1 < c0) c0 = 0, r0 = 0, c1 = over.w - 1, r1 = over.h - 1;
+    }
+    const int vw = c1 - c0 + 1, vh = r1 - r0 + 1;
     const double maxW = uiW() - 80, maxH = uiH() - 130;
-    const int k = std::max(1, static_cast<int>(std::floor(std::min(maxW * ui_ / over.w, maxH * ui_ / over.h))));
-    const double w = over.w * k / ui_, h = over.h * k / ui_, X = std::round((uiW() - w) / 2), Y = std::round((uiH() - h) / 2) + 14;
+    const double k = std::max(1.0, std::floor(std::min(maxW * ui_ / vw, maxH * ui_ / vh)));
+    const double w = vw * k / ui_, h = vh * k / ui_, X = std::round((uiW() - w) / 2), Y = std::round((uiH() - h) / 2) + 14;
     panel(X - 16, Y - 54, w + 32, h + 92);
-    text("The Realm", X, Y - 20, pal::text, 22, 1);
-    text(std::to_string(sim.zonesFound.size()) + " of " + std::to_string(db_.zones.size()) + " regions discovered", X + w, Y - 20, pal::faint, 13, 1, Align::Right);
+    const ZoneDef* here = zi >= 0 && zi < static_cast<int>(db_.zones.size()) ? &db_.zones[zi] : nullptr;
+    text(mapWhole_ || !here ? over.name : here->name, X, Y - 20, pal::text, 22, 1);
+    if (here && !mapWhole_) text("Levels " + std::to_string(here->levelMin) + " to " + std::to_string(here->levelMax), X + w, Y - 20, pal::muted, 13, 1, Align::Right);
     const int PX = static_cast<int>(std::lround(X * ui_)), PY = static_cast<int>(std::lround(Y * ui_));
     g_.setTransform(1);
-    g_.fillRect(PX, PY, over.w * k, over.h * k, Color(24, 20, 30));
-    g_.draw(mini, PX, PY, over.w * k, over.h * k);
+    g_.fillRect(PX, PY, vw * k, vh * k, Color(24, 20, 30));
+    g_.drawPart(mini, {c0, r0, vw, vh}, PX, PY, vw * k, vh * k);
+    if (!mapWhole_ && zi >= 0)   // other regions are shown, but in shadow
+        for (int r = r0; r <= r1; r++)
+            for (int c = c0; c <= c1; c++)
+                if (over.zone[over.idx(c, r)] != zi) g_.fillRect(PX + (c - c0) * k, PY + (r - r0) * k, k, k, Color(8, 6, 10, 170));
     g_.setTransform(ui_);
-    auto seen = [&](int c, int r) { return over.inside(c, r) && over.explored[over.idx(c, r)]; };
-    auto pos = [&](int c, int r) { return Vec2{X + c * k / ui_, Y + r * k / ui_}; };
+    auto seen = [&](int c, int r) { return over.inside(c, r) && over.explored[over.idx(c, r)] && c >= c0 && c <= c1 && r >= r0 && r <= r1; };
+    auto pos = [&](int c, int r) { return Vec2{X + (c - c0 + 0.5) * k / ui_, Y + (r - r0 + 0.5) * k / ui_}; };
 
-    for (const auto& z : db_.zones) {
-        if (!sim.zonesFound.count(z.id)) continue;
-        for (size_t i = 0; i < z.centers.size() && i < 1; i++) {
-            const Vec2 p = pos(z.centers[i].c, z.centers[i].r);
+    if (mapWhole_)
+        for (const auto& z : db_.zones) {
+            if (z.realm != mapId || !sim.zonesFound.count(z.id) || z.centers.empty()) continue;
+            const Vec2 p = pos(z.centers[0].c, z.centers[0].r);
             g_.setAlpha(0.75);
             shadowText(z.name, p.x, p.y - 34, pal::ltText, 15, 2, Align::Center);
             shadowText("Levels " + std::to_string(z.levelMin) + " to " + std::to_string(z.levelMax), p.x, p.y - 20, pal::ltMuted, 11, 1, Align::Center);
             g_.setAlpha(1);
         }
-    }
     for (const auto& t : db_.towns) {
-        if (!seen(t.at.c, t.at.r)) continue;
+        if (t.realm != mapId || !seen(t.at.c, t.at.r)) continue;
         const Vec2 p = pos(t.at.c, t.at.r);
         box(p.x - 5, p.y - 5, 10, 10, sim.waypoints.count(t.id) ? Color(120, 200, 255) : Color(214, 210, 200), pal::ink, 2);
         shadowText(t.name, p.x, p.y + 20, pal::ltGold, 13, 1, Align::Center);
     }
     for (const auto& d : db_.dungeons) {
-        if (!d.under.empty() || !seen(d.at.c, d.at.r)) continue;
+        if (d.realm != mapId || !d.under.empty() || !seen(d.at.c, d.at.r)) continue;
         const Vec2 p = pos(d.at.c, d.at.r);
         box(p.x - 4, p.y - 4, 8, 8, sim.bossesDefeated.count(d.id) ? Color(120, 120, 130) : Color(220, 130, 255), pal::ink, 2);
         shadowText(d.name, p.x, p.y - 8, Color(232, 200, 255), 12, 1, Align::Center);
     }
-    // Where active quests want you to go
+    for (const auto& o : over.objects) {   // the ways to other maps
+        if (o.kind != ObjKind::Travel || !seen(o.c, o.r)) continue;
+        const Vec2 p = pos(o.c, o.r);
+        const bool open = o.res.empty() || sim.bossesDefeated.count(o.res);
+        box(p.x - 4, p.y - 4, 8, 8, open ? Color(255, 170, 90) : Color(110, 90, 80), pal::ink, 2);
+        const RealmDef* r = db_.realm(o.id);
+        shadowText(r ? r->name : (o.id == "over" ? "The Realm" : o.id), p.x, p.y + 18, open ? Color(255, 200, 140) : pal::ltMuted, 11, 1, Align::Center);
+    }
+    // Where active quests want you to go (on this map)
     for (const QuestDef* q : sim.activeQuests()) {
         TilePos target{-1, -1};
+        std::string where = "over";
         if (sim.questReady(*q)) {
             if (const NpcDef* n = db_.npc(q->turnIn))
-                if (const TownDef* t = db_.town(n->town)) target = t->at;
+                if (const TownDef* t = db_.town(n->town)) target = t->at, where = t->realm;
         } else
             for (const auto& o : q->objectives) {
                 if (o.type == "visit")
-                    if (const TownDef* t = db_.town(o.target)) target = t->at;
+                    if (const TownDef* t = db_.town(o.target)) target = t->at, where = t->realm;
                 if (o.type == "boss")
-                    if (const DungeonDef* d = db_.dungeon(o.target)) target = d->at;
+                    if (const DungeonDef* d = db_.dungeon(o.target)) target = d->at, where = d->realm;
             }
-        if (target.c < 0) continue;
+        if (target.c < 0 || where != mapId || target.c < c0 || target.c > c1 || target.r < r0 || target.r > r1) continue;
         const Vec2 p = pos(target.c, target.r);
         const double pulse = 9 + 3 * std::sin(sim.tickCount * 0.1 + target.c);
         box(p.x - pulse, p.y - pulse, pulse * 2, pulse * 2, Color(0, 0, 0, 0), Color(255, 226, 60), 2);
@@ -268,12 +306,14 @@ void App::drawWorldMap() {
     } else if (sim.map().dungeon) {
         const DungeonDef* d = sim.map().dungeon;
         while (d && !d->under.empty()) d = db_.dungeon(d->under);
-        if (d) {
+        if (d && d->at.c >= c0 && d->at.c <= c1 && d->at.r >= r0 && d->at.r <= r1) {
             const Vec2 p = pos(d->at.c, d->at.r);
             box(p.x - 5, p.y - 5, 10, 10, Color(224, 80, 60), Color(255, 255, 255), 2);
         }
     }
-    text("Blue: waypoint town · Purple: dungeon · Yellow ring: quest · " + bindLabel("map") + " or Esc close", X + w / 2, Y + h + 22, pal::muted, 12, 0, Align::Center);
+    text(std::string(mapWhole_ ? "Tab: this region" : "Tab: the whole map") + " · Blue: waypoint · Purple: dungeon · Orange: the way to another land · " + bindLabel("map") +
+             " or Esc close",
+         X + w / 2, Y + h + 22, pal::muted, 12, 0, Align::Center);
     hit(0, 0, uiW(), uiH(), [this] { setMode(Mode::Play); });
 }
 

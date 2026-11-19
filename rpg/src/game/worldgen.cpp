@@ -13,9 +13,9 @@ const ZoneDef& zoneAt(const Database& db, const Map& over, int c, int r) {
     return db.zones[over.zone.empty() ? 0 : over.zone[over.idx(c, r)]];
 }
 
-const TownDef* townAt(const Database& db, int c, int r, int margin) {
+const TownDef* townAt(const Database& db, int c, int r, int margin, const std::string& realm) {
     for (const auto& t : db.towns)
-        if (hypot2(c - t.at.c, r - t.at.r) <= t.radius + margin) return &t;
+        if (t.realm == realm && hypot2(c - t.at.c, r - t.at.r) <= t.radius + margin) return &t;
     return nullptr;
 }
 
@@ -37,10 +37,27 @@ struct OverworldGen {
     std::vector<TilePos> poiSpots;
     int chestCount = 0;
 
-    explicit OverworldGen(const Database& d)
-        : db(d), m(makeMap("over", d.tuning.worldW, d.tuning.worldH, GRASS)), rnd(d.tuning.worldSeed), W(d.tuning.worldW), H(d.tuning.worldH),
-          S(static_cast<int>(d.tuning.worldSeed)) {
-        m.name = "The Realm";
+    // One outdoor map: the main one ("over"), or a realm of its own (realms in world.json)
+    std::string realm;
+    const RealmDef* rd = nullptr;
+    std::vector<TownDef> towns;         // the towns, dungeons and regions on this map only
+    std::vector<DungeonDef> dungeons;
+    static int sizeOf(const Database& d, const std::string& id, bool w) {
+        const RealmDef* r = d.realm(id);
+        return r ? (w ? r->w : r->h) : (w ? d.tuning.worldW : d.tuning.worldH);
+    }
+    static uint32_t seedOf(const Database& d, const std::string& id) {
+        const RealmDef* r = d.realm(id);
+        return r ? r->seed : d.tuning.worldSeed;
+    }
+    OverworldGen(const Database& d, const std::string& id)
+        : db(d), m(makeMap(id, sizeOf(d, id, true), sizeOf(d, id, false), GRASS)), rnd(seedOf(d, id)), W(sizeOf(d, id, true)), H(sizeOf(d, id, false)),
+          S(static_cast<int>(seedOf(d, id))), realm(id), rd(d.realm(id)) {
+        m.name = rd ? rd->name : "The Realm";
+        for (const auto& t : d.towns)
+            if (t.realm == id) towns.push_back(t);
+        for (const auto& dd : d.dungeons)
+            if (dd.realm == id) dungeons.push_back(dd);
         m.outdoor = true;
         m.zone.assign(static_cast<size_t>(W) * H, 0);
         m.explored.assign(static_cast<size_t>(W) * H, 0);
@@ -126,6 +143,7 @@ struct OverworldGen {
                 int bi = 0;
                 for (const auto& z : db.zones)
                     for (const auto& ctr : z.centers) {
+                        if (z.realm != realm) break;
                         const double d = (wx - ctr.c) * (wx - ctr.c) + (wy - ctr.r) * (wy - ctr.r);
                         if (d < best) {
                             best = d;
@@ -142,12 +160,18 @@ struct OverworldGen {
                 if (wv < z.water) t = WATER;
                 else if (fv > z.trees) t = TREE;
                 if (rv > z.rocks && t != WATER) t = ROCK;
-                if (r > H - 7 - fbm(c / 12.0, 0.5, S + 4) * 9) t = WATER;   // the southern sea
+                if (!rd && r > H - 7 - fbm(c / 12.0, 0.5, S + 4) * 9) t = WATER;   // the southern sea
+                if (rd && rd->shape == "island") {   // the sea closes in on every side
+                    const double ex = (c - W / 2.0) / (W * 0.44), ey = (r - H / 2.0) / (H * 0.42);
+                    if (ex * ex + ey * ey > 0.75 + (fbm(c / 10.0, r / 10.0, S + 5) - 0.5) * 0.5) t = WATER;
+                }
                 m.set(c, r, t);
             }
-        river(100, 40, H - 1, 90, 112);
-        river(184, 0, 100, 174, 192);
-        if (W > 300) river(312, 0, H - 1, 300, 326);   // the black river that bounds the far east
+        if (!rd) {
+            river(100, 40, H - 1, 90, 112);
+            river(184, 0, 100, 174, 192);
+        } else if (rd->shape != "island")
+            river(W / 2 + static_cast<int>(rnd.range(20)) - 10, 0, H - 1, W / 2 - 22, W / 2 + 22);
         for (int r = 0; r < H; r++)
             for (int c = 0; c < W; c++)
                 if (c < 2 || r < 2 || c >= W - 2 || r >= H - 2) m.set(c, r, TREE);
@@ -288,15 +312,15 @@ struct OverworldGen {
     }
 
     void townSigns() {
-        for (const auto& t : db.towns) {
+        for (const auto& t : towns) {
             std::string text = t.name + ".";
             std::vector<std::pair<double, const TownDef*>> others;
-            for (const auto& o : db.towns)
+            for (const auto& o : towns)
                 if (o.id != t.id) others.push_back({hypot2(o.at.c - t.at.c, o.at.r - t.at.r), &o});
             std::sort(others.begin(), others.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
             for (size_t i = 0; i < std::min<size_t>(3, others.size()); i++)
                 text += std::string(" ") + others[i].second->name + ": " + compass(others[i].second->at.c - t.at.c, others[i].second->at.r - t.at.r) + ".";
-            for (const auto& d : db.dungeons)
+            for (const auto& d : dungeons)
                 if (d.under.empty() && hypot2(d.at.c - t.at.c, d.at.r - t.at.r) < 70) text += " " + d.name + ": " + compass(d.at.c - t.at.c, d.at.r - t.at.r) + ".";
             const int pw = t.houses >= 3 ? 5 : 4, ph = t.houses >= 3 ? 3 : 2;
             for (int k = 0; k < 6; k++) {
@@ -342,7 +366,7 @@ struct OverworldGen {
     void dressing() {
         for (int r = 1; r < H - 1; r++)
             for (int c = 1; c < W - 1; c++) {
-                if (m.get(c, r) != GRASS || townAt(db, c, r, 0)) continue;
+                if (m.get(c, r) != GRASS || townAt(db, c, r, 0, realm)) continue;
                 const ZoneDef& z = zone(c, r);
                 bool nearWater = false;
                 const int reach = z.sandy ? 2 : 1;
@@ -364,9 +388,9 @@ struct OverworldGen {
             bool town;
         };
         std::vector<Node> nodes;
-        for (const auto& t : db.towns) nodes.push_back({{t.at.c, t.at.r + (t.houses >= 3 ? 4 : 3)}, true});
+        for (const auto& t : towns) nodes.push_back({{t.at.c, t.at.r + (t.houses >= 3 ? 4 : 3)}, true});
         const size_t towns = nodes.size();
-        for (const auto& d : db.dungeons)
+        for (const auto& d : dungeons)
             if (d.under.empty()) nodes.push_back({{d.at.c, d.at.r + 1}, false});
         std::set<std::pair<size_t, size_t>> edges;
         auto nearestTowns = [&](size_t i, size_t n) {
@@ -393,7 +417,7 @@ struct OverworldGen {
                 const uint8_t t = m.get(p.c, p.r);
                 if (t == PLAZA || t == COBBLE || t == STAIRS_DOWN || t == BRIDGE) continue;
                 if (t == WATER) m.set(p.c, p.r, BRIDGE);
-                else m.set(p.c, p.r, townAt(db, p.c, p.r, -1) ? COBBLE : PATH);
+                else m.set(p.c, p.r, townAt(db, p.c, p.r, -1, realm) ? COBBLE : PATH);
             }
         }
         // Fences give way where a road passes
@@ -423,7 +447,7 @@ struct OverworldGen {
             for (int c = 0; c < W; c++) {
                 const uint8_t t = m.get(c, r);
                 const bool feature = !(isGround(t) || t == TREE || t == ROCK) || m.block[m.idx(c, r)];
-                if (c < 5 || r < 5 || c >= W - 5 || r >= H - 6 || townAt(db, c, r, 7)) keep[m.idx(c, r)] = 1;
+                if (c < 5 || r < 5 || c >= W - 5 || r >= H - 6 || townAt(db, c, r, 7, realm)) keep[m.idx(c, r)] = 1;
                 if (!feature) continue;
                 for (int dr = -3; dr <= 4; dr++)
                     for (int dc = -3; dc <= 3; dc++)
@@ -546,9 +570,9 @@ struct OverworldGen {
     bool poiSpot(TilePos& out, int clear) {
         for (int tries = 0; tries < 400; tries++) {
             const int c = 6 + rnd.range(W - 12), r = 6 + rnd.range(H - 18);
-            if (townAt(db, c, r, 10)) continue;
+            if (townAt(db, c, r, 10, realm)) continue;
             bool ok = true;
-            for (const auto& d : db.dungeons)
+            for (const auto& d : dungeons)
                 if (d.under.empty() && hypot2(c - d.at.c, r - d.at.r) < 10) ok = false;
             for (const auto& p : poiSpots)
                 if (hypot2(c - p.c, r - p.r) < 13) ok = false;
@@ -705,7 +729,7 @@ struct OverworldGen {
         int placed = 0;
         for (int tries = 0; tries < 60000 && placed < 520; tries++) {
             const int c = 3 + rnd.range(W - 6), r = 3 + rnd.range(H - 6);
-            if (!isGround(m.get(c, r)) || m.objectAt(c, r) || m.block[m.idx(c, r)] || covered(c, r) || townAt(db, c, r, 2)) continue;
+            if (!isGround(m.get(c, r)) || m.objectAt(c, r) || m.block[m.idx(c, r)] || covered(c, r) || townAt(db, c, r, 2, realm)) continue;
             const ZoneDef& z = zone(c, r);
             double total = 0;
             for (const auto& [id, w] : z.nodes) total += w;
@@ -724,12 +748,49 @@ struct OverworldGen {
     }
 
     // ── 8. make sure nothing important is walled in, then place monsters ──
+    // ── 8b. the ways to other maps: a carriage, a bone portal, a ferry, a ritual circle, a lift ──
+    void travels() {
+        auto place = [&](TilePos at, const std::string& dest, const std::string& kind, const std::string& needs, const std::string& label) {
+            for (int rad = 0; rad < 8; rad++)
+                for (int dr = -rad; dr <= rad; dr++)
+                    for (int dc = -rad; dc <= rad; dc++) {
+                        const int c = at.c + dc, r = at.r + dr;
+                        if (!m.tileFree(c, r, false) || !m.tileFree(c, r + 1, false) || m.objectAt(c, r)) continue;
+                        Object o;
+                        o.kind = ObjKind::Travel;
+                        o.c = c;
+                        o.r = r;
+                        o.solid = true;
+                        o.id = dest;
+                        o.sprite = kind;
+                        o.res = needs;
+                        o.text = label;
+                        m.addObject(std::move(o));
+                        return TilePos{c, r};
+                    }
+            return at;
+        };
+        for (const auto& r : db.realms) {
+            if (r.travelFrom != realm) continue;
+            for (const auto& t : towns)
+                if (t.id == r.travelTown) {
+                    const TilePos at = place({t.at.c + t.radius - 3, t.at.r + 3}, r.id, r.travelKind, r.needs, r.label);
+                    ensureReach(m, m.start, at.c, at.r + 1);
+                }
+        }
+        if (rd) {   // the way home stands where you arrive
+            m.start = rd->arrive;
+            disk(rd->arrive.c, rd->arrive.r, 4.5, GRASS);
+            place({rd->arrive.c, rd->arrive.r - 2}, rd->travelFrom, rd->travelKind, "", "Return");
+        }
+    }
+
     void connectivity() {
         const TilePos from = m.start;
         m.set(from.c, from.r, m.get(from.c, from.r) == PLAZA ? PLAZA : GRASS);
         std::vector<uint8_t> mask = reachMask(m, from.c, from.r);
-        for (const auto& t : db.towns) ensureReach(m, from, t.at.c, t.at.r + 3, &mask);
-        for (const auto& d : db.dungeons)
+        for (const auto& t : towns) ensureReach(m, from, t.at.c, t.at.r + 3, &mask);
+        for (const auto& d : dungeons)
             if (d.under.empty()) ensureReach(m, from, d.at.c, d.at.r + 1, &mask);
         // high ground: every stretch of it (woods on a plateau can wall pockets off) gets a way in
         for (const auto& p : highGround) ensureReach(m, from, p.c, p.r, &mask);
@@ -755,7 +816,7 @@ struct OverworldGen {
             if (gb.empty()) return ga;
             const DungeonDef* da = nullptr;
             const DungeonDef* dbb = nullptr;
-            for (const auto& d : db.dungeons) {
+            for (const auto& d : dungeons) {
                 if (d.id == ga) da = &d;
                 if (d.id == gb) dbb = &d;
             }
@@ -837,8 +898,8 @@ struct OverworldGen {
         gatesOpen(true);
         std::vector<uint8_t> mask = reachMask(m, m.start.c, m.start.r);
         std::vector<TilePos> targets;
-        for (const auto& t : db.towns) targets.push_back({t.at.c, t.at.r + 3});
-        for (const auto& d : db.dungeons)
+        for (const auto& t : towns) targets.push_back({t.at.c, t.at.r + 3});
+        for (const auto& d : dungeons)
             if (d.under.empty()) targets.push_back({d.at.c, d.at.r + 1});
         for (const auto& o : m.objects)
             if (o.kind == ObjKind::Chest || o.kind == ObjKind::Shrine) targets.push_back({o.c, o.r});
@@ -904,7 +965,7 @@ struct OverworldGen {
             for (int tries = 0; tries < target * 400 && placed < target; tries++) {
                 const int c = 3 + rnd.range(W - 6), r = 3 + rnd.range(H - 6);
                 if (m.zone[m.idx(c, r)] != z.index || !m.reach[m.idx(c, r)] || !isGround(m.get(c, r)) || m.block[m.idx(c, r)]) continue;
-                if (townAt(db, c, r, 9)) continue;
+                if (townAt(db, c, r, 9, realm)) continue;
                 double roll = rnd.next() * total;
                 std::string id = z.spawns.front().first;
                 for (const auto& [eid, w] : z.spawns) {
@@ -950,8 +1011,8 @@ struct OverworldGen {
 
     Map run() {
         terrain();
-        for (const auto& t : db.towns) buildTown(t);
-        for (const auto& d : db.dungeons)
+        for (const auto& t : towns) buildTown(t);
+        for (const auto& d : dungeons)
             if (d.under.empty()) buildEntrance(d);
         dressing();
         roads();
@@ -959,6 +1020,7 @@ struct OverworldGen {
         pois();
         plateaus();
         nodes();
+        travels();
         connectivity();
         borders();
         spawns();
@@ -1037,7 +1099,7 @@ Map buildCrypt(const DungeonDef& def) {
     knight.text = "A fallen knight. His journal reads: \"The King's gate is sealed. The key is kept in the east wing.\"";
     m.addObject(std::move(knight));
     m.bossRoom = BOSS;
-    m.links.push_back({32, 44, "over", def.at.c, def.at.r + 1, Dir::Down});
+    m.links.push_back({32, 44, def.realm, def.at.c, def.at.r + 1, Dir::Down});
     m.links.push_back({32, 3, "vaults", -1, -1, Dir::Down});
     m.explored.assign(static_cast<size_t>(m.w) * m.h, 0);
     return m;
@@ -1099,7 +1161,7 @@ Map buildGenerated(const Database& db, const DungeonDef& def) {
     const TilePos s = chain.front().center();
     m.set(s.c, s.r, STAIRS_UP);
     m.start = {s.c, s.r + 1};
-    if (def.under.empty()) m.links.push_back({s.c, s.r, "over", def.at.c, def.at.r + 1, Dir::Down});
+    if (def.under.empty()) m.links.push_back({s.c, s.r, def.realm, def.at.c, def.at.r + 1, Dir::Down});
     else m.links.push_back({s.c, s.r, def.under, 32, 5, Dir::Down});
 
     for (const Room& R : chain)
@@ -1152,7 +1214,8 @@ Map buildGenerated(const Database& db, const DungeonDef& def) {
 
 }   // namespace
 
-Map generateOverworld(const Database& db) { return OverworldGen(db).run(); }
+Map generateOverworld(const Database& db) { return OverworldGen(db, "over").run(); }
+Map generateRealm(const Database& db, const std::string& id) { return OverworldGen(db, id).run(); }
 
 Map generateDungeon(const Database& db, const DungeonDef& def, const Map&) { return def.kind == "crypt" ? buildCrypt(def) : buildGenerated(db, def); }
 

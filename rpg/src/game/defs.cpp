@@ -143,6 +143,7 @@ Database Database::load(const std::string& dir) {
             d.mountSpeed = e.value("mountSpeed", 1.0);
             d.mountTint = e.value("mountTint", "");
             d.doll = e.value("doll", "");
+            d.realm = e.value("realm", "");
             d.mountFly = e.value("mountFly", false);
             db.itemIndex_[d.id] = db.items.size();
             db.items.push_back(std::move(d));
@@ -281,6 +282,7 @@ Database Database::load(const std::string& dir) {
             z.flowers = e.at("flowers");
             z.tree = e.at("tree");
             z.gate = e.value("gate", "");
+            z.realm = e.value("realm", "over");
             z.sandy = e.value("sandy", false);
             z.snow = e.value("snow", false);
             z.ground = hex(e.at("ground"));
@@ -345,6 +347,7 @@ Database Database::load(const std::string& dir) {
             t.houses = e.value("houses", 2);
             t.stalls = e.value("stalls", 0);
             t.zone = e.at("zone");
+            t.realm = e.value("realm", "over");
             t.music = e.at("music");
             for (const auto& f : e.at("features")) t.features.push_back(f);
             for (const auto& n : e.at("npcs")) {
@@ -408,12 +411,31 @@ Database Database::load(const std::string& dir) {
             db.buildings.push_back(std::move(d));
         }
         for (auto& t : db.towns) t.houses = static_cast<int>(t.buildings.size());
+        for (const auto& e : j.value("realms", json::array())) {
+            RealmDef r;
+            r.id = e.at("id");
+            r.name = e.at("name");
+            r.w = e.at("size")[0];
+            r.h = e.at("size")[1];
+            r.seed = e.value("seed", 1u);
+            r.shape = e.value("shape", "land");
+            r.needs = e.value("requires", "");
+            r.arrive = {e.at("arrive")[0], e.at("arrive")[1]};
+            const json& t = e.at("travel");
+            r.travelKind = t.at("kind");
+            r.travelFrom = t.value("from", "over");
+            r.travelTown = t.at("town");
+            r.label = t.value("label", "Travel");
+            r.locked = t.value("locked", "The way is shut.");
+            db.realms.push_back(r);
+        }
         for (const auto& e : j.at("dungeons")) {
             DungeonDef d;
             d.id = e.at("id");
             d.name = e.at("name");
             d.kind = e.at("kind");
             d.under = e.value("under", "");
+            d.realm = e.value("realm", "over");
             d.entrance = e.value("entrance", "door");
             if (e.contains("at")) d.at = parsePos(e.at("at"));
             d.level = e.at("level");

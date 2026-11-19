@@ -25,7 +25,8 @@ struct ItemDef {
     int level = 1, value = 0;
     bool unique = false;
     std::string mountSprite, mountTint;
-    std::string doll;                   // worn gear: paper-doll layers on the hero (assets/dcss/doll), joined by '+'
+    std::string doll;                   // worn gear: knight layers on the hero (assets/lpc), joined by '+'
+    std::string realm;                  // gear found only on that map (empty = anywhere)
     double mountSpeed = 1;
     bool mountFly = false;              // a flying mount crosses water, forests and rocks
     bool isGear() const {
@@ -104,6 +105,7 @@ struct EliteDef {
 struct ZoneDef {
     std::string id, name, tree, music;
     std::string gate;   // dungeon whose boss opens the way in (empty = open from the start)
+    std::string realm = "over";   // the map it lies on
     int index = 0, levelMin = 1, levelMax = 1;
     std::vector<TilePos> centers;
     double water = 0.25, trees = 0.6, rocks = 0.9, flowers = 0.04, density = 10;
@@ -153,8 +155,16 @@ struct BuildingDef {
     std::vector<std::string> npcs;     // ids of the people inside
 };
 
+// A map of its own beyond the main one, reached once a boss has fallen, by carriage, portal, ferry, ritual or lift.
+struct RealmDef {
+    std::string id, name, shape = "land", needs, travelKind, travelFrom = "over", travelTown, label, locked;
+    int w = 160, h = 120;
+    uint32_t seed = 1;
+    TilePos arrive;
+};
+
 struct TownDef {
-    std::string id, name, zone, music;
+    std::string id, name, zone, music, realm = "over";
     TilePos at;
     int radius = 10, houses = 2, stalls = 0;
     std::vector<std::string> features;
@@ -164,7 +174,7 @@ struct TownDef {
 };
 
 struct DungeonDef {
-    std::string id, name, kind, entrance, under, music, boss, tint;
+    std::string id, name, kind, entrance, under, music, boss, tint, realm = "over";
     TilePos at;
     int level = 1, w = 60, h = 46, rooms = 8, traps = 0;
     uint32_t seed = 1;
@@ -279,6 +289,12 @@ class Database {
     std::vector<ZoneDef> zones;
     std::vector<TownDef> towns;
     std::vector<DungeonDef> dungeons;
+    std::vector<RealmDef> realms;
+    const RealmDef* realm(const std::string& id) const {
+        for (const auto& r : realms)
+            if (r.id == id) return &r;
+        return nullptr;
+    }
     std::vector<QuestDef> quests;
     std::vector<ActionDef> actions;
     std::vector<BranchDef> branches;

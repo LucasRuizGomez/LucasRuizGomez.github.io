@@ -5,6 +5,7 @@
 #include "game/sim.h"
 
 #include <cmath>
+#include <set>
 
 using namespace hc;
 
@@ -47,9 +48,9 @@ TEST_CASE("config loads and cross-references resolve") {
     const Database& db = database();
     CHECK(db.items.size() > 30);
     CHECK(db.enemies.size() > 25);
-    CHECK(db.zones.size() == 10);
+    CHECK(db.zones.size() == 11);
     CHECK(db.towns.size() == 7);
-    CHECK(db.dungeons.size() == 11);
+    CHECK(db.dungeons.size() == 12);
     CHECK(db.quests.size() >= 20);
     CHECK(db.enemy("wolf").look == Look::Static);   // inherited from its base
     CHECK(db.enemy("wolf").hp > db.enemy("fox").hp);   // "base" copies, the variant overrides
@@ -98,9 +99,10 @@ TEST_CASE("overworld: towns, dungeons and chests are reachable from the start") 
                 if (over.inside(c + dc, r + dr) && mask[over.idx(c + dc, r + dr)]) return true;
         return false;
     };
-    for (const auto& t : db.towns) CHECK_MESSAGE(near(t.at.c, t.at.r + 3), "town not reachable: " << t.id);
+    for (const auto& t : db.towns)
+        if (t.realm == "over") CHECK_MESSAGE(near(t.at.c, t.at.r + 3), "town not reachable: " << t.id);
     for (const auto& d : db.dungeons)
-        if (d.under.empty()) {
+        if (d.under.empty() && d.realm == "over") {
             CHECK_MESSAGE(near(d.at.c, d.at.r + 1), "dungeon not reachable: " << d.id);
             CHECK(over.get(d.at.c, d.at.r) == STAIRS_DOWN);
         }
@@ -116,7 +118,8 @@ TEST_CASE("overworld: towns, dungeons and chests are reachable from the start") 
     CHECK(chests > 20);
     CHECK(shrines >= 6);
     size_t wantNpcs = 0;
-    for (const auto& t : db.towns) wantNpcs += t.npcs.size();
+    for (const auto& t : db.towns)
+        if (t.realm == "over") wantNpcs += t.npcs.size();
     CHECK(npcs == wantNpcs);
     CHECK(over.spawns.size() > 150);
     // Same seed, same world
@@ -771,4 +774,61 @@ TEST_CASE("regions: walled off, and their gates open as the bosses fall") {
     REQUIRE(other.loadGame(sim.saveGame()));
     for (const auto& o : other.maps.at("over").objects)
         if (o.kind == ObjKind::Gate && o.id == "zone_gate" && o.res == "cellar") CHECK(o.gone);
+}
+
+TEST_CASE("realms: five maps of their own, each reached its own way once a boss falls") {
+    const Database& db = database();
+    REQUIRE(db.realms.size() == 5);
+    Sim sim = freshGame();
+    std::set<std::string> kinds;
+    for (const auto& r : db.realms) {
+        REQUIRE_MESSAGE(sim.maps.count(r.id), r.id);
+        const Map& m = sim.maps.at(r.id);
+        CHECK(m.outdoor);
+        kinds.insert(r.travelKind);
+        // the way there stands on the map it leaves from, and the way back where you arrive
+        const Map& from = sim.maps.at(r.travelFrom);
+        const Object* there = nullptr;
+        for (const auto& o : from.objects)
+            if (o.kind == ObjKind::Travel && o.id == r.id) there = &o;
+        REQUIRE_MESSAGE(there, "no way to " << r.id);
+        CHECK(there->res == r.needs);
+        bool back = false;
+        for (const auto& o : m.objects) back |= o.kind == ObjKind::Travel && o.id == r.travelFrom;
+        CHECK_MESSAGE(back, "no way back from " << r.id);
+        // its dungeons and towns can be walked to from where you arrive
+        const auto mask = reachMask(m, m.start.c, m.start.r);
+        auto near = [&](int c, int rr) {
+            for (int dr = -1; dr <= 1; dr++)
+                for (int dc = -1; dc <= 1; dc++)
+                    if (m.inside(c + dc, rr + dr) && mask[m.idx(c + dc, rr + dr)]) return true;
+            return false;
+        };
+        for (const auto& d : db.dungeons)
+            if (d.realm == r.id) CHECK_MESSAGE(near(d.at.c, d.at.r + 1), "dungeon not reachable: " << d.id);
+        for (const auto& t : db.towns)
+            if (t.realm == r.id) CHECK_MESSAGE(near(t.at.c, t.at.r + 3), "town not reachable: " << t.id);
+    }
+    CHECK(kinds.size() == 5);   // carriage, portal, ferry, ritual, lift
+    // the carriage will not leave while the Hollow King lives; once he falls, it does
+    const RealmDef& first = db.realms.front();
+    const Object* coach = nullptr;
+    for (const auto& o : sim.maps.at(first.travelFrom).objects)
+        if (o.kind == ObjKind::Travel && o.id == first.id) coach = &o;
+    REQUIRE(coach);
+    sim.useTravel(*coach);
+    run(sim, 120);
+    CHECK(sim.mapId == "over");
+    sim.bossesDefeated.insert(first.needs);
+    sim.useTravel(*coach);
+    run(sim, 120);
+    CHECK(sim.mapId == first.id);
+}
+
+TEST_CASE("loot: a map's own gear only drops on that map") {
+    Sim sim = freshGame();
+    for (int i = 0; i < 400; i++) {
+        const Item it = sim.randomGear(90, 0);
+        CHECK(sim.db.item(it.id).realm.empty());
+    }
 }

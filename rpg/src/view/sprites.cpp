@@ -258,6 +258,19 @@ void Sprites::build(Gfx& g, const Database& db, const std::string& root) {
                 const json& at = s.at(key).at("at");
                 base = sheet(at.at(0).get<std::string>()).crop(at.at(1), at.at(2), at.at(3), at.at(4)).trim();
                 if (s.at(key).contains("shade")) base = base.shade(hex(s.at(key).at("shade").get<std::string>()));
+                if (s.at(key).value("diag", false)) {   // turn a quarter of a right angle anticlockwise, blade up
+                    const int n = static_cast<int>(std::ceil(std::hypot(base.w, base.h)));
+                    Image up(n, n);
+                    const double c = std::cos(PI / 4), sn = std::sin(PI / 4), cx = base.w / 2.0, cy = base.h / 2.0;
+                    for (int y = 0; y < n; y++)
+                        for (int x = 0; x < n; x++) {
+                            const double dx = x + 0.5 - n / 2.0, dy = y + 0.5 - n / 2.0;
+                            const int sx = static_cast<int>(std::floor(c * dx - sn * dy + cx)), sy = static_cast<int>(std::floor(sn * dx + c * dy + cy));
+                            if (sx < 0 || sy < 0 || sx >= base.w || sy >= base.h) continue;
+                            std::copy(base.at(sx, sy), base.at(sx, sy) + 4, up.at(x, y));
+                        }
+                    base = up.trim();
+                }
             }
         }
         if (base.empty()) continue;
@@ -420,6 +433,27 @@ const CharSet& Sprites::hero(const std::vector<std::string>& layers) {
     }
     set.anims["dead"] = dead;
     return chars_[key] = std::move(set);
+}
+
+const AnimalSet& Sprites::knight(const std::vector<std::string>& layers) {
+    std::string key = "knight";
+    for (const auto& l : layers) key += "|" + l;
+    if (auto it = animals_.find(key); it != animals_.end()) return it->second;
+    AnimalSet set;
+    for (const char* anim : {"walk", "slash", "hurt", "idle", "shoot"}) {
+        Image sheet;
+        for (const auto& l : layers) {
+            const Image part = Image::load(root_ + "assets/lpc/" + l + "." + anim + ".png");
+            if (part.empty()) continue;
+            if (sheet.empty()) sheet = Image(part.w, part.h);
+            if (part.w == sheet.w && part.h == sheet.h) sheet.blit(part, 0, 0);
+        }
+        if (sheet.empty()) continue;
+        std::array<Frames, 4> rows;
+        for (int r = 0; r < 4; r++) rows[r] = strip(sheet, 40, 40, r);
+        set.anims[anim] = std::move(rows);
+    }
+    return animals_[key] = std::move(set);
 }
 
 const Sprite& Sprites::monster(const std::string& name, const std::string& tint) {

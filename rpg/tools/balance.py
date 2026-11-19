@@ -62,8 +62,10 @@ def main():
     def weapon(m):
         line = m.group(0)
         level = int(re.search(r'"level": (\d+)', line).group(1))
-        return re.sub(r'"dmg": \d+', '"dmg": %d' % round(2 + 0.12 * level), line, count=1)
-    text = re.sub(r'\{ "id": "\w+",[^\n]*"type": "weapon"[^\n]*', weapon, text)
+        cd = int(re.search(r'"cd": (\d+)', line).group(1)) if '"cd"' in line else 20
+        # slower weapons hit harder, so damage over time stays even across a level
+        return re.sub(r'"dmg": \d+', '"dmg": %d' % max(1, round((2 + 0.12 * level) * cd / 20)), line, count=1)
+    text = re.sub(r'\{ ?"id": "\w+",[^\n]*"type": "weapon"[^\n]*', weapon, text)
     open(path, 'w', encoding='utf-8', newline='').write(text)
 
 if __name__ == '__main__':
