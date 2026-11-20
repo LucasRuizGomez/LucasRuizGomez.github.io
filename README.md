@@ -14,6 +14,7 @@ Tools I build because I needed them and couldn't find a good free version. Every
 | [**NoteRead**](https://lukeda.me/noteread/) | Sight-reading trainer. A note appears on the staff and you name it as fast as you can. Tracks accuracy, streaks and reaction time. | JavaScript, SVG, Web Audio API |
 | [**My Little Board**](https://lukeda.me/positwebsite/) | Sticky-note board. Click anywhere to add a note, drag to move, scroll to rotate, and keep a checklist on each note. | JavaScript, `localStorage` |
 | [**Hollow Crypt**](https://lukeda.me/rpg/) | Open-world action RPG: six regions, towns, dungeons, quests, crafting and loot. Source in [`rpg/`](rpg/). | C++, SDL2, WebAssembly |
+| [**Wortschatz**](https://lukeda.me/wordlist/) | My flashcards for the C1 German exam: spaced repetition, cards written by Claude from a word list, and progress synced between devices. Single user, so it needs a sign-in. Details in [`wordlist/`](wordlist/README.md). | JavaScript, Supabase, Claude API, PWA |
 
 ## Screenshots
 
@@ -24,11 +25,13 @@ Tools I build because I needed them and couldn't find a good free version. Every
 | ![NoteRead](docs/noteread.png) | ![My Little Board](docs/board.png) |
 | **AudioSend** | **Hollow Crypt** |
 | ![AudioSend](docs/audiosend.png) | ![Hollow Crypt](docs/rpg.png) |
+| **Wortschatz** | |
+| ![Wortschatz](docs/wordlist.png) | |
 
 ## How it's built
 
 - **No frameworks.** Each tool is a self-contained HTML page with vanilla JavaScript and CSS, served by GitHub Pages under a custom domain.
-- **Local first.** Tools process files and store data in the browser. Nothing is uploaded, and there's no account system.
+- **Local first.** Tools process files and store data in the browser. Nothing is uploaded, and there's no account system. The exception is Wortschatz, my own study app, which syncs through Supabase and needs a sign-in.
 - **Tested.** Each tool has a `tests.html` page with its own test suite. Open it in the browser to run the tests.
 - **One design system.** Every tool shares the same retro terminal layout, with its own colour palette.
 

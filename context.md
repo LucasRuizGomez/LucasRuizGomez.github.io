@@ -26,6 +26,9 @@ noteread/
   index.html            ← NoteRead music sight-reading trainer
   tests.html            ← Test suite
   context.md            ← NoteRead-specific context and spec
+wordlist/
+  index.html            ← Wortschatz flashcards (PWA, Supabase sync) — see wordlist/README.md
+  tests.html            ← Test suite
 context.md              ← This file
 prompts/base_prompt.md
 ```
@@ -125,6 +128,16 @@ Clean dark-teal product page. Sub-apps keep their own retro themes; the landing 
 
 ---
 
+### Wortschatz (wordlist)
+- **Location**: `wordlist/index.html`; logic in `wordlist/srs.js` (shared with `wordlist/tests.html`), data layer in `wordlist/store.js`, backend in `wordlist/supabase/`. Spec in `wordlist/CONTEXT.md`, setup in `wordlist/README.md`.
+- **Status**: Live; personal (single user, sign-in required). Card on the landing page; screenshot `docs/wordlist.png`
+- **Category**: language learning · flashcards
+- **Description**: Anki-style spaced repetition for C1 German vocabulary. Several decks, progress synced through Supabase, words added with Claude (edge function), installable PWA with offline answers.
+- **Aesthetic** (internal): Its own light/dark palette (`#f6f5f2` / `#161618`), Inter for UI and Source Serif 4 for words, as in the original app.
+- **Exception**: unlike the rest of the site it has an account (magic link) because the data syncs between devices.
+
+---
+
 ### Hollow Crypt (rpg)
 - **Location**: `rpg/index.html` (details in `rpg/CONTEXT.md`), tests in `rpg/tests.html`
 - **Status**: Live
@@ -205,6 +218,7 @@ Since all app logic is inline in `index.html`, re-declare the pure functions ins
 | Portfolio | `stockview/tests.html` | P&L Calculations, Portfolio Totals, Formatting, localStorage, Position Model |
 | Filekit | `filekit/tests.html` | File Validation, Merge State Machine, Output Filename, UI Helpers |
 | My Little Board | `positwebsite/tests.html` | Note Creation, Color, Rotation, Position Clamping, Tasks CRUD, Persistence |
+| Wortschatz | `wordlist/tests.html` | Scheduler, Study queue, Extra practice, Lemmas, DB rows, Add words, Deck table, Seed import, Export round trip, Parity with reference |
 
 ---
 
