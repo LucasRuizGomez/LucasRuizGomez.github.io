@@ -33,7 +33,8 @@ Deno.serve(async (req) => {
         added: (c.created_at || "").slice(0, 10) || undefined,
       }))),
       progress: Object.fromEntries((states ?? []).map((s) => [`${lemmaById.get(s.card_id)}__${s.direction}`, {
-        state: s.state, step: s.step, interval: Number(s.interval_days), ease: Number(s.ease), due: ms(s.due),
+        state: s.state, step: s.step, interval: Number(s.interval_days), ease: Number(s.ease),
+        stability: Number(s.stability) || 0, difficulty: Number(s.difficulty) || 0, due: ms(s.due),
         reps: s.reps, lapses: s.lapses, correct: s.correct, wrong: s.wrong, last: ms(s.last_review),
         introduced: ms(s.introduced_at),
       }])),

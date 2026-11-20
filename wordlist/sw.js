@@ -1,5 +1,5 @@
 // App-shell service worker. Bump VERSION whenever a shell file changes.
-const VERSION = 'wz-v4';
+const VERSION = 'wz-v5';
 const SHELL = [
   './', './index.html', './srs.js', './store.js', './config.js', './manifest.json',
   './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png',

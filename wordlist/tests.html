@@ -73,8 +73,12 @@ test('new + Again → learning, due in 1 min', () => { const s = S.schedule(S.fr
 test('new + Hard → due in 6 min', () => { assertEqual(S.schedule(S.fresh(), 2, T).due, T + 6 * MIN); });
 test('new + Good → step 1, due in 10 min', () => { const s = S.schedule(S.fresh(), 3, T); assertEqual(s.step, 1); assertEqual(s.due, T + 10 * MIN); });
 test('step 1 + Hard → 10 min', () => { assertEqual(S.schedule(st({ state: 'learning', step: 1 }), 2, T).due, T + 10 * MIN); });
-test('step 1 + Good → review, 1 day', () => { const s = S.schedule(st({ state: 'learning', step: 1 }), 3, T); assertEqual(s.state, 'review'); assertEqual(s.interval, 1); assertEqual(s.due, T + DAY); });
-test('new + Easy → review, 4 days', () => { const s = S.schedule(S.fresh(), 4, T); assertEqual(s.state, 'review'); assertEqual(s.interval, 4); assertEqual(s.due, T + 4 * DAY); });
+test('step 1 + Good → review, 2 days (FSRS initial stability)', () => { const s = S.schedule(st({ state: 'learning', step: 1 }), 3, T); assertEqual(s.state, 'review'); assertEqual(s.interval, 2); assertEqual(s.due, T + 2 * DAY); assertClose(s.stability, 2.3065); });
+test('new + Easy → review, 8 days', () => { const s = S.schedule(S.fresh(), 4, T); assertEqual(s.state, 'review'); assertEqual(s.interval, 8); assertEqual(s.due, T + 8 * DAY); assertClose(s.stability, 8.2956); assertClose(s.difficulty, 1); });
+test('first answer sets initial difficulty', () => {
+  assertClose(S.schedule(S.fresh(), 1, T).difficulty, 6.4133); assertClose(S.schedule(S.fresh(), 2, T).difficulty, 5.1122);
+  assertClose(S.schedule(S.fresh(), 3, T).difficulty, 2.1181);
+});
 test('learning + Again resets step', () => { const s = S.schedule(st({ state: 'learning', step: 1 }), 1, T); assertEqual(s.step, 0); assertEqual(s.due, T + MIN); });
 test('introduced set once, last always', () => {
   const a = S.schedule(S.fresh(), 3, T), b = S.schedule(a, 3, T + 5 * MIN);
@@ -82,21 +86,49 @@ test('introduced set once, last always', () => {
 });
 test('does not mutate the input', () => { const p = S.fresh(); S.schedule(p, 3, T); assertEqual(p.reps, 0); assertEqual(p.state, 'new'); });
 
-suite('Scheduler · review and relearning');
-const rev = st({ state: 'review', interval: 10, ease: 2.5, reps: 5 });
-test('review + Again → relearning, half interval, ease −0.2', () => {
+// Expected values cross-checked against ts-fsrs 5.2.3 (FSRSAlgorithm.next_state / next_interval).
+suite('Scheduler · FSRS review and relearning');
+const rev = st({ state: 'review', interval: 10, stability: 10, difficulty: 5, reps: 5, last: T - 10 * DAY });
+test('review + Again → relearning, S 1.392, D 8.342', () => {
   const s = S.schedule(rev, 1, T);
-  assertEqual(s.state, 'relearning'); assertEqual(s.interval, 5); assertClose(s.ease, 2.3); assertEqual(s.lapses, 1); assertEqual(s.due, T + 10 * MIN);
+  assertEqual(s.state, 'relearning'); assertClose(s.stability, 1.392); assertClose(s.difficulty, 8.3418); assertEqual(s.lapses, 1); assertEqual(s.due, T + 10 * MIN); assertEqual(s.interval, 1);
 });
-test('review + Hard → ×1.2, ease −0.15', () => { const s = S.schedule(rev, 2, T); assertEqual(s.interval, 12); assertClose(s.ease, 2.35); });
-test('review + Good → ×ease', () => { const s = S.schedule(rev, 3, T); assertEqual(s.interval, 25); assertEqual(s.due, T + 25 * DAY); });
-test('review + Easy → ×ease×1.3 with ease +0.15', () => { const s = S.schedule(rev, 4, T); assertClose(s.ease, 2.65); assertEqual(s.interval, Math.round(10 * 2.65 * 1.3)); });
-test('Good on 1-day card grows at least by 1', () => { assertEqual(S.schedule(st({ state: 'review', interval: 1, ease: 1.3 }), 3, T).interval, 2); });
-test('ease never below 1.3', () => { assertClose(S.schedule(st({ state: 'review', interval: 3, ease: 1.35 }), 1, T).ease, 1.3); });
-test('relearning + Again → 10 min', () => { assertEqual(S.schedule(st({ state: 'relearning', interval: 5 }), 1, T).due, T + 10 * MIN); });
-test('relearning + Hard → 10 min', () => { assertEqual(S.schedule(st({ state: 'relearning', interval: 5 }), 2, T).due, T + 10 * MIN); });
-test('relearning + Good → review keeps interval', () => { const s = S.schedule(st({ state: 'relearning', interval: 5 }), 3, T); assertEqual(s.state, 'review'); assertEqual(s.interval, 5); });
-test('relearning + Easy → interval + 1', () => { assertEqual(S.schedule(st({ state: 'relearning', interval: 5 }), 4, T).interval, 6); });
+test('review + Hard → 23 d', () => { const s = S.schedule(rev, 2, T); assertEqual(s.interval, 23); assertClose(s.stability, 23.2469); assertClose(s.difficulty, 6.666); });
+test('review + Good → 32 d', () => { const s = S.schedule(rev, 3, T); assertEqual(s.interval, 32); assertEqual(s.due, T + 32 * DAY); assertClose(s.stability, 32.0267); assertClose(s.difficulty, 4.9902); });
+test('review + Easy → 51 d', () => { const s = S.schedule(rev, 4, T); assertEqual(s.interval, 51); assertClose(s.stability, 51.2539); assertClose(s.difficulty, 3.3145); });
+test('answering late grows the interval more', () => { assertEqual(S.schedule({ ...rev, last: T - 30 * DAY }, 3, T).interval, 54); });
+test('intervals stay ordered Hard ≤ Good < Easy', () => {
+  for (const sv of [0.3, 1, 3, 40, 400]) for (const d of [1, 5, 10]) {
+    const p = st({ state: 'review', stability: sv, difficulty: d, interval: 1, last: T - 3 * DAY });
+    const [h, g, e] = [2, 3, 4].map(x => S.schedule(p, x, T).interval);
+    assert(h <= g && g < e, `S=${sv} D=${d}: ${h} ${g} ${e}`);
+  }
+});
+test('difficulty stays within 1…10', () => {
+  let p = S.fresh(), t = T;
+  for (let i = 0; i < 30; i++) { p = S.schedule(p, 1, t); t += DAY; } assert(p.difficulty <= 10 && p.difficulty > 9.9);
+  for (let i = 0; i < 30; i++) { p = S.schedule(p, 4, t); t = p.due; } assert(p.difficulty >= 1 && p.difficulty < 1.1);
+});
+test('relearning + Again / Hard → 10 min', () => {
+  const r = S.schedule(rev, 1, T);
+  assertEqual(S.schedule(r, 1, T + 10 * MIN).due, T + 20 * MIN); assertEqual(S.schedule(r, 2, T + 10 * MIN).due, T + 20 * MIN);
+});
+test('relearning + Good → review, same-day stability (1.431)', () => {
+  const s = S.schedule(S.schedule(rev, 1, T), 3, T + 10 * MIN);
+  assertEqual(s.state, 'review'); assertEqual(s.interval, 1); assertClose(s.stability, 1.4311);
+});
+test('interval is the 90% retention point', () => { assertClose(S.forgettingCurve(S.nextInterval(37), 37), 0.9, 0.003); assertEqual(S.nextInterval(100), 100); });
+test('retrievability: 90% after S days, null when new', () => {
+  assertClose(S.retrievability(st({ state: 'review', stability: 10, last: T }), T + 10 * DAY), 0.9); assertEqual(S.retrievability(S.fresh(), T), null);
+});
+
+suite('Scheduler · cards from the old SM-2 scheduler');
+test('ease 2.5 / 10 d → S 10, D 6.914', () => { const m = S.fromSm2(2.5, 10); assertClose(m.stability, 10); assertClose(m.difficulty, 6.9141); });
+test('Good on time keeps the SM-2 interval (ease × interval)', () => {
+  const s = S.schedule(st({ state: 'review', interval: 10, ease: 2.5, last: T - 10 * DAY }), 3, T);
+  assertEqual(s.interval, 25); assertClose(s.stability, 25); assertClose(s.difficulty, 6.9024);
+});
+test('legacy learning card starts fresh', () => { assertClose(S.schedule(st({ state: 'learning', step: 1 }), 3, T).stability, 2.3065); });
 
 suite('Formatting and day boundary');
 test('fmtSpan minutes/hours/days/months/years', () => {
@@ -186,15 +218,15 @@ test('words that start like an article stay whole', () => { assertEqual(S.lemmaO
 /* ---------- DB mapping ---------- */
 suite('DB rows');
 test('state ↔ row round trip', () => {
-  const s = st({ state: 'review', step: 0, interval: 3, ease: 2.35, due: T + 3 * DAY, reps: 4, lapses: 1, correct: 3, wrong: 1, last: T, introduced: T - DAY });
+  const s = st({ state: 'review', step: 0, interval: 3, ease: 2.35, stability: 3.2, difficulty: 5.5, due: T + 3 * DAY, reps: 4, lapses: 1, correct: 3, wrong: 1, last: T, introduced: T - DAY });
   const r = S.stateToRow('c1', 'f', s);
-  assertEqual(r.direction, 'f'); assertEqual(r.interval_days, 3); assertEqual(r.due, new Date(T + 3 * DAY).toISOString());
-  assertEqual(JSON.stringify(S.rowToState({ ...r, interval_days: '3', ease: '2.35' })), JSON.stringify(s));
+  assertEqual(r.direction, 'f'); assertEqual(r.interval_days, 3); assertEqual(r.stability, 3.2); assertEqual(r.due, new Date(T + 3 * DAY).toISOString());
+  assertEqual(JSON.stringify(S.rowToState({ ...r, interval_days: '3', ease: '2.35', stability: '3.2', difficulty: '5.5' })), JSON.stringify(s));
 });
 test('unset timestamps become null / 0', () => {
   const r = S.stateToRow('c', 'r', S.fresh());
-  assertEqual(r.last_review, null); assertEqual(r.introduced_at, null);
-  const back = S.rowToState(r); assertEqual(back.last, 0); assertEqual(back.introduced, 0);
+  assertEqual(r.last_review, null); assertEqual(r.introduced_at, null); assertEqual(r.stability, null);
+  const back = S.rowToState(r); assertEqual(back.last, 0); assertEqual(back.introduced, 0); assertEqual(back.stability, 0);
 });
 
 /* ---------- drafts ---------- */

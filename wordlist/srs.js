@@ -1,5 +1,5 @@
 // Wortschatz: pure logic shared by index.html and tests.html.
-// No DOM, no network. The scheduler is a straight port of reference-index.html.
+// No DOM, no network. The scheduler is FSRS-6; the study queue is a straight port of reference-index.html.
 
 export const MIN = 60_000, DAY = 86_400_000;
 export const STEPS = [1, 10];            // learning steps, minutes
@@ -7,17 +7,110 @@ export const LEARN_AHEAD = 20 * MIN;
 export const DAY_START_HOUR = 4;         // the study day starts at 04:00 local time
 export const EXPORT_FORMAT = 'wortschatz-export/v1';
 
-/* ---------- scheduler ---------- */
+/* ---------- scheduler: FSRS-6 ----------
+   Free Spaced Repetition Scheduler, https://github.com/open-spaced-repetition/free-spaced-repetition-scheduler
+   Each card direction has a memory state:
+     stability  S  days until recall probability falls to 90%
+     difficulty D  1 (easy) … 10 (hard)
+   Learning steps (1 min, 10 min) and the 10-min relearning step stay as before; FSRS decides
+   every interval in days. `ease` is kept only so cards scheduled by the old SM-2 code can be
+   converted to an FSRS memory state the first time they are answered.                    */
+
+// FSRS-6 default parameters (same as ts-fsrs / py-fsrs / Anki before optimisation).
+export const W = Object.freeze([
+  0.212, 1.2931, 2.3065, 8.2956, 6.4133, 0.8334, 3.0194, 0.001, 1.8722, 0.1666, 0.796,
+  1.4835, 0.0614, 0.2629, 1.6483, 0.6014, 1.8729, 0.5425, 0.0912, 0.0658, 0.1542,
+]);
+export const RETENTION = 0.9;            // desired probability of recall when a card comes due
+export const MAX_INTERVAL = 36500;       // days
+const S_MIN = 0.001, S_MAX = 36500;
+const DECAY = -W[20], FACTOR = Math.pow(0.9, 1 / DECAY) - 1;
+const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
+
+// Probability of recall after `days` with stability S (forgetting curve).
+export const forgettingCurve = (days, S) => Math.pow(1 + FACTOR * days / S, DECAY);
+
+// Days until recall probability drops to `r`.
+export function nextInterval(S, r = RETENTION) {
+  return clamp(Math.round(S / FACTOR * (Math.pow(r, 1 / DECAY) - 1)), 1, MAX_INTERVAL);
+}
+
+const initStability = g => clamp(W[g - 1], S_MIN, S_MAX);
+const initDifficulty = g => W[4] - Math.exp(W[5] * (g - 1)) + 1;   // unclamped (mean-reversion target uses it raw)
+
+function nextDifficulty(D, g) {
+  const damped = D + (-W[6] * (g - 3)) * (10 - D) / 9;               // linear damping
+  return clamp(W[7] * initDifficulty(4) + (1 - W[7]) * damped, 1, 10); // mean reversion
+}
+
+function recallStability(D, S, R, g) {
+  const hard = g === 2 ? W[15] : 1, easy = g === 4 ? W[16] : 1;
+  return clamp(S * (1 + Math.exp(W[8]) * (11 - D) * Math.pow(S, -W[9]) * (Math.exp(W[10] * (1 - R)) - 1) * hard * easy), S_MIN, S_MAX);
+}
+
+function forgetStability(D, S, R) {
+  const s = W[11] * Math.pow(D, -W[12]) * (Math.pow(S + 1, W[13]) - 1) * Math.exp(W[14] * (1 - R));
+  return clamp(Math.min(s, S / Math.exp(W[17] * W[18])), S_MIN, S_MAX);
+}
+
+// Reviews on the same day (learning / relearning steps).
+function shortTermStability(S, g) {
+  let inc = Math.exp(W[17] * (g - 3 + W[18])) * Math.pow(S, -W[19]);
+  if (g >= 3) inc = Math.max(inc, 1);
+  return clamp(S * inc, S_MIN, S_MAX);
+}
+
+// Memory state for a card last scheduled by SM-2 (port of fsrs-rs memory_state_from_sm2, 90% retention).
+export function fromSm2(ease, interval) {
+  const S = clamp(interval, S_MIN, S_MAX);
+  const D = 11 - (ease - 1) / (Math.exp(W[8]) * Math.pow(S, -W[9]) * (Math.exp((1 - 0.9) * W[10]) - 1));
+  return { stability: S, difficulty: clamp(D, 1, 10) };
+}
+
+// Whole study days between two timestamps (the day rolls over at DAY_START_HOUR, like Anki).
+export const daysBetween = (a, b) => Math.max(0, Math.round((startOfDay(b) - startOfDay(a)) / DAY));
+
+// The memory state after answering `g` at time t.
+export function memoryAfter(p, g, t) {
+  let S = p.stability, D = p.difficulty;
+  if (!(S > 0 && D > 0)) {
+    if (p.state === 'new' || !(p.interval > 0)) return { stability: initStability(g), difficulty: clamp(initDifficulty(g), 1, 10) };
+    ({ stability: S, difficulty: D } = fromSm2(p.ease || 2.5, p.interval));
+  }
+  const elapsed = p.last ? daysBetween(p.last, t) : 0;
+  if (elapsed === 0) return { stability: shortTermStability(S, g), difficulty: nextDifficulty(D, g) };
+  const R = forgettingCurve(elapsed, S);
+  return {
+    stability: g === 1 ? forgetStability(D, S, R) : recallStability(D, S, R, g),
+    difficulty: nextDifficulty(D, g),
+  };
+}
+
+// Current probability of recall (0…1), or null for cards never answered.
+export function retrievability(p, t = Date.now()) {
+  if (p.state === 'new') return null;
+  const S = p.stability > 0 ? p.stability : p.interval > 0 ? p.interval : 0;
+  if (!S || !p.last) return null;
+  return forgettingCurve(Math.max(0, (t - p.last) / DAY), S);
+}
 
 export function fresh() {
-  return { state: 'new', step: 0, interval: 0, ease: 2.5, due: 0, reps: 0, lapses: 0,
+  return { state: 'new', step: 0, interval: 0, ease: 2.5, stability: 0, difficulty: 0, due: 0, reps: 0, lapses: 0,
     correct: 0, wrong: 0, last: 0, introduced: 0 };
 }
 
 export function schedule(p, g, t = Date.now()) {
-  const s = { ...p }; s.reps++; s.last = t;
+  const mem = [1, 2, 3, 4].map(x => memoryAfter(p, x, t));
+  // Day intervals per grade. On review cards they are kept in order: Hard ≤ Good < Easy.
+  let hard = nextInterval(mem[1].stability), good = nextInterval(mem[2].stability), easy = nextInterval(mem[3].stability);
+  if (p.state === 'review') { hard = Math.min(hard, good); good = Math.max(good, hard + 1); easy = Math.max(easy, good + 1); }
+
+  const s = { ...p }; s.reps++;
   if (!s.introduced) s.introduced = t;
   if (g === 1) s.wrong++; else s.correct++;
+  s.stability = mem[g - 1].stability; s.difficulty = mem[g - 1].difficulty;
+  const graduate = days => { s.state = 'review'; s.step = 0; s.interval = days; s.due = t + days * DAY; };
+
   if (s.state !== 'review') {
     const relearn = s.state === 'relearning';
     if (s.state === 'new') s.state = 'learning';
@@ -25,14 +118,13 @@ export function schedule(p, g, t = Date.now()) {
     else if (g === 2) { s.due = t + (relearn ? 10 : (s.step === 0 ? 6 : STEPS[s.step])) * MIN; }
     else if (g === 3) {
       if (!relearn && s.step + 1 < STEPS.length) { s.step++; s.due = t + STEPS[s.step] * MIN; }
-      else { s.state = 'review'; s.step = 0; s.interval = relearn ? Math.max(1, s.interval) : 1; s.due = t + s.interval * DAY; }
-    } else { s.state = 'review'; s.step = 0; s.interval = relearn ? Math.max(1, s.interval) + 1 : 4; s.due = t + s.interval * DAY; }
+      else graduate(good);
+    } else graduate(easy);
   } else {
-    if (g === 1) { s.lapses++; s.ease = Math.max(1.3, s.ease - 0.2); s.interval = Math.max(1, Math.round(s.interval * 0.5)); s.state = 'relearning'; s.step = 0; s.due = t + 10 * MIN; }
-    else if (g === 2) { s.ease = Math.max(1.3, s.ease - 0.15); s.interval = Math.max(s.interval + 1, Math.round(s.interval * 1.2)); s.due = t + s.interval * DAY; }
-    else if (g === 3) { s.interval = Math.max(s.interval + 1, Math.round(s.interval * s.ease)); s.due = t + s.interval * DAY; }
-    else { s.ease += 0.15; s.interval = Math.max(s.interval + 2, Math.round(s.interval * s.ease * 1.3)); s.due = t + s.interval * DAY; }
+    if (g === 1) { s.lapses++; s.state = 'relearning'; s.step = 0; s.interval = nextInterval(s.stability); s.due = t + 10 * MIN; }
+    else graduate(g === 2 ? hard : g === 3 ? good : easy);
   }
+  s.last = t;
   return s;
 }
 
@@ -158,7 +250,7 @@ const iso = v => (v ? new Date(v).toISOString() : null);
 export function rowToState(r) {
   return {
     state: r.state, step: r.step, interval: Number(r.interval_days), ease: Number(r.ease),
-    due: ms(r.due), reps: r.reps, lapses: r.lapses, correct: r.correct, wrong: r.wrong,
+    stability: Number(r.stability) || 0, difficulty: Number(r.difficulty) || 0, due: ms(r.due), reps: r.reps, lapses: r.lapses, correct: r.correct, wrong: r.wrong,
     last: ms(r.last_review), introduced: ms(r.introduced_at),
   };
 }
@@ -166,6 +258,7 @@ export function rowToState(r) {
 export function stateToRow(cardId, direction, s) {
   return {
     card_id: cardId, direction, state: s.state, step: s.step, interval_days: s.interval, ease: s.ease,
+    stability: s.stability > 0 ? s.stability : null, difficulty: s.difficulty > 0 ? s.difficulty : null,
     due: iso(s.due) || new Date(0).toISOString(), reps: s.reps, lapses: s.lapses, correct: s.correct,
     wrong: s.wrong, last_review: iso(s.last), introduced_at: iso(s.introduced),
   };
