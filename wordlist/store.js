@@ -28,9 +28,13 @@ async function remoteStore() {
     async session() { return (await sb.auth.getSession()).data.session; },
     onAuth(fn) { sb.auth.onAuthStateChange((_e, s) => fn(s)); },
     async sendLink(email) {
-      ok(await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: false, emailRedirectTo: location.href.split('#')[0].split('?')[0] } }));
+      // Always the folder URL (…/wordlist/), never …/index.html, so it matches the allowed redirect URL.
+      const redirect = new URL('./', location.href).href;
+      ok(await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: false, emailRedirectTo: redirect } }));
     },
     async verifyCode(email, token) { ok(await sb.auth.verifyOtp({ email, token, type: 'email' })); },
+    async signInPassword(email, password) { ok(await sb.auth.signInWithPassword({ email, password })); },
+    async setPassword(password) { ok(await sb.auth.updateUser({ password })); },
     async signOut() { await sb.auth.signOut(); },
     async loadAll() {
       const [decks, cards, states] = await Promise.all([

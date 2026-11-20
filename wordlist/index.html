@@ -681,7 +681,18 @@ function renderSettings() {
       <label class="field">Into<select id="impInto"><option value="">A new deck</option>${into}</select></label></div>
       <div class="bar"><span class="grow"></span><button class="btn1" id="impGo">Import</button></div></div>
     <div class="panel"><h2>Account</h2><p class="help">${store.mode === 'local' ? 'Demo mode: data is stored only in this browser. Fill in config.js to sync across devices.' : `Signed in as ${esc(session.user.email)}. Progress syncs between devices.`}</p>
+      ${store.mode === 'local' ? '' : `<form id="pwForm" class="bar" style="margin:0 0 12px"><input type="email" autocomplete="username" value="${esc(session.user.email)}" hidden>
+        <label class="field grow">Password (to sign in on other devices without email)<input id="pwNew" type="password" autocomplete="new-password" minlength="8" placeholder="At least 8 characters"></label>
+        <button class="btn2" type="submit" style="align-self:flex-end">Set password</button></form>`}
       <div class="bar" style="margin:0">${store.mode === 'local' ? '' : '<button class="btn2" id="outBtn">Sign out</button>'}<button class="btn2" id="syncBtn">Sync now</button><span class="muted" style="font-size:12.5px">${pending ? `${pending} answers waiting to sync` : 'Everything synced'}</span></div></div>`;
+  const pf = $('#pwForm');
+  if (pf) pf.onsubmit = async e => {
+    e.preventDefault();
+    const pw = $('#pwNew').value;
+    if (pw.length < 8) { note('Use at least 8 characters.', true); return; }
+    try { await store.setPassword(pw); $('#pwNew').value = ''; note('Password saved. Use it to sign in on your iPhone.'); }
+    catch (err) { note('Could not set the password: ' + err.message, true); }
+  };
   const ns = $('#stNewSave');
   if (ns) ns.onclick = async () => { try { Object.assign(d, await store.updateDeck(d.id, { new_per_day: Math.max(0, +$('#stNew').value || 0) })); note('Saved.'); cacheSnapshot(); renderChrome(); } catch (e) { note('Could not save: ' + e.message, true); } };
   $$('[data-exp]').forEach(b => b.onclick = () => exportDeck(deckById(b.dataset.exp)));
@@ -705,13 +716,30 @@ function renderSettings() {
 
 /* ---------- sign in ---------- */
 
-let loginEmail = lsGet('wz_email') || '', codeSent = false;
+let loginEmail = lsGet('wz_email') || '', codeSent = false, loginMode = 'password';
 function renderLogin() {
-  $('#app').innerHTML = `<div class="panel login"><h2>Sign in</h2>
-    <p class="help">Te mando un enlace mágico y un código de 6 dígitos. En el iPhone, si la app está instalada, usa el código.</p>
+  if (loginMode === 'password') {
+    $('#app').innerHTML = `<div class="panel login"><h2>Sign in</h2>
+      <p class="help">Email y contraseña. La contraseña se crea en Ajustes, después de entrar una vez con el enlace del email.</p>
+      <form id="lForm">
+      <label class="field">Email<input id="lEmail" type="email" autocomplete="username" value="${esc(loginEmail)}" required></label>
+      <label class="field" style="margin-top:10px">Password<input id="lPass" type="password" autocomplete="current-password" required></label>
+      <div class="bar"><button type="button" class="btn2" id="lLink">Email me a link instead</button><span class="grow"></span><button class="btn1" type="submit">Sign in</button></div></form></div>`;
+    $('#lLink').onclick = () => { loginMode = 'link'; note(''); renderLogin(); };
+    $('#lForm').onsubmit = async e => {
+      e.preventDefault();
+      loginEmail = $('#lEmail').value.trim(); lsSet('wz_email', loginEmail);
+      try { await store.signInPassword(loginEmail, $('#lPass').value); note(''); }
+      catch (err) { note(/invalid/i.test(err.message) ? 'Wrong email or password. No password yet? Use “Email me a link instead”.' : 'Could not sign in: ' + err.message, true); }
+    };
+    return;
+  }
+  $('#app').innerHTML = `<div class="panel login"><h2>Sign in with an email link</h2>
+    <p class="help">Abre el enlace en este mismo navegador. Después crea una contraseña en Ajustes para entrar sin email.</p>
     <label class="field">Email<input id="lEmail" type="email" autocomplete="email" value="${esc(loginEmail)}"></label>
-    ${codeSent ? `<label class="field" style="margin-top:10px">Code<input id="lCode" inputmode="numeric" autocomplete="one-time-code" maxlength="10"></label>` : ''}
-    <div class="bar"><span class="grow"></span>${codeSent ? '<button class="btn2" id="lResend">Send again</button><button class="btn1" id="lVerify">Sign in</button>' : '<button class="btn1" id="lSend">Send link</button>'}</div></div>`;
+    ${codeSent ? `<label class="field" style="margin-top:10px">Code (if your email shows one)<input id="lCode" inputmode="numeric" autocomplete="one-time-code" maxlength="10"></label>` : ''}
+    <div class="bar"><button class="btn2" id="lPw">Use password</button><span class="grow"></span>${codeSent ? '<button class="btn2" id="lResend">Send again</button><button class="btn1" id="lVerify">Sign in</button>' : '<button class="btn1" id="lSend">Send link</button>'}</div></div>`;
+  $('#lPw').onclick = () => { loginMode = 'password'; note(''); renderLogin(); };
   const send = async () => {
     loginEmail = $('#lEmail').value.trim(); lsSet('wz_email', loginEmail);
     if (!loginEmail) return note('Enter your email.', true);
@@ -758,6 +786,15 @@ setInterval(() => { if (session && !flipped && document.visibilityState === 'vis
 /* ---------- boot ---------- */
 
 (async () => {
+  // A failed email link comes back as #error=…&error_description=… : say why instead of failing silently.
+  const h = new URLSearchParams(location.hash.slice(1));
+  if (h.get('error')) {
+    const why = h.get('error_code') === 'otp_expired'
+      ? 'That sign-in link has expired or was already used. Send a new one, or type the 6-digit code from the email.'
+      : 'Sign-in link failed: ' + (h.get('error_description') || h.get('error')).replace(/\+/g, ' ');
+    history.replaceState(null, '', location.pathname);
+    setTimeout(() => note(why, true), 0);
+  }
   try { store = await openStore(); }
   catch (e) { $('#app').innerHTML = `<div class="empty"><h2>Can't start</h2>${esc(e.message)}</div>`; return; }
   session = await store.session();

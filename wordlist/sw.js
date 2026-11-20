@@ -1,5 +1,5 @@
 // App-shell service worker. Bump VERSION whenever a shell file changes.
-const VERSION = 'wz-v1';
+const VERSION = 'wz-v4';
 const SHELL = [
   './', './index.html', './srs.js', './store.js', './config.js', './manifest.json',
   './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png',
@@ -28,7 +28,8 @@ self.addEventListener('fetch', e => {
   // Shell files: network first (fresh deploys win), cache as offline fallback.
   // Fonts and pinned CDN files: cache first.
   if (sameOrigin) {
-    e.respondWith(fetch(req).then(res => {
+    // cache: 'no-cache' revalidates with the server, so a stale HTTP-cached copy is never served online.
+    e.respondWith(fetch(req, { cache: 'no-cache' }).then(res => {
       if (res.ok) { const copy = res.clone(); caches.open(VERSION).then(c => c.put(req, copy)); }
       return res;
     }).catch(() => caches.match(req, { ignoreSearch: true }).then(r => r || caches.match('./index.html'))));
