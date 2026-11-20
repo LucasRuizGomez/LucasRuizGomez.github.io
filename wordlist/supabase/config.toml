@@ -1,0 +1,12 @@
+# Function settings for `supabase functions deploy`.
+# generate: needs a signed-in session (JWT checked by Supabase and again in the function).
+# ingest / backup: authenticate with their own bearer token instead.
+
+[functions.generate]
+verify_jwt = true
+
+[functions.ingest]
+verify_jwt = false
+
+[functions.backup]
+verify_jwt = false
