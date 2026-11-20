@@ -83,6 +83,16 @@ create index if not exists card_states_due_idx   on card_states (user_id, due);
 create index if not exists review_log_user_idx   on review_log (user_id, reviewed_at);
 create index if not exists ai_calls_user_idx     on ai_calls (user_id, created_at);
 
+-- Newer projects don't grant table access to API roles by default. Signed-in users get
+-- table access (RLS below still limits them to their own rows); anonymous visitors get none.
+grant usage on schema public to authenticated;
+grant select, insert, update, delete on decks, cards, card_states, review_log, ai_calls to authenticated;
+grant usage, select on all sequences in schema public to authenticated;
+revoke all on decks, cards, card_states, review_log, ai_calls from anon;
+-- service_role is used only by the ingest and backup edge functions (server side).
+grant select, insert, update, delete on decks, cards, card_states, review_log, ai_calls to service_role;
+grant usage, select on all sequences in schema public to service_role;
+
 -- Row Level Security: every row belongs to its user.
 do $$
 declare t text;
@@ -186,6 +196,11 @@ begin
   end loop;
   return jsonb_build_object('deck_id', did, 'inserted', inserted, 'skipped', to_jsonb(skipped));
 end $$;
+
+revoke execute on function record_review(uuid, char, smallint, text, jsonb, uuid) from public, anon;
+revoke execute on function import_deck(jsonb, uuid) from public, anon;
+grant execute on function record_review(uuid, char, smallint, text, jsonb, uuid) to authenticated;
+grant execute on function import_deck(jsonb, uuid) to authenticated;
 
 -- Weekly backups land here (private bucket, written by the backup function with the service key).
 insert into storage.buckets (id, name, public) values ('backups', 'backups', false)
