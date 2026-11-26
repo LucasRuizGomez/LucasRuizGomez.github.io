@@ -1,13 +1,19 @@
 # Website Context — LucasRuizGomez.github.io (lukeda.me)
 
 ## Overview
-Personal portfolio / free projects site by Lucas Ruiz. Brand name: **Lukeda**. Domain: lukeda.me. All projects are released for free — no paywalls, no accounts.
+Professional portfolio of Lucas Ruiz Gómez, aimed at software recruiters, plus the free browser apps he built. Domain: lukeda.me. The portfolio pages are an Astro site in `site/`; every app is still a self-contained static folder.
 
 ---
 
 ## File Structure
 ```
-index.html              ← Main landing / portfolio page
+site/                   ← Astro portfolio (/, /resume, 404) on the Halftone theme
+  public/Lucas_Ruiz_Gomez_CV.pdf ← the CV; every CV button downloads it
+  src/data/profile.ts   ← ALL portfolio copy: projects, competitions, interests (source of truth: the CV)
+  src/components/Vessel.astro ← the ship LUKEDA in the hero; projects are its containers; each opens a <dialog>
+  src/components/Sea.astro   ← animated swells along the foot of the cover plate
+  src/pages/            ← index.astro, resume.astro (the CV as a page + PDF download), 404.astro
+  src/styles/           ← tokens.css (theme defaults), theme.css (overrides), global.css
 audiosend/
   index.html            ← AudioSend product page
   style.css
@@ -35,46 +41,26 @@ prompts/base_prompt.md
 
 ---
 
-## Visual Aesthetic — Main Site (index.html)
+## Portfolio site (site/)
 
-Clean dark-teal product page. Sub-apps keep their own retro themes; the landing page does not.
+Astro 7 + Tailwind v4, built on the Halftone theme (ondelva, MIT; licence in `site/LICENSE`). The deploy workflow builds it and lays `site/dist` over the repo root, so `/`, `/resume/`, `/404.html` and the CV PDF come from Astro and the app folders are served as they are. The sub-apps' `../index.html` links still land on the home page.
 
-### Design tokens (`:root` in index.html — use these, don't hard-code values)
-- Surfaces: `--bg #031a22`, `--bg-deep`, `--surface #072631`, `--surface-hi`, `--border`, `--border-hi`
-- Text: `--text #e8f6f3`, `--text-muted #a9cec7`, `--text-faint #84aca5` (all ≥ 4.5:1)
-- Brand teal `--teal #4fd8c4`; accent amber `--accent #f6b94a` — accent is reserved for the primary CTA, focus rings and hover feedback
-- Type: system sans (`--font-sans`) everywhere; `--font-mono` only for literal code/domains. Scale `--fs-sm` … `--fs-3xl`
-- Spacing: 4px scale `--s-1` … `--s-9`; sections are grouped by spacing, not borders
-- Radius: `--r-media = --r-card − --pad-media` (inner radius = outer − padding)
+### Commands (inside `site/`)
+`npm install` · `npm run dev` (localhost:4321) · `npm run check && npm run check:contrast && npm run build`. CI runs all three.
 
-### Rules
-- No filler badges, `++`/`//`/`>>` prefixes, tickers, LEDs or decorative glows
-- Headlines say what the thing does; use `text-wrap: balance` on headings
-- One icon set: inline SVG `<symbol>`s in the page, 16px, 1.75 stroke, round caps
-- Numbers use `.num` (tabular-nums)
-- Screenshots (`docs/*.png`, 1280×800) show each product; `.media` shows a shimmer until the image loads
-- Motion only for feedback (hover/press/load); respects `prefers-reduced-motion`
+### Design (from the theme; keep it)
+- Cover plate: one photograph with a scrim, the name and the "now" cover lines set on it. Type on a plate stays inside 32rem.
+- One spot colour (`--primary`, red), printed as a field: the name, kicker boxes, links on hover. No second accent.
+- `--radius: 0`. Rules, not cards, shadows or gradients. Section bars are an uppercase head on a 2px rule with a mono folio.
+- Fonts: Schibsted Grotesk (headings, UI), Spectral (body), IBM Plex Mono (kickers, folios, stack lines). Self-hosted at build time.
+- Light and dark through `light-dark()`; the toggle in the header cycles System/Light/Dark.
+- Hero: name and pitch on the left; on the right (below the text under 80rem) the feeder ship LUKEDA seen from starboard, moored in front of the cranes in the cover photo. Hull, bridge, funnel and mast are one SVG in a 1000x560 box; the containers are buttons laid over the deck in the same coordinates (3 bays x 3 tiers of 40ft, one decorative filler). Ship colours are fixed plate colours: the plate is dark in both modes.
+- Containers carry no images: corrugation, rails, corner castings, ISO 6346 code `LRGU 00000N` with a computed check digit, owner logo. Click one: the side panel swings open (CSS 3D), the hold lights up, then a `<dialog>` "manifest card" opens with the screenshot, detail, stack and links. The Manifest section below repeats the same content as a plain list for scanning and no-JS.
+- Motion: swells drift, the ship rolls, radar sweeps, mast light blinks, funnel smokes. All CSS; `prefers-reduced-motion` stops it (global rule in global.css).
+- Project screenshots are imported from `/docs/*.png` (shared with the README) and served as AVIF. Portfolio's screenshot uses sample positions and mocked quotes.
 
-### Layout
-1. Header — wordmark + Projects / GitHub
-2. Hero — headline + one-paragraph summary
-3. Featured card — AudioSend, large, with screenshot and the amber CTA
-4. `#projects` grid — browser apps as `.card` (screenshot, name + arrow, description, category)
-5. Footer
-
-### Project Card Structure
-```html
-<a href="app/index.html" class="card">
-  <div class="media"><div class="media-frame">
-    <img src="docs/app.png" width="1280" height="800" alt="..." loading="lazy">
-  </div></div>
-  <div class="card-body">
-    <h3>Name <svg class="icon" aria-hidden="true"><use href="#i-arrow-right"/></svg></h3>
-    <p>What it does, in one or two sentences.</p>
-    <span class="meta">Category</span>
-  </div>
-</a>
-```
+### Copy
+Written for recruiters: direct, brief, specific, first person. No buzzwords. The Capgemini client is never named. No email or phone on the pages: contact details live only in the CV PDF. Keep facts in step with the CV. Edit words in `src/data/profile.ts`, not in the pages.
 
 ---
 
@@ -146,19 +132,9 @@ Clean dark-teal product page. Sub-apps keep their own retro themes; the landing 
 
 ---
 
-## Writing / Voice Style
-- Lowercase descriptive lines under brand (`// projects by lucas ruiz`)
-- Section labels prefixed with `++` in monospace
-- Nav items uppercase
-- Descriptions written in plain, direct first person: "I build and release here", "started as something I needed"
-- `·` and `····` as separators in ticker
-- `>>` as link prefix in cards
-
----
-
 ## Adding a New Project — Checklist
-1. Add a `.card` to the `.grid` inside `#projects` (see structure above)
-2. Add a 1280×800 screenshot to `docs/`
+1. Add the project to `projects` in `site/src/data/profile.ts` (it becomes a container)
+2. Add a 1280×800 screenshot to `docs/` and import it there
 3. **Create `appname/tests.html`** — MANDATORY (see Testing Standard below)
 4. Update this `context.md` with the new app's section
 
@@ -223,6 +199,4 @@ Since all app logic is inline in `index.html`, re-declare the pure functions ins
 ---
 
 ## Notes
-- `background-attachment: fixed` on desktop, `scroll` on mobile (perf)
-- All CSS is inline in `<style>` inside `index.html` — no external stylesheet for main page
 - CNAME file sets custom domain: `lukeda.me`

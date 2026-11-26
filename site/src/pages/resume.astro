@@ -1,0 +1,90 @@
+---
+// The CV as a page: one column of type, dated entries on a rule, the way the theme sets its
+// colophon. The PDF is the same document; the download sits at the head and the foot.
+import Base from '../layouts/Base.astro';
+import PageHead from '../components/PageHead.astro';
+import SectionHead from '../components/SectionHead.astro';
+import { links } from '../config';
+import { achievements, cvSkills, education, experience, type Entry } from '../data/profile';
+
+const sections: { id: string; title: string; entries: Entry[] }[] = [
+  { id: 'experience', title: 'Work experience', entries: experience },
+  { id: 'education', title: 'Education', entries: education },
+  { id: 'achievements', title: 'Leadership & achievements', entries: achievements },
+];
+const row = 'border-border grid gap-x-8 gap-y-2 border-b py-6 sm:grid-cols-[9.5rem_1fr]';
+const when = 'text-muted font-mono text-xs uppercase sm:pt-1.5';
+const download =
+  'font-ui bg-primary text-on-primary hover:bg-foreground hover:text-background inline-block px-4 py-2.5 text-sm font-bold uppercase no-underline';
+---
+
+<Base
+  title="CV"
+  description="CV of Lucas Ruiz Gómez: Capgemini Invent, Grau Pedreira, UC3M dual degree in Computer Science and Business, MOEVE Innovation Challenge winner."
+>
+  <div class="max-w-content mx-auto px-4 pt-10 sm:pt-16">
+    <PageHead
+      kicker="Curriculum vitae"
+      title="Lucas Ruiz Gómez"
+      lede="Dual-degree student in Computer Science and Business Administration at UC3M, graduating January 2028. IT strategy at Capgemini Invent; founder of Grau Pedreira, an oil and gas research firm."
+      folio="Madrid, Spain · EU citizen"
+    />
+
+    <div class="mt-7 flex flex-wrap items-center gap-x-6 gap-y-3">
+      <a class={download} href={links.cv} download>Download CV (PDF) ↓</a>
+      <ul class="font-ui flex flex-wrap gap-x-5 gap-y-1 text-sm">
+        <li><a class="hover:text-primary underline underline-offset-[0.15em]" href={links.linkedin}>LinkedIn</a></li>
+        <li><a class="hover:text-primary underline underline-offset-[0.15em]" href={links.github}>GitHub</a></li>
+      </ul>
+    </div>
+    <p class="text-muted mt-3 font-mono text-[0.6875rem] uppercase">Phone and email are in the PDF</p>
+
+    {sections.map((s) => (
+      <section class="mt-14 sm:mt-16" aria-labelledby={s.id}>
+        <SectionHead id={s.id} title={s.title} />
+        <ul>
+          {s.entries.map((e) => (
+            <li class={row}>
+              <span class={when}>{e.when}</span>
+              <div>
+                <h3 class="font-ui text-lg leading-tight font-bold">{e.title}</h3>
+                <p class="font-ui text-muted mt-0.5 text-sm">
+                  {e.orgHref ? (
+                    <a class="hover:text-primary underline underline-offset-[0.15em]" href={e.orgHref}>{e.org}</a>
+                  ) : (
+                    e.org
+                  )}
+                  {e.place && ` · ${e.place}`}
+                </p>
+                {e.note && <p class="mt-2 text-[0.9375rem] italic">{e.note}</p>}
+                {e.bullets && (
+                  <div class="article-body mt-2 text-[0.9375rem]! leading-relaxed">
+                    <ul>
+                      {e.bullets.map((b) => <li>{b}</li>)}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </section>
+    ))}
+
+    <section class="mt-14 sm:mt-16" aria-labelledby="skills">
+      <SectionHead id="skills" title="Skills & interests" />
+      <dl>
+        {cvSkills.map((s) => (
+          <div class={row}>
+            <dt class={when}>{s.label}</dt>
+            <dd class="text-[0.9375rem] leading-relaxed">{s.value}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+
+    <p class="mt-12">
+      <a class={download} href={links.cv} download>Download CV (PDF) ↓</a>
+    </p>
+  </div>
+</Base>

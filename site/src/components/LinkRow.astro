@@ -1,0 +1,26 @@
+---
+// Project links: small uppercase labels with an arrow. External links get the diagonal arrow.
+import type { Link } from '../data/profile';
+
+interface Props {
+  links: Link[];
+  name: string; // the project, so a screen reader hears "Source, Hollow Crypt"
+  class?: string;
+}
+const { links, name, class: className } = Astro.props;
+const external = (href: string) => /^https?:/.test(href);
+---
+
+<ul class:list={['font-ui flex flex-wrap gap-x-5 gap-y-2 text-sm font-bold uppercase', className]}>
+  {links.map((link) => (
+    <li>
+      <a
+        class="hover:text-primary inline-block border-b-2 border-current py-1 no-underline"
+        href={link.href}
+        aria-label={`${link.label}, ${name}`}
+      >
+        {link.label} <span aria-hidden="true">{external(link.href) ? '↗' : '→'}</span>
+      </a>
+    </li>
+  ))}
+</ul>

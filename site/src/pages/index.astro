@@ -1,0 +1,232 @@
+---
+// The cover. One photograph carries the top of the page: the name and the pitch on the left,
+// the ship LUKEDA on the right with the projects as its cargo, the sea running along the foot.
+// Then what Lucas is doing now, the manifest, competitions, about, and research.
+import Base from '../layouts/Base.astro';
+import Plate from '../components/Plate.astro';
+import PlateHead from '../components/PlateHead.astro';
+import SectionHead from '../components/SectionHead.astro';
+import Vessel from '../components/Vessel.astro';
+import Sea from '../components/Sea.astro';
+import LinkRow from '../components/LinkRow.astro';
+import coverImage from '../assets/the-cranes-at-kieldrecht.avif';
+import researchImage from '../assets/a-ship-that-unloads-itself.avif';
+import { links, site } from '../config';
+import { competitions, interests, projects } from '../data/profile';
+
+const now = [
+  {
+    kicker: 'Now',
+    title: 'Grau Pedreira',
+    deck: 'Founder and analyst. Oil, gas and LNG research on North Africa and the Gulf of Guinea, with a daily newsletter, Radar diario.',
+    href: links.research,
+  },
+  {
+    kicker: 'Jul — Oct 2026',
+    title: 'Capgemini Invent',
+    deck: 'IT strategy intern for one of Europe’s largest integrated energy companies. Mapped 300+ applications in SAP LeanIX.',
+  },
+  {
+    kicker: '1st place',
+    title: 'MOEVE Innovation Challenge',
+    deck: 'Project LINCE: a model that measures worker focus before high-risk tasks at energy parks.',
+  },
+];
+
+const facts = [
+  { label: 'Based in', value: 'Madrid, Spain. EU citizen.' },
+  { label: 'Studying', value: 'Dual degree, Computer Science & Business Administration, UC3M' },
+  { label: 'Exchange', value: 'FH Kufstein Tirol, Austria, 2024–25 (9.4/10)' },
+  { label: 'Graduating', value: 'January 2028' },
+  { label: 'Speaks', value: 'Spanish (native), English (C2), German (B2)' },
+  { label: 'Off hours', value: interests },
+];
+
+const buttonPrimary =
+  'inline-block bg-[var(--primary-on-plate)] px-4 py-2.5 text-[var(--plate)] no-underline hover:bg-[var(--on-plate)]';
+const buttonGhost =
+  'inline-block border border-[var(--on-plate)] px-4 py-2.5 no-underline hover:bg-[var(--on-plate)] hover:text-[var(--plate)]';
+---
+
+<Base nameplate={false} description={site.description} image={coverImage}>
+  <Plate
+    class="hero overflow-hidden px-4 pt-8 sm:pt-12"
+    image={coverImage}
+    alt="Ship-to-shore container cranes on a river bank at dusk, screened with a halftone dot pattern"
+    priority
+  >
+    <div class="max-w-wide mx-auto w-full">
+      <div class="max-w-[32rem]">
+        <h1 class="font-ui text-spot text-[clamp(3rem,9vw,5.5rem)] leading-[0.84] font-black tracking-[-0.045em]">
+          Lucas<br />Ruiz Gómez
+        </h1>
+
+        <PlateHead
+          class="mt-8"
+          as="h2"
+          kicker="Madrid · Software, energy, finance"
+          title="I build software and study energy markets."
+          deck="Computer Science and Business student at UC3M, graduating January 2028. I write C++ and JavaScript, ship what I build, and run a small research firm on oil and gas."
+        />
+
+        <ul class="font-ui mt-7 flex flex-wrap gap-3 text-sm font-bold uppercase">
+          <li><a class={buttonPrimary} href={links.cv} download>Download CV ↓</a></li>
+          <li><a class={buttonGhost} href="/resume">CV page</a></li>
+          <li><a class={buttonGhost} href={links.linkedin}>LinkedIn ↗</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <Sea />
+    <Vessel class="vessel-slot" projects={projects} name="LUKEDA" port="MADRID" />
+  </Plate>
+
+  <div class="max-w-wide mx-auto px-4">
+    <section class="mt-14 sm:mt-20" aria-labelledby="now-heading">
+      <SectionHead id="now-heading" title="Now" folio="Updated November 2026" />
+      <ul>
+        {now.map((n) => (
+          <li class="border-border grid gap-x-8 gap-y-2 border-b py-5 sm:grid-cols-[8rem_1fr]">
+            <span><span class="kicker">{n.kicker}</span></span>
+            <div>
+              <h3 class="font-ui text-[clamp(1.25rem,2.4vw,1.6rem)] leading-tight font-extrabold tracking-[-0.015em] uppercase">
+                {n.href ? <a class="hover:text-primary no-underline" href={n.href}>{n.title} ↗</a> : n.title}
+              </h3>
+              <p class="mt-1 text-[0.9375rem] leading-relaxed">{n.deck}</p>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
+
+    <section id="projects" class="mt-14 sm:mt-20" aria-labelledby="projects-heading">
+      <SectionHead id="projects-heading" title="Manifest" folio="What the containers carry" />
+      <ol>
+        {projects.map((p, i) => (
+          <li class="border-border grid gap-x-8 gap-y-2 border-b py-5 md:grid-cols-[8rem_1fr_14rem]">
+            <p class="text-muted font-mono text-xs uppercase md:pt-1">No. {String(i + 1).padStart(2, '0')}</p>
+            <div>
+              <h3 class="font-ui text-lg leading-tight font-bold">{p.name}</h3>
+              <p class="mt-1 text-[0.9375rem] leading-relaxed">{p.detail}</p>
+            </div>
+            <div class="md:pt-1">
+              <p class="text-muted font-mono text-[0.6875rem] uppercase">{p.stack.join(' · ')}</p>
+              <LinkRow class="mt-2" links={p.links} name={p.name} />
+            </div>
+          </li>
+        ))}
+      </ol>
+    </section>
+
+    <section class="mt-14 sm:mt-20" aria-labelledby="competitions-heading">
+      <SectionHead id="competitions-heading" title="Competitions" folio="Hackathons and challenges" />
+      <ul>
+        {competitions.map((c) => (
+          <li class="border-border grid gap-x-8 gap-y-1 border-b py-5 sm:grid-cols-[8rem_1fr]">
+            <span class="text-muted font-mono text-xs uppercase sm:pt-1.5">{c.when}</span>
+            <div>
+              <h3 class="font-ui text-lg leading-tight font-bold">{c.title}</h3>
+              {c.note && <p class="mt-1 text-[0.9375rem]">{c.note}</p>}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
+
+    <section id="about" class="mt-14 sm:mt-20" aria-labelledby="about-heading">
+      <SectionHead id="about-heading" title="About" />
+      <div class="mt-7 grid gap-x-12 gap-y-10 lg:grid-cols-[minmax(0,var(--content-width))_1fr]">
+        <div class="article-body">
+          <p>
+            I’m in a dual degree in Computer Science and Business Administration at Universidad
+            Carlos III de Madrid, and spent 2024–25 on exchange at FH Kufstein Tirol in Austria. I
+            grew up near the Strait of Gibraltar and live in Madrid.
+          </p>
+          <p>
+            Most of the projects above started because I needed them: a way to hear a mix on my
+            phone, flashcards for the German exam, a tracker for my own investments. I keep each one
+            small, test it, and publish it for free.
+          </p>
+          <p>
+            The other half of my time goes to energy. At Capgemini Invent I worked on IT
+            architecture for one of Europe’s largest integrated energy companies. In October 2026 I
+            started <a href={links.research}>Grau Pedreira</a>, which covers oil, gas and LNG in
+            North Africa and the Gulf of Guinea for Spanish investors.
+          </p>
+          <p>
+            Everything else, including how to reach me, is on my <a href={links.cv} download>CV</a>.
+          </p>
+        </div>
+        <dl class="self-start">
+          {facts.map((f) => (
+            <div class="border-border grid grid-cols-[6.5rem_1fr] gap-x-4 border-b py-3 first:border-t">
+              <dt class="pt-0.5 font-mono text-xs font-semibold uppercase">{f.label}</dt>
+              <dd class="font-ui text-sm leading-relaxed">{f.value}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    </section>
+  </div>
+
+  <section class="mt-16 sm:mt-24" aria-labelledby="research-heading">
+    <Plate
+      class="flex min-h-[26rem] items-end px-4 py-8 sm:min-h-[32rem] sm:py-12"
+      image={researchImage}
+      alt="A bulk carrier at a quay, screened with a halftone dot pattern"
+    >
+      <div class="max-w-wide mx-auto w-full">
+        <PlateHead
+          kicker="Research"
+          spot
+          id="research-heading"
+          as="h2"
+          title="Grau Pedreira"
+          deck="Radar diario, a daily oil and gas newsletter, and longer reports such as a 10-page study of the Nigeria–Morocco gas pipeline and what it means for Spain’s gas security."
+          href={links.research}
+        />
+        <p class="font-ui mt-5 text-sm font-bold uppercase">
+          <a
+            class="inline-block border-b-2 border-current py-1 no-underline hover:text-[var(--primary-on-plate)]"
+            href={links.research}>Read it at graupedreira.es ↗</a
+          >
+        </p>
+      </div>
+    </Plate>
+  </section>
+</Base>
+
+<style>
+  /* The cover: type on the left, the ship on the right riding the sea along the foot. */
+  :global(.hero) {
+    --sea-h: 84px;
+    padding-block-end: calc(var(--sea-h) * 0.5);
+  }
+  /* Phones: a close-up of the stack, bow and stern run off the edges. */
+  :global(.vessel-slot) {
+    inline-size: 150%;
+    margin-block-start: 2.5rem;
+    margin-inline-start: -34%;
+  }
+  @media (min-width: 640px) {
+    :global(.hero) { --sea-h: 110px; padding-block-end: calc(var(--sea-h) * 0.5); }
+    :global(.vessel-slot) { inline-size: min(100%, 56rem); margin-inline: auto; }
+  }
+  /* Wide screens: the ship moves up beside the type, moored in front of the cranes. */
+  @media (min-width: 80rem) {
+    :global(.hero) {
+      --sea-h: 140px;
+      min-block-size: clamp(44rem, calc(100vh - 43px), 60rem);
+      padding-block-end: calc(var(--sea-h) + 2rem);
+    }
+    :global(.vessel-slot) {
+      --ship-w: min(58rem, calc(100vw - max((100vw - 72rem) / 2, 1rem) - 32rem - 6rem));
+      position: absolute;
+      inset-inline-end: 3vw;
+      inset-block-end: calc(var(--sea-h) * 0.5);
+      inline-size: var(--ship-w);
+      margin: 0;
+    }
+    :global(.hero) { --ship-w: min(58rem, calc(100vw - max((100vw - 72rem) / 2, 1rem) - 32rem - 6rem)); }
+  }
+</style>

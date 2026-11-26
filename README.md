@@ -1,6 +1,6 @@
-# Lukeda · [lukeda.me](https://lukeda.me)
+# Lucas Ruiz Gómez · [lukeda.me](https://lukeda.me)
 
-Tools I build because I needed them and couldn't find a good free version. Everything is free: no accounts, no paywalls, no tracking. Most tools run entirely in your browser, so your files and data never leave your device.
+My portfolio and CV, plus the tools I build because I needed them and couldn't find a good free version. Everything is free: no accounts, no paywalls, no tracking. Most tools run entirely in your browser, so your files and data never leave your device.
 
 ![Lukeda landing page](docs/lukeda.png)
 
@@ -30,10 +30,10 @@ Tools I build because I needed them and couldn't find a good free version. Every
 
 ## How it's built
 
-- **No frameworks.** Each tool is a self-contained HTML page with vanilla JavaScript and CSS, served by GitHub Pages under a custom domain.
+- **Portfolio in Astro.** The home page is an [Astro](https://astro.build) site in [`site/`](site/), built on the [Halftone](https://github.com/ondelva/astro-theme-halftone) theme. All the copy lives in [`site/src/data/profile.ts`](site/src/data/profile.ts).
+- **Tools without frameworks.** Each tool is a self-contained HTML page with vanilla JavaScript and CSS. GitHub Actions builds the portfolio and the game and publishes everything to GitHub Pages.
 - **Local first.** Tools process files and store data in the browser. Nothing is uploaded, and there's no account system. The exception is Wortschatz, my own study app, which syncs through Supabase and needs a sign-in.
 - **Tested.** Each tool has a `tests.html` page with its own test suite. Open it in the browser to run the tests.
-- **One design system.** Every tool shares the same retro terminal layout, with its own colour palette.
 
 ## Run locally
 
@@ -43,7 +43,15 @@ cd LucasRuizGomez.github.io
 python -m http.server 8000
 ```
 
-Then open `http://localhost:8000`. Portfolio needs a free [Finnhub](https://finnhub.io) API key for live prices; you paste it into the page's settings, and it stays in your browser.
+Then open `http://localhost:8000/<tool>/`. For the portfolio pages:
+
+```bash
+cd site
+npm install
+npm run dev   # http://localhost:4321
+```
+
+The Portfolio tool needs a free [Finnhub](https://finnhub.io) API key for live prices; you paste it into the page's settings, and it stays in your browser.
 
 ---
 

@@ -1,0 +1,22 @@
+---
+// The section bar: an uppercase head on a heavy rule, with a mono folio beside it. The theme's
+// desk bar, reused for every section on the home page and the resume.
+interface Props {
+  id: string;
+  title: string;
+  folio?: string;
+  class?: string;
+}
+const { id, title, folio, class: className } = Astro.props;
+---
+
+<div
+  class:list={[
+    'flex flex-wrap items-baseline gap-x-6 gap-y-1 border-b-2 border-current pb-2',
+    className,
+  ]}
+>
+  <h2 id={id} class="font-ui text-base font-extrabold uppercase">{title}</h2>
+  {folio && <span class="text-muted font-mono text-xs">{folio}</span>}
+  <slot />
+</div>

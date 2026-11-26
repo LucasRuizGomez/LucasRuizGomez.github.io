@@ -1,4 +1,5 @@
-# Builds Hollow Crypt (C++ -> WebAssembly), runs its tests, and publishes the whole site to GitHub Pages.
+# Builds Hollow Crypt (C++ -> WebAssembly) and the Astro portfolio, runs their checks,
+# and publishes the whole site to GitHub Pages.
 # Needs Settings -> Pages -> Build and deployment -> Source set to "GitHub Actions".
 name: Build and deploy
 
@@ -50,13 +51,30 @@ jobs:
         working-directory: rpg
         run: ctest --preset web-release
 
-      # The site is the repository as it is, with rpg/ replaced by the compiled game.
+      # The portfolio pages (/, /resume, 404) are an Astro site in site/.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+
+      - name: Build the portfolio
+        working-directory: site
+        run: |
+          npm ci
+          npm run check
+          npm run check:contrast
+          npm run build
+
+      # The site is the repository as it is, with rpg/ replaced by the compiled game
+      # and the Astro build laid over the root.
       - name: Assemble the site
         run: |
           mkdir _site
-          rsync -a --exclude .git --exclude .github --exclude _site --exclude emsdk-cache --exclude rpg ./ _site/
+          rsync -a --exclude .git --exclude .github --exclude _site --exclude emsdk-cache --exclude rpg --exclude site ./ _site/
           mkdir _site/rpg
           cp -r rpg/build/web-release/dist/. _site/rpg/
+          cp -r site/dist/. _site/
 
       - uses: actions/upload-pages-artifact@v3
         with:

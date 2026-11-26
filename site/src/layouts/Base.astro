@@ -1,0 +1,126 @@
+---
+import type { ComponentProps } from 'astro/types';
+import { Font } from 'astro:assets';
+import { Icon } from 'astro-icon/components';
+import '../styles/global.css';
+import SEO from '../components/SEO.astro';
+import ThemeToggle from '../components/ThemeToggle.astro';
+import { features, links, nav, site } from '../config';
+
+// `nameplate` prints the name in the sticky bar. The home page sets it false: there the name
+// is the cover, set across the photograph, and a second small one above it reads as a repeat.
+type Props = ComponentProps<typeof SEO> & { nameplate?: boolean };
+const { nameplate = true, ...seoProps } = Astro.props;
+const year = new Date().getFullYear();
+const path = Astro.url.pathname.replace(/\/+$/, '') || '/';
+const themeCredit = 'https://ondelva.com/themes/halftone';
+---
+
+<html lang={site.locale}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="generator" content={Astro.generator} />
+    <Font cssVariable="--font-body" preload={[{ weight: '400', style: 'normal' }]} />
+    <Font
+      cssVariable="--font-heading"
+      preload={[
+        { weight: '400', style: 'normal' },
+        { weight: '800', style: 'normal' },
+      ]}
+    />
+    <Font cssVariable="--font-mono" />
+    <SEO {...seoProps} />
+    <script is:inline>
+      // Before first paint, or the page flashes the system theme.
+      try {
+        const saved = localStorage.getItem('theme');
+        if (saved === 'light' || saved === 'dark')
+          document.documentElement.setAttribute('data-theme', saved);
+      } catch {}
+    </script>
+  </head>
+  <body class="bg-background text-foreground flex min-h-screen flex-col">
+    <a
+      href="#main"
+      class="bg-foreground text-background font-ui sr-only z-50 text-sm no-underline focus:fixed focus:top-4 focus:left-4 focus:not-sr-only focus:px-4 focus:py-2"
+    >
+      Skip to content
+    </a>
+
+    <header class="bg-background border-border sticky top-0 z-40 border-b print:hidden">
+      <div class="max-w-wide mx-auto flex flex-wrap items-baseline gap-x-5 gap-y-1 px-4 py-2.5">
+        {nameplate && (
+          <a
+            class="font-ui text-primary shrink-0 text-lg leading-none font-black tracking-[-0.035em] no-underline"
+            href="/"
+          >
+            {site.name}
+          </a>
+        )}
+        <div class="flex w-full flex-wrap items-baseline gap-x-5 gap-y-1 sm:ms-auto sm:w-auto sm:justify-end">
+          <nav aria-label="Main" class="font-ui flex items-baseline gap-x-5 gap-y-1 text-sm">
+            {nav.header.map((item) => (
+              <a
+                class="hover:text-primary aria-[current=page]:text-primary aria-[current=page]:border-current border-b-2 border-transparent no-underline"
+                href={item.href}
+                aria-current={path === item.href ? 'page' : undefined}
+              >
+                {item.label}
+              </a>
+            ))}
+          </nav>
+          {features.darkMode && <ThemeToggle />}
+        </div>
+      </div>
+    </header>
+
+    <main id="main" tabindex="-1" class="flex-1 outline-none">
+      <slot />
+    </main>
+
+    <footer id="contact" class="border-foreground mt-16 border-t-[3px] sm:mt-24 print:hidden">
+      <div class="max-w-wide mx-auto flex flex-wrap justify-between gap-x-12 gap-y-8 px-4 py-10 sm:py-14">
+        <div class="max-w-[34ch]">
+          <p class="font-ui text-primary text-3xl leading-none font-black tracking-[-0.035em]">
+            {site.name}
+          </p>
+          <p class="text-muted mt-3 text-sm">
+            Madrid, Spain. EU citizen. My contact details are on the CV.
+          </p>
+          <p class="font-ui mt-4 text-sm font-bold uppercase">
+            <a class="hover:text-primary inline-block border-b-2 border-current py-1 no-underline" href={links.cv} download>
+              Download CV (PDF) ↓
+            </a>
+          </p>
+        </div>
+        <nav aria-label="Elsewhere">
+          <h2 class="font-mono text-xs font-semibold uppercase">Elsewhere</h2>
+          <ul class="font-ui text-muted mt-3 space-y-2 text-sm">
+            <li><a class="hover:text-primary no-underline" href="/resume">CV</a></li>
+            <li><a class="hover:text-primary no-underline" href={links.linkedin}>LinkedIn</a></li>
+            <li><a class="hover:text-primary no-underline" href={links.research}>Grau Pedreira</a></li>
+            <li><a class="hover:text-primary no-underline" href={links.repo}>Source of this site</a></li>
+          </ul>
+        </nav>
+        <ul class="flex items-start gap-4">
+          {nav.social.map((link) => (
+            <li>
+              <a class="hover:text-primary block p-1" href={link.href} aria-label={link.label}>
+                <Icon name={link.icon} class="size-5" />
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <p class="max-w-wide text-muted mx-auto px-4 pb-10 font-mono text-[0.6875rem]">
+        &copy; {year} {site.name}. Built with Astro on the{' '}
+        <a class="hover:text-foreground underline" href={themeCredit} rel="nofollow">
+          Halftone
+        </a>{' '}
+        theme by ondelva.
+      </p>
+    </footer>
+  </body>
+</html>

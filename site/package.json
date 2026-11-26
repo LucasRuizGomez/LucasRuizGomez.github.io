@@ -1,0 +1,30 @@
+{
+  "name": "lukeda-site",
+  "type": "module",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Portfolio of Lucas Ruiz Gómez, built on the Halftone theme for Astro.",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "astro check",
+    "check:contrast": "node scripts/check-contrast.mjs"
+  },
+  "dependencies": {
+    "@astrojs/sitemap": "3.7.4",
+    "@iconify-json/lucide": "1.2.132",
+    "@tailwindcss/vite": "4.3.3",
+    "astro": "7.3.3",
+    "astro-icon": "1.2.0",
+    "sharp": "0.35.4",
+    "tailwindcss": "4.3.3"
+  },
+  "devDependencies": {
+    "@astrojs/check": "0.9.10",
+    "typescript": "6.0.3"
+  }
+}

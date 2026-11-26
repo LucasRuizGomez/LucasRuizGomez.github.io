@@ -1,0 +1,75 @@
+---
+// The sea along the foot of the cover plate: three swells moving at different speeds, the
+// middle one printed as a halftone screen. Fixed plate colours, like the ship it carries.
+interface Props {
+  class?: string;
+}
+const { class: className } = Astro.props;
+
+const svg = (body: string) =>
+  `url("data:image/svg+xml,${encodeURIComponent(
+    `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 140' preserveAspectRatio='none'>${body}</svg>`,
+  )}")`;
+const back = svg(`<path d='M0 34 Q50 14 100 34 T200 34 T300 34 T400 34 V140 H0Z' fill='#262a30'/>`);
+const mid = svg(`<path d='M0 52 Q66 30 133 52 T266 52 T400 52 V140 H0Z' fill='#000'/>`);
+const front = svg(
+  `<path d='M0 74 Q25 62 50 74 T100 74 T150 74 T200 74 T250 74 T300 74 T350 74 T400 74 V140 H0Z' fill='#111214'/>` +
+    `<path d='M0 74 Q25 62 50 74 T100 74 T150 74 T200 74 T250 74 T300 74 T350 74 T400 74' fill='none' stroke='#c9c9c6' stroke-opacity='0.45' stroke-width='1.5'/>`,
+);
+---
+
+<div
+  class:list={['sea', className]}
+  aria-hidden="true"
+  style={`--wave-back:${back};--wave-mid:${mid};--wave-front:${front}`}
+>
+  <div class="swell back"></div>
+  <div class="swell mid"></div>
+  <div class="swell front"></div>
+</div>
+
+<style>
+  .sea {
+    position: absolute;
+    inset-inline: 0;
+    inset-block-end: 0;
+    block-size: var(--sea-h, 110px);
+    pointer-events: none;
+    /* No stacking context of its own: the swells interleave with the ship on the plate. The
+       sea comes before the ship in the markup, so the back swell paints under it. */
+    z-index: auto !important;
+  }
+  .swell {
+    position: absolute;
+    inset: 0;
+    background-repeat: repeat-x;
+    background-size: 400px 100%;
+  }
+  .back {
+    z-index: 1;
+    background-image: var(--wave-back);
+    animation: drift 16s linear infinite;
+  }
+  /* The halftone swell: a dot screen cut to the wave's shape. */
+  .mid {
+    z-index: 3;
+    background: radial-gradient(circle, #9ea2a5 1.3px, transparent 1.8px) 0 0 / 7px 7px;
+    -webkit-mask: var(--wave-mid) 0 0 / 400px 100% repeat-x;
+    mask: var(--wave-mid) 0 0 / 400px 100% repeat-x;
+    opacity: 0.55;
+    animation: drift-mask 22s linear infinite reverse;
+  }
+  .front {
+    z-index: 4;
+    background-image: var(--wave-front);
+    animation: drift 10s linear infinite;
+  }
+  @keyframes drift {
+    from { background-position-x: 0; }
+    to { background-position-x: -400px; }
+  }
+  @keyframes drift-mask {
+    from { -webkit-mask-position: 0 0; mask-position: 0 0; }
+    to { -webkit-mask-position: -400px 0; mask-position: -400px 0; }
+  }
+</style>
