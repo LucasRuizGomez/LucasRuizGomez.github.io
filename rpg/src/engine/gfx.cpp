@@ -185,6 +185,18 @@ void Gfx::drawPart(const Sprite& s, IRect src, double x, double y, double w, dou
     SDL_RenderCopy(ren_, s.tex, &sr, &r);
 }
 
+void Gfx::drawPart(const Sprite& s, IRect src, double x, double y, double w, double h, bool flip, Color tint, bool additive) {
+    if (!s.tex) return;
+    const SDL_Rect r = dstRect(x, y, w, h, scale_, ox_, oy_);
+    const SDL_Rect sr{src.x, src.y, src.w, src.h};
+    SDL_SetTextureAlphaMod(s.tex, static_cast<Uint8>(tint.a * alpha_));
+    SDL_SetTextureColorMod(s.tex, tint.r, tint.g, tint.b);
+    if (additive) SDL_SetTextureBlendMode(s.tex, SDL_BLENDMODE_ADD);
+    SDL_RenderCopyEx(ren_, s.tex, &sr, &r, 0, nullptr, flip ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE);
+    if (additive) SDL_SetTextureBlendMode(s.tex, SDL_BLENDMODE_BLEND);
+    SDL_SetTextureColorMod(s.tex, 255, 255, 255);
+}
+
 void Gfx::drawRotated(const Sprite& s, double x, double y, double radians, double pivotX, double pivotY, double scale) {
     if (!s.tex) return;
     const SDL_Rect r = dstRect(x, y, s.w * scale, s.h * scale, scale_, ox_, oy_);

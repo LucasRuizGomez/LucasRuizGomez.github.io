@@ -54,6 +54,7 @@ class Gfx {
     void draw(const Sprite& s, double x, double y, bool flip = false);
     void draw(const Sprite& s, double x, double y, double w, double h, bool flip = false);
     void drawPart(const Sprite& s, IRect src, double x, double y, double w, double h);
+    void drawPart(const Sprite& s, IRect src, double x, double y, double w, double h, bool flip, Color tint, bool additive = false);
     void drawRotated(const Sprite& s, double x, double y, double radians, double pivotX, double pivotY, double scale = 1);
     void drawTinted(const Sprite& s, double x, double y, double w, double h, Color tint, bool additive = false, bool flip = false);
     void present();

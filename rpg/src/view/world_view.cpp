@@ -37,6 +37,17 @@ bool grassyAt(const Map& m, int c, int r) {
     return grassy(t) || (t == CLIFF && !cliffFace(m, c, r));
 }
 double frand() { return std::rand() / (RAND_MAX + 1.0); }
+// How far the wind bends a plant at (x, y), from -1 to 1: gusts roll across the land from the west, and every
+// plant also stirs a little on its own. Indoors there is no wind, only a slow stir.
+double wind(int tick, double x, double y, bool outdoor) {
+    if (!outdoor) return 0.6 * std::sin(tick * 0.02 + x * 0.37 + y * 0.71);
+    return 0.75 * std::sin(tick * 0.03 - x * 0.015 - y * 0.006) + 0.25 * std::sin(tick * 0.07 + x * 0.37 + y * 0.71);
+}
+bool swaysInWind(const char* name) {
+    for (const char* p : {"plant_", "thorn_plant_", "dead_arm_", "broken_tree_"})
+        if (std::string(name).rfind(p, 0) == 0) return true;
+    return false;
+}
 
 Color miniColor(uint8_t t) {
     switch (t) {
@@ -170,6 +181,7 @@ bool WorldView::propFor(Map& m, MapView& v, int c, int r, Prop& out) {
             if (big) {
                 out.img = &big;
                 out.tree = t == TREE;
+                out.sway = out.tree ? std::clamp(big.h / 24, 1, 3) : 0;
                 out.x = c * TILE + 8 - big.w / 2 + static_cast<int>(hash2(c, r, 29) * 5) - 2;
                 out.y = (r + 1) * TILE + 3 - big.h;
                 return true;
@@ -207,6 +219,7 @@ bool WorldView::propFor(Map& m, MapView& v, int c, int r, Prop& out) {
         }
         out.img = pool[static_cast<int>(hv * n)];
         out.tree = true;
+        out.sway = std::clamp(out.img->h / 22, 1, 3);
         out.x = c * TILE + 8 - out.img->w / 2 + (deep ? jx : 0);
         out.y = (r + 1) * TILE + 1 + (deep ? jy : 0) - out.img->h;
         return true;
@@ -220,6 +233,7 @@ bool WorldView::propFor(Map& m, MapView& v, int c, int r, Prop& out) {
     if (pool.empty()) return false;
     out.img = &pool[static_cast<size_t>(hash2(c, r, 23) * pool.size())];
     out.tree = false;
+    out.sway = 0;
     out.x = c * TILE + 8 - out.img->w / 2 + (deep ? jx : 0);
     out.y = (r + 1) * TILE + (big ? 4 : 2) - out.img->h;
     return true;
@@ -257,14 +271,15 @@ void WorldView::drawTravel(Sim& sim, const Object& o) {
         else g_.fillRect(x - 8, y - 20, 32, 34, Color(60, 20, 80));
     } else if (o.sprite == "ferry") {
         g_.fillRect(x - 14, y + 4, 44, 8, Color(20, 30, 36, 160));      // dark water by the jetty
-        g_.fillRect(x - 12, y - 2, 40, 2, ink);                       // the boat
-        g_.fillRect(x - 10, y, 36, 5, wood);
-        g_.fillRect(x - 8, y + 5, 32, 2, Color(46, 34, 26));
-        g_.fillRect(x - 10, y, 36, 1, woodHi);
-        g_.fillRect(x + 16, y - 16, 2, 18, wood);                     // the pole
-        g_.fillRect(x + 4, y - 14, 6, 12, Color(30, 28, 32));        // the ferryman, hooded
-        g_.fillRect(x + 5, y - 17, 4, 4, Color(24, 22, 26));
-        g_.fillRect(x - 16, y - 6, 3, 14, wood);                      // a mooring post
+        const double by = y + std::round(std::sin(tick * 0.05 + o.c) * 1.2);   // the boat rides the swell, the post stays
+        g_.fillRect(x - 12, by - 2, 40, 2, ink);                       // the boat
+        g_.fillRect(x - 10, by, 36, 5, wood);
+        g_.fillRect(x - 8, by + 5, 32, 2, Color(46, 34, 26));
+        g_.fillRect(x - 10, by, 36, 1, woodHi);
+        g_.fillRect(x + 16, by - 16, 2, 18, wood);                     // the pole
+        g_.fillRect(x + 4, by - 14, 6, 12, Color(30, 28, 32));        // the ferryman, hooded
+        g_.fillRect(x + 5, by - 17, 4, 4, Color(24, 22, 26));
+        g_.fillRect(x - 16, y - 6, 3, 14, wood);                  // a mooring post
         g_.drawTinted(spr_.glow, x - 22, y - 16, 14, 14, Color(255, 200, 120, 90), true);
     } else if (o.sprite == "ritual") {
         const double cx = x + 8, cy = y + 4;
@@ -287,9 +302,10 @@ void WorldView::drawTravel(Sim& sim, const Object& o) {
         g_.fillRect(x - 12, y - 32, 40, 4, woodHi);
         for (int i = 0; i < 9; i++) g_.fillRect(x + 1 + (i % 2), y - 28 + i * 3, 1, 2, ironHi);   // the chains
         for (int i = 0; i < 9; i++) g_.fillRect(x + 15 + (i % 2), y - 28 + i * 3, 1, 2, ironHi);
-        g_.fillRect(x - 6, y - 2, 28, 10, ink);                       // the cage
-        g_.fillRect(x - 5, y - 1, 26, 8, iron);
-        for (int i = 0; i < 6; i++) g_.fillRect(x - 3 + i * 5, y - 1, 1, 8, ironHi);
+        const double cx = x + std::round(std::sin(tick * 0.04 + o.c) * 1.2);   // the cage swings on its chains
+        g_.fillRect(cx - 6, y - 2, 28, 10, ink);                      // the cage
+        g_.fillRect(cx - 5, y - 1, 26, 8, iron);
+        for (int i = 0; i < 6; i++) g_.fillRect(cx - 3 + i * 5, y - 1, 1, 8, ironHi);
         g_.drawTinted(spr_.glow, x + 20, y - 26, 14, 14, Color(255, 190, 110, 90), true);
     }
     if (!open) {   // a padlock of shadow until the way is opened
@@ -329,6 +345,7 @@ bool WorldView::decorFor(Map& m, int c, int r, Prop& out) {
     if (!img) return false;
     out.img = &img;
     out.tree = false;
+    out.sway = swaysInWind(name) ? std::clamp(img.h / 14, 1, 2) : 0;
     out.c = c;
     out.base = r * TILE + 8;
     out.x = c * TILE + 8 - img.w / 2 + static_cast<int>(hash2(c, r, 144) * 7) - 3;
@@ -449,10 +466,7 @@ void WorldView::drawTile(Map& m, MapView& v, int c, int r) {
                     g_.drawPart(T.sheet, {tx + qx * 8, ty + qy * 8, 8, 8}, x + qx * 8, y + qy * 8, 8, 8);
                 }
             if (t == FLOWERS) {
-                for (int i = 0; i < 2; i++) {
-                    const Sprite& f = spr_.flowers[static_cast<int>(hash2(c, r, 30 + i) * 4)];
-                    g_.draw(f, x + 1 + static_cast<int>(hash2(c, r, 32 + i) * (14 - f.w)) + i * 3, y + 2 + static_cast<int>(hash2(c, r, 34 + i) * (12 - f.h)));
-                }
+                // the flowers themselves are drawn every frame in render(), so they can nod in the wind
             } else if (t == CLIFF) {
                 drawCliff(m, T, c, r);   // the lip: rocks along the drop
             } else if (t == GRASS && hash2(c, r, 6) < 0.035) {
@@ -731,6 +745,112 @@ const Sprite& WorldView::minimap(Sim& sim, Map& m, bool fog) {
     return fog ? v.mini : v.miniFull;
 }
 
+void WorldView::drawSway(const Sprite& img, double x, double y, double lean) {
+    if (!img || img.h < 4 || std::abs(lean) < 0.5) {
+        g_.draw(img, x, y);
+        return;
+    }
+    // The base stays rooted and the lean grows toward the top; rows that share an offset go out as one strip.
+    auto shift = [&](int row) { return static_cast<int>(std::lround(lean * std::pow(1.0 - static_cast<double>(row) / img.h, 1.6))); };
+    int start = 0, cur = shift(0);
+    for (int row = 1; row <= img.h; row++) {
+        const int s = row < img.h ? shift(row) : cur + 1000;
+        if (s == cur) continue;
+        g_.drawPart(img, {0, start, img.w, row - start}, x + cur, y + start, img.w, row - start);
+        start = row;
+        cur = s;
+    }
+}
+
+// The body language of a still picture. Facing: + is the way it looks (face), so leaning forward is +face.
+WorldView::Warp WorldView::gait(const Enemy& e, int tick) const {
+    const EnemyDef& def = *e.def;
+    const double f = e.face < 0 ? -1 : 1;
+    Warp w;
+    if (def.look == Look::Mimic) {   // a chest that breathes, and now and then shivers with hunger
+        w.squash = 0.03 * std::sin(e.t * 0.06);
+        if (!e.moving && e.hop <= 0 && (e.t + e.uid * 37) % 200 < 12) w.lean = (e.t >> 1) % 2 ? 1 : -1;
+        if (e.hop > 0 || e.wind > 0) w.squash = 0.08 * std::sin(e.t * 0.7);
+        return w;
+    }
+    if (def.fly) {   // wings beating: it stretches and gathers in quick strokes, swaying as it hovers
+        const double beat = std::sin(e.t * (e.moving ? 0.45 : 0.3));
+        w.squash = 0.09 * beat;
+        w.lean = 1.2 * std::sin(e.t * 0.08) + (e.moving ? f : 0);
+    } else if (e.hop > 0 && def.ai == Ai::Charger) {   // the charge: head down, low and long
+        w.lean = f * 3;
+        w.squash = -0.08 + 0.04 * std::sin(e.t * 0.7);
+        w.foot = -f * 1.5 * std::sin(e.t * 0.7);
+    } else if (e.moving) {   // a step: the body rocks over the feet, which swing the other way; flat on landing, tall mid-stride
+        const double phase = e.t * (e.fast ? 0.35 : 0.22), step = std::sin(phase);
+        w.lean = f * (e.fast ? 1.5 : 0.8) + step * 1.3;
+        w.foot = -step * 1.4;
+        w.squash = -0.07 * std::cos(2 * phase);
+    } else {   // breathing, with a slow shift of weight
+        w.squash = 0.035 * std::sin(e.t * 0.05 + e.uid);
+        w.lean = 0.7 * std::sin(e.t * 0.021 + e.uid * 1.7);
+    }
+    // getting ready to strike: rears back and gathers itself, trembling
+    if (e.wind > 0) {
+        w.lean = -f * 2.5 + ((e.t >> 1) % 2 ? 0.6 : -0.6);
+        w.squash = -0.1;
+        w.foot = f * 0.8;
+    }
+    if (e.act > 0) {   // a blow (guards) or a shot (archers): rear back, then lunge into it
+        const int total = def.ai == Ai::Archer ? (e.act > 40 ? 10 : 40) : 24;
+        const int left = def.ai == Ai::Archer && e.act > 40 ? e.act - 40 : e.act;
+        const double p = 1 - static_cast<double>(left) / total;
+        if (def.ai == Ai::Archer && e.act <= 40) {   // reloading: a slow bend
+            w.lean = -f * 1.5 * std::sin(PI * p);
+            w.squash = -0.05 * std::sin(PI * p);
+        } else if (p < 0.45) {
+            w.lean = -f * 3 * (p / 0.45);
+            w.squash = 0.06 * (p / 0.45);
+        } else {
+            const double q = std::min(1.0, (p - 0.45) / 0.25);
+            w.lean = f * (4 * q - 3 * (1 - q));
+            w.squash = -0.1 * q;
+            w.foot = -f * q;
+        }
+    }
+    if (def.isBoss()) {
+        if (e.state == Enemy::State::SlamWind) {   // rises up tall, then comes down
+            const double p = 1 - e.st / 52.0;
+            w.squash = p < 0.8 ? 0.14 * p / 0.8 : 0.14 - 0.4 * (p - 0.8) / 0.2;
+            w.lean = -f * 2 * std::min(1.0, p * 1.5) + ((tick >> 1) % 2 ? 0.5 : -0.5);
+        } else if (e.state == Enemy::State::Roar || e.state == Enemy::State::Summon || e.state == Enemy::State::VolleyWind) {
+            w.squash = 0.08 + 0.04 * std::sin(e.t * 0.9);
+            w.lean = ((tick >> 1) % 2 ? 1 : -1);
+        }
+    }
+    if (e.flash > 0) {   // struck: knocked back and squashed for a moment
+        const double h = e.flash / 10.0;
+        w.lean = -f * 2.5 * h;
+        w.squash = std::min(w.squash, -0.12 * h);
+    }
+    return w;
+}
+
+void WorldView::drawWarp(const Sprite& img, double x, double y, double w, double h, bool flip, const Warp& wp, Color tint, bool additive) {
+    if (!img) return;
+    // whole art pixels: the stretched box keeps its foot on the ground and its middle where it was
+    const double h2 = std::max(2.0, std::round(h * (1 + wp.squash))), w2 = std::max(2.0, std::round(w * (1 - 0.6 * wp.squash)));
+    const double x2 = x + std::round((w - w2) / 2), y2 = y + h - h2, q = h2 / img.h;
+    auto shift = [&](int row) {
+        const double t = static_cast<double>(row) / img.h;   // 0 at the top, 1 at the foot
+        return static_cast<int>(std::lround(wp.lean * std::pow(1 - t, 1.4) + wp.foot * std::max(0.0, (t - 0.65) / 0.35)));
+    };
+    int start = 0, cur = shift(0);
+    for (int row = 1; row <= img.h; row++) {
+        const int sft = row < img.h ? shift(row) : cur + 1000;
+        if (sft == cur) continue;
+        const double ya = y2 + start * q, yb = y2 + row * q;
+        g_.drawPart(img, {0, start, img.w, row - start}, x2 + cur, ya, w2, yb - ya, flip, tint, additive);
+        start = row;
+        cur = sft;
+    }
+}
+
 void WorldView::pixelArc(double cx, double cy, double R, double a, double b, Color col) {
     const double step = 0.8 / R;
     for (double t = a; t <= b; t += step) g_.fillRect(std::round(cx + std::cos(t) * R), std::round(cy + std::sin(t) * R), 1, 1, col);
@@ -774,6 +894,18 @@ void WorldView::render(Sim& sim, int zoom, bool withActors) {
         const Sprite& img = fr[std::min(fr.size() - 1, static_cast<size_t>(f.t / 4))];
         g_.draw(img, std::round(f.x - img.w / 2.0), std::round(f.y - img.h + (f.splash ? 2 : 6)));
     }
+    // Flowers nodding in the wind (kept out of the baked chunks so they can move)
+    if (m.outdoor && !m.interior)
+        for (int r = r0; r < r1; r++)
+            for (int c = c0; c < c1; c++) {
+                if (m.get(c, r) != FLOWERS) continue;
+                for (int i = 0; i < 2; i++) {
+                    const Sprite& f = spr_.flowers[static_cast<int>(hash2(c, r, 30 + i) * 4)];
+                    const double fx = c * TILE + 1 + static_cast<int>(hash2(c, r, 32 + i) * (14 - f.w)) + i * 3;
+                    const double fy = r * TILE + 2 + static_cast<int>(hash2(c, r, 34 + i) * (12 - f.h));
+                    drawSway(f, fx, fy, wind(tick, fx + i * 5, fy, true) * 1.4);
+                }
+            }
     if (m.outdoor) {
         const Color shimmer(190, 228, 255, 128);
         for (int r = r0; r < r1; r++)
@@ -839,7 +971,7 @@ void WorldView::render(Sim& sim, int zoom, bool withActors) {
                     g_.drawTinted(*p.img, std::round(p.x + sw * 0.22), std::round(p.base - shh * 0.35), sw, shh, Color(4, 4, 8, 78));
                 }
                 if (hides) g_.setAlpha(0.45);
-                g_.draw(*p.img, p.x + sh, p.y);
+                drawSway(*p.img, p.x + sh, p.y, p.sway * wind(tick, p.x, p.base, m.outdoor));
                 g_.setAlpha(1);
                 break;
             }
@@ -995,7 +1127,9 @@ void WorldView::drawObject(Sim& sim, Map& m, const Object& o) {
             const Sprite& img = stages[std::min(stages.size() - 1, static_cast<size_t>(o.max - o.left))];
             const int sh = tick - o.hitAt < 10 ? ((tick >> 1) % 2 ? 1 : -1) : 0;
             const int grow = tick - o.grewAt < 12 ? 1 : 0;
-            drawAt(img, x + 8 + sh, y + 16 + (o.res == "herb" ? -1 : 2) + grow);
+            if (o.res == "herb")   // herbs nod in the wind; ore and stone do not
+                drawSway(img, std::round(x + 8 + sh - img.w / 2.0), std::round(y + 15 + grow - img.h), 1.4 * wind(tick, x, y, m.outdoor));
+            else drawAt(img, x + 8 + sh, y + 18 + grow);
             break;
         }
         case ObjKind::Stump: drawAt(o.stage ? spr_.trees("").small : spr_.get("log"), x + 8, y + 16 + (o.stage ? 1 : 0)); break;
@@ -1004,8 +1138,14 @@ void WorldView::drawObject(Sim& sim, Map& m, const Object& o) {
             const Frames& fr = spr_.frames(o.sprite);
             const Sprite& img = fr.size() > 1 ? anim(fr, tick + o.c * 7, 9) : spr_.get(o.sprite);
             const PropDef* pd = db_.prop(o.id);
-            if (pd && pd->flat) g_.draw(img, x + 8 - img.w / 2, y + 8 - img.h / 2);
-            else drawAt(img, x + 8 + (pd ? pd->ox : 0), y + 16 + (o.h > 1 && !m.interior ? 2 : 0) + (pd ? pd->oy : 0));
+            if (pd && pd->flat) {
+                // a lily pad rides the ripples; rugs and bones lie still
+                const double bob = o.sprite == "lily" ? std::round(std::sin(tick * 0.05 + o.c * 1.3 + o.r)) : 0;
+                g_.draw(img, x + 8 - img.w / 2, y + 8 - img.h / 2 + bob);
+            } else if (pd && pd->sway && fr.size() <= 1) {
+                const double bx = x + 8 + pd->ox, by = y + 16 + (o.h > 1 && !m.interior ? 2 : 0) + pd->oy;
+                drawSway(img, std::round(bx - img.w / 2.0), std::round(by - img.h), pd->sway * wind(tick, x, y, m.outdoor));
+            } else drawAt(img, x + 8 + (pd ? pd->ox : 0), y + 16 + (o.h > 1 && !m.interior ? 2 : 0) + (pd ? pd->oy : 0));
             if (!o.text.empty() && m.outdoor) {   // a house's sign board: what the building is
                 const Sprite& ic = spr_.get(o.text).w ? spr_.get(o.text) : spr_.icon(o.text);
                 const double bx = x + 8 + 13, by = y - 13;
@@ -1167,7 +1307,7 @@ void WorldView::drawPlayer(Sim& sim) {
     const Sprite* img = &walk[0];
     if (P.atkT > 0 && !frames("slash").empty()) img = &progress(frames("slash"), atkT, P.atkT);
     else if (P.bowT > 0 && !frames("shoot").empty()) img = &progress(frames("shoot"), 10, P.bowT);
-    else if (!P.mount.empty()) img = &walk[0];
+    else if (!P.mount.empty()) img = !P.moving && !frames("idle").empty() ? &anim(frames("idle"), tick, 30) : &walk[0];
     else if (P.moving || P.roll > 0) img = &anim(walking, P.animT, 5);
     else if (!frames("idle").empty()) img = &anim(frames("idle"), tick, 30);
 
@@ -1302,16 +1442,24 @@ void WorldView::drawEnemy(Sim& sim, const Enemy& e) {
     const int shake = e.wind > 0 && def.ai == Ai::Charger && def.look != Look::Human ? ((e.t >> 1) % 2 ? 1 : -1) : 0;
     const int crouch = e.wind > 0 && def.look == Look::Human ? 1 : 0;
     double dx = std::round(e.x - 16 * k) + shake, dy = std::round(top) + crouch;
-    if (def.look == Look::Static) {   // a still picture walks with a bob and a sway, and rears back before it strikes
-        const double gait = e.moving ? std::abs(std::sin(e.t * (e.fast ? 0.35 : 0.22))) : 0.5 + 0.5 * std::sin(e.t * 0.05);
-        dy -= std::round(gait * (e.moving ? 2.5 : 1));
-        if (e.wind > 0 || e.act > 0) dy += 1, dx += e.face < 0 ? 1 : -1;
-        if (def.fly) dy -= 4;
-        g_.drawTinted(spr_.glow, std::round(e.x - 9 * k), std::round(e.y - 3), 18 * k, 6, Color(0, 0, 0, 110));
-    }
-    g_.draw(img, dx, dy, 32 * k, 32 * k, flip);
     const bool flash = (e.flash > 0 && e.flash % 4 < 2) || (def.isBoss() && e.state == Enemy::State::VolleyWind && tick % 6 < 3);
-    if (flash) g_.drawTinted(img, dx, dy, 32 * k, 32 * k, Color(255, 255, 255), true, flip);
+    if (def.look == Look::Static || def.look == Look::Mimic) {   // still pictures are given a body that steps, breathes and strikes
+        const Warp wp = gait(e, tick);
+        double lift = 0;
+        if (def.look == Look::Static) {
+            const double phase = e.t * (e.fast ? 0.35 : 0.22);
+            lift = e.moving && !def.fly ? std::round(std::abs(std::sin(phase)) * (e.fast ? 3 : 2)) : 0;   // each step leaves the ground
+            if (e.hop > 0 && def.ai == Ai::Charger) lift = std::round(std::abs(std::sin(e.t * 0.5)) * 2);
+            if (def.fly) lift = 4 + std::round(std::sin(e.t * 0.1) * 1.5);   // hovering
+            const double sw = 18 * k * (1 - 0.15 * lift / 4) * (1 - wp.squash);   // the shadow shrinks as it leaves the ground
+            g_.drawTinted(spr_.glow, std::round(e.x - sw / 2), std::round(e.y - 3), sw, 6, Color(0, 0, 0, static_cast<uint8_t>(110 - lift * 8)));
+        }
+        drawWarp(img, dx, dy - lift, 32 * k, 32 * k, flip, wp);
+        if (flash) drawWarp(img, dx, dy - lift, 32 * k, 32 * k, flip, wp, Color(255, 255, 255), true);
+    } else {
+        g_.draw(img, dx, dy, 32 * k, 32 * k, flip);
+        if (flash) g_.drawTinted(img, dx, dy, 32 * k, 32 * k, Color(255, 255, 255), true, flip);
+    }
     // "!" over a monster that is about to attack
     if ((e.wind > 0 || e.aim > 0) && (tick >> 2) % 2 == 0) g_.draw(spr_.alert, std::round(e.x - spr_.alert.w / 2.0), std::round(top + (animal ? 2 : 6) * k - spr_.alert.h));
     if (!def.isBoss() && (e.hp < e.maxHp || e.elite)) {
@@ -1334,9 +1482,16 @@ void WorldView::drawCorpse(const Corpse& c) {
         const Frames& fr = spr_.animal(def.sprite, def.tint).get("dead")[animalRow(e.dir)];
         img = &fr[std::min(fr.size() - 1, static_cast<size_t>(c.t / 7))];
     } else if (def.look == Look::Mimic) img = &spr_.chest.back();
-    else if (def.look == Look::Static) {   // no death frames: it slumps, darkens and fades
+    else if (def.look == Look::Static) {   // no death frames: it reels back, slumps flat, darkens and fades
         g_.setAlpha(std::max(0.0, 1 - c.t / 50.0));
-        img = &spr_.monster(def.sprite, "#806060");
+        const Sprite& im = spr_.monster(def.sprite, "#806060");
+        const double fall = std::min(1.0, c.t / 18.0), ease = fall * (2 - fall);
+        Warp wp;
+        wp.lean = -e.face * (4 * ease + (c.t < 6 ? 1.5 * std::sin(c.t * 1.2) : 0));
+        wp.squash = -0.45 * ease;
+        drawWarp(im, std::round(e.x - 16 * k), std::round(e.y - 30 * k), 32 * k, 32 * k, e.face < 0, wp);
+        g_.setAlpha(1);
+        return;
     } else if (def.look == Look::Treant) {   // no death frames in the sheet: it sinks and fades
         g_.setAlpha(std::max(0.0, 1 - c.t / 40.0));
         img = &spr_.treant(def.tint)[treantRow(e.dir)][0];

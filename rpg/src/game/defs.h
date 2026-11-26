@@ -120,6 +120,7 @@ struct PropDef {
     int w = 1, h = 1, frames = 1;
     int ox = 0;   // horizontal shift in pixels when drawn, for sprites whose foot is not in the middle (a flag pole)
     int oy = 0;   // vertical shift in pixels when drawn (negative = higher), for things that sit on a table
+    int sway = 0;   // pixels the top of a plant leans in the wind (0 = it stands still)
     bool solid = true, flat = false, arch = false;
 };
 

@@ -306,6 +306,7 @@ Database Database::load(const std::string& dir) {
             p.flat = it.value().value("flat", false);
             p.ox = it.value().value("ox", 0);
             p.oy = it.value().value("oy", 0);
+            p.sway = it.value().value("sway", 0);
             p.arch = it.value().value("arch", false);
             db.props[p.id] = std::move(p);
         }

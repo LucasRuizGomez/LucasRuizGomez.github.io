@@ -30,6 +30,7 @@ class WorldView {
         const Sprite* img = nullptr;
         double x = 0, y = 0, base = 0;
         bool tree = false;
+        int sway = 0;   // pixels its top leans in the wind
     };
     struct MapView {
         int cw = 0, ch = 0;
@@ -69,6 +70,15 @@ class WorldView {
     const Sprite& enemyFrame(Sim& sim, const Enemy& e, bool& flip);
     void drawLighting(Sim& sim, Map& m, int zoom, double alpha, Color col);
     void pixelArc(double cx, double cy, double R, double a, double b, Color col);
+    // Draws a sprite sheared by `lean` pixels at the top and none at the base, in whole-pixel strips.
+    void drawSway(const Sprite& img, double x, double y, double lean);
+    // A still picture given a body: `lean` shears the top (pixels), `foot` slides the bottom rows (a step),
+    // `squash` < 0 flattens and > 0 stretches it, always standing on the bottom of the box (x, y, w, h).
+    struct Warp {
+        double lean = 0, foot = 0, squash = 0;
+    };
+    void drawWarp(const Sprite& img, double x, double y, double w, double h, bool flip, const Warp& wp, Color tint = Color(255, 255, 255), bool additive = false);
+    Warp gait(const Enemy& e, int tick) const;
 
     Gfx& g_;
     Sprites& spr_;
