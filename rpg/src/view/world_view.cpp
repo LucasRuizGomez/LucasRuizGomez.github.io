@@ -763,7 +763,7 @@ void WorldView::drawSway(const Sprite& img, double x, double y, double lean) {
 }
 
 // The body language of a still picture. Facing: + is the way it looks (face), so leaning forward is +face.
-WorldView::Warp WorldView::gait(const Enemy& e, int tick) const {
+WorldView::Warp WorldView::gait(const Enemy& e, int tick, const Sprites::Rig* rig) const {
     const EnemyDef& def = *e.def;
     const double f = e.face < 0 ? -1 : 1;
     Warp w;
@@ -828,24 +828,76 @@ WorldView::Warp WorldView::gait(const Enemy& e, int tick) const {
         w.lean = -f * 2.5 * h;
         w.squash = std::min(w.squash, -0.12 * h);
     }
+    if (!rig) return w;
+    const bool walking = rig->legs && !def.fly;
+    if (walking) {
+        // Two legs (or the front and back pair) take turns: one swings forward off the ground while the other
+        // pushes back on it. They take over from the shear of the foot rows.
+        double phase = -1, reach = 1.2, up = e.fast ? 2 : 1.5;
+        if (e.hop > 0 && def.ai == Ai::Charger) phase = e.t * 0.7, reach = 1.8, up = 2;
+        else if (e.moving && e.wind <= 0) phase = e.t * (e.fast ? 0.35 : 0.22);
+        if (phase >= 0) {
+            const double s = std::sin(phase);
+            w.stepA = f * reach * s;
+            w.stepB = -f * reach * s;
+            w.liftA = std::max(0.0, s) * up;
+            w.liftB = std::max(0.0, -s) * up;
+            w.squash = std::max(w.squash, -0.04);   // the legs carry the step now; the body only bobs a little
+        }
+        w.foot = 0;
+        if (e.wind > 0) w.stepA = w.stepB = -f * 0.8;   // braced, feet dug in
+    }
+    if (rig->wings) {
+        if (def.fly) {   // wings carry it: full strokes, quicker when it is going somewhere
+            w.flap = 3.5 * std::sin(e.t * (e.moving ? 0.45 : 0.32));
+            w.squash = 0.03 * std::sin(e.t * (e.moving ? 0.45 : 0.32) + 1.2);   // the body rises on the down stroke
+        } else if (e.wind > 0 || e.act > 0 || (def.isBoss() && e.state != Enemy::State::Idle && e.state != Enemy::State::Chase)) {
+            w.flap = 3 * std::sin(e.t * 0.5);   // spread and beating before it strikes
+        } else {
+            w.flap = 1 + std::sin(e.t * 0.05 + e.uid);   // folded, stirring
+        }
+    }
     return w;
 }
 
-void WorldView::drawWarp(const Sprite& img, double x, double y, double w, double h, bool flip, const Warp& wp, Color tint, bool additive) {
+void WorldView::drawWarp(const Sprite& img, double x, double y, double w, double h, bool flip, const Warp& wp, Color tint, bool additive,
+                         const Sprites::Rig* rig) {
     if (!img) return;
     // whole art pixels: the stretched box keeps its foot on the ground and its middle where it was
     const double h2 = std::max(2.0, std::round(h * (1 + wp.squash))), w2 = std::max(2.0, std::round(w * (1 - 0.6 * wp.squash)));
-    const double x2 = x + std::round((w - w2) / 2), y2 = y + h - h2, q = h2 / img.h;
+    const double x2 = x + std::round((w - w2) / 2), y2 = y + h - h2, q = h2 / img.h, sx = w2 / img.w;
     auto shift = [&](int row) {
         const double t = static_cast<double>(row) / img.h;   // 0 at the top, 1 at the foot
         return static_cast<int>(std::lround(wp.lean * std::pow(1 - t, 1.4) + wp.foot * std::max(0.0, (t - 0.65) / 0.35)));
     };
+    // Picture columns u0..u1 and rows v0..v1, moved by (ex, ey) art pixels. A flipped picture is mirrored, so its
+    // columns land the other way round.
+    auto put = [&](int u0, int u1, int v0, int v1, double ex, double ey) {
+        if (u1 <= u0 || v1 <= v0) return;
+        const double ya = y2 + v0 * q + std::lround(ey), yb = y2 + v1 * q + std::lround(ey);
+        const double xa = x2 + (flip ? img.w - u1 : u0) * sx + std::lround(ex);
+        g_.drawPart(img, {u0, v0, u1 - u0, v1 - v0}, xa, ya, (u1 - u0) * sx, yb - ya, flip, tint, additive);
+    };
+    const IRect box = rig ? rig->box : IRect{0, 0, img.w, img.h};
+    const bool legs = rig && rig->legs && (wp.liftA != 0 || wp.liftB != 0 || wp.stepA != 0 || wp.stepB != 0);
+    const bool wings = rig && rig->wings && std::abs(wp.flap) >= 0.5;
+    const int legTop = legs ? box.y + static_cast<int>(std::lround(box.h * 0.72)) : img.h;   // rows below are the legs
+    const int mid = box.x + box.w / 2;
+    const int span = std::max(2, static_cast<int>(std::lround(box.w * 0.34)));               // each wing's share of the width
+    const int wingL = box.x + span, wingR = box.x + box.w - span;
+    const int wingBottom = wings ? std::min(legTop, box.y + static_cast<int>(std::lround(box.h * 0.8))) : 0;
     int start = 0, cur = shift(0);
     for (int row = 1; row <= img.h; row++) {
         const int sft = row < img.h ? shift(row) : cur + 1000;
-        if (sft == cur) continue;
-        const double ya = y2 + start * q, yb = y2 + row * q;
-        g_.drawPart(img, {0, start, img.w, row - start}, x2 + cur, ya, w2, yb - ya, flip, tint, additive);
+        if (sft == cur && row != legTop && row != wingBottom) continue;
+        if (start >= legTop) {   // the legs, each half on its own
+            put(0, mid, start, row, cur + wp.stepA, -wp.liftA);
+            put(mid, img.w, start, row, cur + wp.stepB, -wp.liftB);
+        } else if (start < wingBottom) {   // the body, then the wings in narrow columns that rise more toward the tips
+            put(wingL, wingR, start, row, cur, 0);
+            for (int u = wingL; u > 0; u -= 2) put(std::max(0, u - 2), u, start, row, cur, -wp.flap * std::min(1.0, (wingL - u + 2.0) / span));
+            for (int u = wingR; u < img.w; u += 2) put(u, std::min(img.w, u + 2), start, row, cur, -wp.flap * std::min(1.0, (u + 2.0 - wingR) / span));
+        } else put(0, img.w, start, row, cur, 0);
         start = row;
         cur = sft;
     }
@@ -1444,7 +1496,8 @@ void WorldView::drawEnemy(Sim& sim, const Enemy& e) {
     double dx = std::round(e.x - 16 * k) + shake, dy = std::round(top) + crouch;
     const bool flash = (e.flash > 0 && e.flash % 4 < 2) || (def.isBoss() && e.state == Enemy::State::VolleyWind && tick % 6 < 3);
     if (def.look == Look::Static || def.look == Look::Mimic) {   // still pictures are given a body that steps, breathes and strikes
-        const Warp wp = gait(e, tick);
+        const Sprites::Rig* rig = def.look == Look::Static ? &spr_.rig(def.sprite) : nullptr;
+        const Warp wp = gait(e, tick, rig);
         double lift = 0;
         if (def.look == Look::Static) {
             const double phase = e.t * (e.fast ? 0.35 : 0.22);
@@ -1454,8 +1507,8 @@ void WorldView::drawEnemy(Sim& sim, const Enemy& e) {
             const double sw = 18 * k * (1 - 0.15 * lift / 4) * (1 - wp.squash);   // the shadow shrinks as it leaves the ground
             g_.drawTinted(spr_.glow, std::round(e.x - sw / 2), std::round(e.y - 3), sw, 6, Color(0, 0, 0, static_cast<uint8_t>(110 - lift * 8)));
         }
-        drawWarp(img, dx, dy - lift, 32 * k, 32 * k, flip, wp);
-        if (flash) drawWarp(img, dx, dy - lift, 32 * k, 32 * k, flip, wp, Color(255, 255, 255), true);
+        drawWarp(img, dx, dy - lift, 32 * k, 32 * k, flip, wp, Color(255, 255, 255), false, rig);
+        if (flash) drawWarp(img, dx, dy - lift, 32 * k, 32 * k, flip, wp, Color(255, 255, 255), true, rig);
     } else {
         g_.draw(img, dx, dy, 32 * k, 32 * k, flip);
         if (flash) g_.drawTinted(img, dx, dy, 32 * k, 32 * k, Color(255, 255, 255), true, flip);

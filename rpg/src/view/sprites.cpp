@@ -66,6 +66,8 @@ void Sprites::build(Gfx& g, const Database& db, const std::string& root) {
         Image::grade.tint = hex(gr.value("tint", std::string("#ffffff")));
         Image::grade.skip = gr.value("skip", std::vector<std::string>{});
     }
+    if (cfg.contains("bodies"))
+        for (auto it = cfg.at("bodies").begin(); it != cfg.at("bodies").end(); ++it) bodies_[it.key()] = it.value().get<std::string>();
     std::map<std::string, std::string> paths;
     for (auto it = cfg.at("images").begin(); it != cfg.at("images").end(); ++it) paths[it.key()] = root + it.value().get<std::string>();
     const std::string fort = paths["fort"], hunt = paths["hunt"], rock = paths["rock"], uiDir = paths["ui"], gen = paths["gen"];
@@ -462,6 +464,22 @@ const Sprite& Sprites::monster(const std::string& name, const std::string& tint)
     Image im = Image::load(root_ + "assets/dcss/" + name + ".png");
     if (!isWhite(tint) && !im.empty()) im = im.shade(hex(tint));
     return loose_[key] = im.empty() ? Sprite() : g_->makeSprite(im);
+}
+
+const Sprites::Rig& Sprites::rig(const std::string& name) {
+    if (auto it = rigs_.find(name); it != rigs_.end()) return it->second;
+    Rig r;
+    const Image im = Image::load(root_ + "assets/dcss/" + name + ".png");
+    int x0 = im.w, y0 = im.h, x1 = -1, y1 = -1;
+    for (int y = 0; y < im.h; y++)
+        for (int x = 0; x < im.w; x++)
+            if (im.at(x, y)[3] > 24) x0 = std::min(x0, x), y0 = std::min(y0, y), x1 = std::max(x1, x), y1 = std::max(y1, y);
+    r.box = x1 < 0 ? IRect{0, 0, im.w, im.h} : IRect{x0, y0, x1 - x0 + 1, y1 - y0 + 1};
+    if (auto b = bodies_.find(name); b != bodies_.end()) {
+        r.wings = b->second.find("wings") != std::string::npos;
+        r.legs = b->second.find("legs") != std::string::npos;
+    }
+    return rigs_[name] = r;
 }
 
 const Sprite& Sprites::undead(const std::string& name) {

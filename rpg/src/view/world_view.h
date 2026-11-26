@@ -74,11 +74,15 @@ class WorldView {
     void drawSway(const Sprite& img, double x, double y, double lean);
     // A still picture given a body: `lean` shears the top (pixels), `foot` slides the bottom rows (a step),
     // `squash` < 0 flattens and > 0 stretches it, always standing on the bottom of the box (x, y, w, h).
+    // With a rig, the two halves of its lower part step on their own (stepA/B: forward, liftA/B: up, in pixels)
+    // and its sides beat as wings (flap: how far the wing tips rise, negative = down).
     struct Warp {
         double lean = 0, foot = 0, squash = 0;
+        double stepA = 0, stepB = 0, liftA = 0, liftB = 0, flap = 0;
     };
-    void drawWarp(const Sprite& img, double x, double y, double w, double h, bool flip, const Warp& wp, Color tint = Color(255, 255, 255), bool additive = false);
-    Warp gait(const Enemy& e, int tick) const;
+    void drawWarp(const Sprite& img, double x, double y, double w, double h, bool flip, const Warp& wp, Color tint = Color(255, 255, 255), bool additive = false,
+                  const Sprites::Rig* rig = nullptr);
+    Warp gait(const Enemy& e, int tick, const Sprites::Rig* rig) const;
 
     Gfx& g_;
     Sprites& spr_;

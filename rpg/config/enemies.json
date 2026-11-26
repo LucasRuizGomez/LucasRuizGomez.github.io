@@ -1,31 +1,32 @@
 {
   // "base" copies every field from another entry first, so variants only list what changes.
-  // look: static (a Dungeon Crawl picture from assets/dcss, given a gait by the renderer) | animal (4-direction sheets:
+  // look: static (a Dungeon Crawl picture from assets/dcss, given a gait by the renderer; whether it walks on legs,
+  //       beats wings or glides is set per picture under "bodies" in sprites.json) | animal (4-direction sheets:
   //       hunt pack, vampires) | human (fortress-kit characters ch1..ch9) | treant | mimic
   // ai:   charger (winds up, then charges) | chaser | flee | flier | guard | archer | boss
   // hp and dmg are in half hearts. r/cy/hw/hh: hit radius, body centre height, collision half-size (art pixels).
   // drops: [item, chance, quantity]. "tag" groups variants for kill quests.
   "enemies": [
-    { "id": "boar", "tint": "#8a6a5a", "name": "Boar", "sprite": "hog", "look": "static", "tag": "boar", "level": 1, "hp": 9, "dmg": 1, "xp": 50,
+    { "id": "boar", "name": "Boar", "sprite": "boar", "look": "animal", "tag": "boar", "level": 1, "hp": 9, "dmg": 1, "xp": 50,
       "ai": "charger", "charge": { "range": 110, "every": 70, "wind": 30, "speed": 1.9 }, "speed": 0.35,
       "r": 7, "cy": 6, "hw": 6, "hh": 3, "drops": [["meat", 0.8, 1], ["hide", 0.35, 1]] },
-    { "id": "fox", "tint": "#b08a6a", "name": "Fox", "sprite": "jackal", "look": "static", "tag": "fox", "level": 1, "hp": 8, "dmg": 1, "xp": 50,
+    { "id": "fox", "name": "Fox", "sprite": "fox", "look": "animal", "tag": "fox", "level": 1, "hp": 8, "dmg": 1, "xp": 50,
       "ai": "chaser", "speed": 0.85, "aggro": 120, "r": 6, "cy": 5, "hw": 5, "hh": 3, "drops": [["meat", 0.5, 1], ["hide", 0.25, 1]] },
-    { "id": "hare", "tint": "#a89a88", "scale": 0.8, "name": "Hare", "sprite": "quokka", "look": "static", "tag": "hare", "level": 1, "hp": 3, "dmg": 0, "xp": 15,
+    { "id": "hare", "name": "Hare", "sprite": "hare", "look": "animal", "tag": "hare", "level": 1, "hp": 3, "dmg": 0, "xp": 15,
       "ai": "flee", "speed": 1.4, "passive": true, "r": 5, "cy": 4, "hw": 4, "hh": 3, "drops": [["meat", 0.9, 1]] },
-    { "id": "deer", "tint": "#9a7a5a", "scale": 0.9, "name": "Deer", "sprite": "yak", "look": "static", "tag": "deer", "level": 9, "hp": 7, "dmg": 0, "xp": 27,
+    { "id": "deer", "name": "Deer", "sprite": "deer", "look": "animal", "tag": "deer", "level": 9, "hp": 7, "dmg": 0, "xp": 27,
       "ai": "flee", "speed": 1.15, "passive": true, "r": 7, "cy": 8, "hw": 5, "hh": 3, "drops": [["meat", 1, 2], ["hide", 0.6, 1]] },
-    { "id": "grouse", "tint": "#5a4a40", "scale": 0.8, "name": "Black Grouse", "sprite": "raven", "look": "static", "tag": "grouse", "level": 17, "hp": 15, "dmg": 2, "xp": 104,
+    { "id": "grouse", "name": "Black Grouse", "sprite": "grouse", "look": "animal", "tag": "grouse", "level": 17, "hp": 15, "dmg": 2, "xp": 104,
       "ai": "flier", "speed": 1.15, "fly": true, "r": 5, "cy": 11, "hw": 3, "hh": 3, "drops": [["meat", 0.5, 1]] },
 
-    { "id": "wolf", "base": "fox", "sprite": "wolf", "look": "static", "name": "Timber Wolf", "tag": "wolf", "scale": 1.2, "level": 25, "hp": 32, "dmg": 3, "xp": 170, "speed": 0.95, "aggro": 140,
+    { "id": "wolf", "base": "fox", "tint": "#b08a6a", "sprite": "wolf", "look": "static", "name": "Timber Wolf", "tag": "wolf", "scale": 1.2, "level": 25, "hp": 32, "dmg": 3, "xp": 170, "speed": 0.95, "aggro": 140,
       "drops": [["meat", 0.6, 1], ["hide", 0.6, 1]] },
     { "id": "dire_boar", "base": "boar", "sprite": "hell_hog", "look": "static", "tint": "#8a6a5a", "name": "Dire Boar", "scale": 1.15, "level": 25, "hp": 37, "dmg": 4, "xp": 170,
       "drops": [["meat", 1, 2], ["hide", 0.7, 1]] },
     { "id": "stumpling", "tint": "#9a8a70", "scale": 0.8, "name": "Stumpling", "sprite": "treant", "look": "static", "tag": "treant", "level": 25, "hp": 37, "dmg": 4, "xp": 170,
       "ai": "charger", "charge": { "range": 90, "every": 80, "wind": 26, "speed": 1.6 }, "speed": 0.3, "stalk": 0.3,
       "r": 7, "cy": 8, "hw": 5, "hh": 3, "drops": [["wood", 0.9, 2], ["bark", 0.5, 1]] },
-    { "id": "elk", "base": "deer", "sprite": "yak", "look": "static", "tint": "#c9b08a", "name": "Elk", "scale": 1.05, "level": 33, "hp": 17, "xp": 63, "drops": [["meat", 1, 3], ["hide", 0.9, 2]] },
+    { "id": "elk", "base": "deer", "sprite": "deer", "look": "animal", "tint": "#c9b08a", "name": "Elk", "scale": 1.05, "level": 33, "hp": 17, "xp": 63, "drops": [["meat", 1, 3], ["hide", 0.9, 2]] },
 
     { "id": "bandit", "name": "Bandit", "sprite": "bandit", "look": "static", "tag": "bandit", "level": 9, "hp": 18, "dmg": 2, "xp": 90,
       "ai": "guard", "speed": 0.6, "aggro": 130, "r": 6, "cy": 7, "hw": 4, "hh": 3, "gold": [1, 4, 0.8], "drops": [["bandage", 0.15, 1]] },
@@ -40,15 +41,15 @@
     { "id": "stalker", "base": "fox", "sprite": "wolf", "look": "static", "tint": "#6a9a88", "name": "Marsh Stalker", "tag": "stalker", "scale": 1.1, "level": 49, "hp": 57, "dmg": 5, "xp": 290, "speed": 1.0, "aggro": 150,
       "drops": [["meat", 0.6, 1], ["hide", 0.7, 2]] },
     { "id": "bog_boar", "base": "boar", "sprite": "hell_hog", "look": "static", "tint": "#6a7a5a", "name": "Bog Tusker", "scale": 1.2, "level": 49, "hp": 65, "dmg": 7, "xp": 290, "drops": [["meat", 1, 2], ["hide", 0.8, 2]] },
-    { "id": "marsh_crow", "base": "grouse", "sprite": "raven", "look": "static", "tint": "#5a5066", "name": "Carrion Crow", "tag": "crow", "level": 41, "hp": 31, "dmg": 4, "xp": 200 },
+    { "id": "marsh_crow", "base": "grouse", "sprite": "grouse", "look": "animal", "tint": "#5a5066", "name": "Carrion Crow", "tag": "crow", "level": 41, "hp": 31, "dmg": 4, "xp": 200 },
     { "id": "mire_treant", "base": "stumpling", "sprite": "treant", "look": "static", "tint": "#6f9a6a", "name": "Mire Shambler", "scale": 0.95, "level": 49, "hp": 65, "dmg": 7, "xp": 290,
       "drops": [["wood", 0.9, 2], ["bark", 0.8, 2]] },
 
     { "id": "frost_wolf", "base": "fox", "sprite": "wolf", "look": "static", "tint": "#d8e4f0", "name": "Frost Wolf", "tag": "wolf", "scale": 1.15, "level": 65, "hp": 73, "dmg": 7, "xp": 370, "speed": 1.05, "aggro": 160,
       "drops": [["meat", 0.7, 2], ["hide", 0.8, 2], ["frost_shard", 0.3, 1]] },
-    { "id": "ice_hawk", "base": "grouse", "sprite": "raven", "look": "static", "tint": "#bcd8f0", "name": "Ice Hawk", "tag": "hawk", "scale": 1.2, "level": 57, "hp": 41, "dmg": 5, "xp": 264, "drops": [["meat", 0.5, 1], ["frost_shard", 0.25, 1]] },
-    { "id": "snow_hare", "base": "hare", "sprite": "quokka", "look": "static", "tint": "#eef2f8", "scale": 0.8, "name": "Snow Hare", "hp": 28, "level": 57, "xp": 99 },
-    { "id": "frost_elk", "base": "deer", "sprite": "yak", "look": "static", "tint": "#d8e4f0", "name": "Frost Elk", "scale": 1.1, "level": 57, "hp": 28, "xp": 99, "drops": [["meat", 1, 3], ["hide", 1, 2]] },
+    { "id": "ice_hawk", "base": "grouse", "sprite": "grouse", "look": "animal", "tint": "#bcd8f0", "name": "Ice Hawk", "tag": "hawk", "scale": 1.2, "level": 57, "hp": 41, "dmg": 5, "xp": 264, "drops": [["meat", 0.5, 1], ["frost_shard", 0.25, 1]] },
+    { "id": "snow_hare", "base": "hare", "sprite": "hare", "look": "animal", "tint": "#eef2f8", "name": "Snow Hare", "hp": 28, "level": 57, "xp": 99 },
+    { "id": "frost_elk", "base": "deer", "sprite": "deer", "look": "animal", "tint": "#d8e4f0", "name": "Frost Elk", "scale": 1.1, "level": 57, "hp": 28, "xp": 99, "drops": [["meat", 1, 3], ["hide", 1, 2]] },
 
     { "id": "guard", "name": "Hollow Guard", "sprite": "death_knight", "look": "static", "tag": "hollow", "level": 65, "hp": 79, "dmg": 7, "xp": 370,
       "ai": "guard", "speed": 0.62, "aggro": 140, "r": 6, "cy": 7, "hw": 4, "hh": 3, "gold": [3, 8, 0.7], "drops": [["roast", 0.08, 1]] },
@@ -61,14 +62,14 @@
     { "id": "miner_spear", "base": "spear", "sprite": "dwarf_berserker", "look": "static", "tint": "#a8c8e8", "name": "Frozen Pikeman", "tag": "frozen", "dmg": 8, "level": 57, "hp": 74, "xp": 330 },
     { "id": "drowned", "base": "guard", "sprite": "drowned_soul", "look": "static", "tint": "#7abaa0", "name": "Drowned Soldier", "tag": "drowned", "level": 49, "hp": 62, "dmg": 5, "xp": 290 },
     { "id": "drowned_archer", "base": "archer", "sprite": "bog_body", "look": "static", "tint": "#7abaa0", "name": "Drowned Bowman", "tag": "drowned", "dmg": 4, "level": 49, "hp": 45, "xp": 290 },
-    { "id": "cellar_rat", "base": "fox", "sprite": "rat", "name": "Cellar Rat", "tag": "rat", "scale": 0.8, "level": 9, "hp": 16, "dmg": 2, "xp": 90, "drops": [] },
+    { "id": "cellar_rat", "base": "fox", "look": "static", "tint": "#b08a6a", "sprite": "rat", "name": "Cellar Rat", "tag": "rat", "scale": 0.8, "level": 9, "hp": 16, "dmg": 2, "xp": 90, "drops": [] },
 
     // ── the dark things (Dungeon Crawl pictures, "look": "static"; vampires are animated, 4 directions) ──
     { "id": "plague_rat", "name": "Plague Rat", "sprite": "rat", "look": "static", "tag": "rat", "level": 3, "hp": 10, "dmg": 1, "xp": 60,
       "ai": "chaser", "speed": 0.9, "aggro": 110, "r": 5, "cy": 5, "hw": 4, "hh": 3, "drops": [["meat", 0.2, 1]] },
     { "id": "carrion_jackal", "name": "Carrion Jackal", "sprite": "jackal", "look": "static", "tag": "wolf", "level": 7, "hp": 14, "dmg": 2, "xp": 80,
       "ai": "chaser", "speed": 1.0, "aggro": 140, "r": 6, "cy": 6, "hw": 5, "hh": 3, "drops": [["meat", 0.5, 1], ["hide", 0.4, 1]] },
-    { "id": "grave_raven", "name": "Grave Raven", "sprite": "raven", "look": "static", "tag": "crow", "level": 9, "hp": 10, "dmg": 1, "xp": 72,
+    { "id": "grave_raven", "name": "Grave Raven", "sprite": "grouse", "look": "animal", "tag": "crow", "level": 9, "hp": 10, "dmg": 1, "xp": 72,
       "ai": "flier", "speed": 1.2, "fly": true, "r": 5, "cy": 10, "hw": 3, "hh": 3 },
     { "id": "cultist", "name": "Hollow Cultist", "sprite": "cultist", "look": "static", "tag": "cultist", "level": 14, "hp": 17, "dmg": 2, "xp": 115,
       "ai": "archer", "speed": 0.5, "aggro": 170, "r": 6, "cy": 8, "hw": 4, "hh": 3, "gold": [2, 6, 0.8], "drops": [["bandage", 0.2, 1]] },

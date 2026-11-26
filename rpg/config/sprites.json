@@ -6,6 +6,16 @@
   // The colour grade every image gets as it loads: a grim, washed-out look. "skip" lists paths left alone (interface art).
   "grade": { "saturation": 0.5, "brightness": 0.82, "contrast": 1.1, "tint": "#dce2e4",
              "skip": ["Main_tiles", "skill_icons", "item_icons", "Inventory.png", "Buttons.png", "Icons.png", "owl_icons", "keiffer", "/UI/"] },
+  // How each still Dungeon Crawl monster picture (assets/dcss/<name>.png) moves. Unlisted pictures walk on "legs":
+  // the lower part splits in two halves that step in turn. "wings" beat the sides of the picture, "legs wings" do both,
+  // "none" glides (ghosts, robes to the ground, worms, things that crawl on a mass of tentacles or vines).
+  "bodies": {
+    "bat": "wings", "bloodfly": "wings", "bone_dragon": "legs wings", "servitor": "legs wings",
+    "ash_wraith": "none", "ashen_herald": "none", "drowned_soul": "none", "eidolon": "none", "flayed_ghost": "none",
+    "frost_wraith": "none", "hooded": "none", "kraken_spawn": "none", "leech": "none", "phantom": "none",
+    "revenant": "none", "shadow_wraith": "none", "skull": "none", "spectre": "none", "thorn_mother": "none",
+    "wight": "none", "wight_king": "none"
+  },
   "images": {
     "fort":    "assets/craftpix-net-749505-free-medieval-fortress-top-down-pixel-minigame-kit/",
     "hunt":    "assets/craftpix-net-789196-free-top-down-hunt-animals-pixel-sprite-pack/PNG/With_Shadow/",
