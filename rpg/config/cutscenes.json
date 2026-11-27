@@ -1,0 +1,205 @@
+{
+  // Cutscenes, by when they play:
+  //   "intro"            a new game, before the hero takes a step
+  //   "boss:<dungeon>"   a few seconds after that dungeon's boss falls
+  //   "realm:<realm>"    the first time the hero arrives in that land
+  // Each plays once per game. music: a track id from audio.json.
+  //
+  // A shot is a painted stage 320 x 180 art pixels.
+  //   scene    backdrop: night | dusk | dawn | village | fields | peaks | sea | fire | crypt | throne | void
+  //   palette  optional [sky top, sky bottom, land] to recolour the backdrop
+  //   fx       embers | snow | ash | rain | mist | fireflies | spores | bubbles | stars | rays | bell | rift | flash | quake
+  //   actors   sprite: "hero", "enemy:<id>" (enemies.json), "undead:<name>" (assets/undead), or a sprites.json name
+  //            x, y: where its feet stand (0..1 of the stage; the ground line is y 0.8, a crypt floor 0.72..1)
+  //            to: [x, y] where it ends up; scale; flip; dark (1 = a black silhouette); delay (seconds)
+  //            anim: idle | walk | float | rise | fall | fade_in | fade_out | sway | slash | kneel
+  //   title    big words over the picture; text: narration typed out under it
+  //   secs     at least this long (longer if the text needs it); zoomFrom/zoomTo, panX/panY: the camera's creep
+  "cutscenes": {
+    "intro": { "music": "title", "shots": [
+      { "scene": "night", "fx": ["stars", "mist"], "secs": 8, "zoomFrom": 1.0, "zoomTo": 1.08,
+        "title": "Three hundred years ago",
+        "actors": [{ "sprite": "enemy:boss", "x": 0.5, "y": 0.8, "scale": 2.4, "dark": 0.92, "anim": "fade_in", "delay": 1.5 }],
+        "text": "A king went down into the dark beneath the eastern peaks to bargain for a longer life. He came back up without a soul." },
+      { "scene": "throne", "fx": ["embers"], "secs": 8, "zoomFrom": 1.1, "zoomTo": 1.0,
+        "actors": [
+          { "sprite": "enemy:boss", "x": 0.5, "y": 0.63, "scale": 2.0, "anim": "idle" },
+          { "sprite": "enemy:skeleton", "x": 0.22, "y": 0.9, "scale": 1.4, "anim": "rise", "delay": 1.0 },
+          { "sprite": "enemy:skeleton", "x": 0.78, "y": 0.9, "scale": 1.4, "anim": "rise", "delay": 1.6, "flip": true },
+          { "sprite": "enemy:barrow_wight", "x": 0.36, "y": 0.95, "scale": 1.3, "anim": "rise", "delay": 2.4 }],
+        "text": "They called him the Hollow King. His dead marched as far as the Heartlands, and every village they passed was emptied into their ranks." },
+      { "scene": "dawn", "fx": ["rays"], "secs": 8, "zoomFrom": 1.0, "zoomTo": 1.07, "panY": -0.03,
+        "actors": [
+          { "sprite": "statue", "x": 0.5, "y": 0.8, "scale": 1.3, "anim": "idle" },
+          { "sprite": "statue", "x": 0.18, "y": 0.78, "scale": 0.7, "dark": 0.5 },
+          { "sprite": "statue", "x": 0.83, "y": 0.79, "scale": 0.8, "dark": 0.4 }],
+        "text": "The Watch drove him back into his crypt. The priests sealed it, and nailed the seal down with wayside shrines raised across the land." },
+      { "scene": "peaks", "fx": ["snow", "bell"], "secs": 8, "zoomFrom": 1.06, "zoomTo": 1.0,
+        "actors": [{ "sprite": "tower", "x": 0.5, "y": 0.8, "scale": 0.75, "dark": 0.55 }],
+        "text": "For three hundred years the seal held. This year the bell at Highwatch has rung nine times, and the shrines are going dark one by one." },
+      { "scene": "fields", "fx": ["mist", "ash"], "secs": 8, "zoomFrom": 1.0, "zoomTo": 1.1, "panX": 0.03,
+        "actors": [
+          { "sprite": "enemy:shambler", "x": 0.3, "y": 0.86, "scale": 1.5, "anim": "rise", "delay": 0.6 },
+          { "sprite": "enemy:skeleton", "x": 0.64, "y": 0.84, "scale": 1.3, "anim": "rise", "delay": 1.6, "dark": 0.35 },
+          { "sprite": "enemy:grave_raven", "x": 0.82, "y": 0.42, "scale": 1.0, "anim": "float", "dark": 0.8 }],
+        "text": "The dead are climbing out of the barrows. Bandits and worse hold the roads. The Watch has no one left to send." },
+      { "scene": "village", "fx": ["fireflies"], "secs": 8, "zoomFrom": 1.04, "zoomTo": 1.0,
+        "actors": [{ "sprite": "hero", "x": 0.16, "y": 0.88, "to": [0.48, 0.88], "scale": 1.5, "anim": "walk" }],
+        "text": "No one, except you. Greenhollow is a village of farmers, and Warden Aldric is waiting by the square." },
+      { "scene": "night", "fx": ["stars", "embers"], "secs": 5, "zoomFrom": 1.0, "zoomTo": 1.04, "title": "Hollow Crypt" }
+    ]},
+
+    "boss:cellar": { "music": "victory", "shots": [
+      { "scene": "crypt", "fx": ["embers"], "secs": 7, "zoomFrom": 1.08, "zoomTo": 1.0,
+        "actors": [
+          { "sprite": "hero", "x": 0.3, "y": 0.9, "scale": 1.5, "anim": "idle" },
+          { "sprite": "enemy:bandit_chief", "x": 0.62, "y": 0.9, "scale": 2.0, "anim": "fall", "flip": true }],
+        "text": "Gruff the Bandit Chief falls among his stolen grain. Inside his coat is a purse of old coin and a letter sealed in black wax." },
+      { "scene": "dusk", "fx": ["ash"], "secs": 7, "zoomFrom": 1.0, "zoomTo": 1.06,
+        "actors": [{ "sprite": "hero", "x": 0.2, "y": 0.86, "to": [0.6, 0.86], "scale": 1.4, "anim": "walk" }],
+        "text": "Someone has been paying the bandits to keep the roads empty. With Gruff gone, the gates to the Heartlands and Deepwood swing open." }
+    ]},
+
+    "boss:burrow": { "music": "victory", "shots": [
+      { "scene": "fields", "palette": ["#1e2a1a", "#5a6a3a", "#141a10"], "fx": ["spores", "mist"], "secs": 7,
+        "actors": [
+          { "sprite": "hero", "x": 0.26, "y": 0.88, "scale": 1.4, "anim": "idle" },
+          { "sprite": "enemy:elder_treant", "x": 0.62, "y": 0.86, "scale": 2.4, "anim": "fall", "flip": true }],
+        "text": "The Elder Root shudders and goes still. All through Deepwood the roots let go of the paths." },
+      { "scene": "fields", "palette": ["#1e2a1a", "#5a6a3a", "#141a10"], "fx": ["fireflies"], "secs": 7, "zoomFrom": 1.1, "zoomTo": 1.0,
+        "actors": [{ "sprite": "undead:dead_tree_2", "x": 0.5, "y": 0.84, "scale": 0.9, "dark": 0.3, "anim": "sway" }],
+        "text": "Its heartwood is black and wet with rot. Something under the earth has been feeding it. The coast road lies open now." }
+    ]},
+
+    "boss:cove": { "music": "victory", "shots": [
+      { "scene": "sea", "fx": ["rain"], "secs": 7,
+        "actors": [
+          { "sprite": "hero", "x": 0.28, "y": 0.66, "scale": 1.3, "anim": "idle" },
+          { "sprite": "enemy:smuggler_king", "x": 0.6, "y": 0.66, "scale": 1.9, "anim": "fall", "flip": true }],
+        "text": "Captain Marrow goes down with his last cargo: coffins, stacked forty deep in the hold, every one bound east for the marsh." },
+      { "scene": "sea", "fx": ["rain", "mist"], "secs": 7, "zoomFrom": 1.0, "zoomTo": 1.08,
+        "text": "The smugglers were never running gold. Someone in the Ashen Marsh is buying the dead. The marsh road is open." }
+    ]},
+
+    "boss:sunken": { "music": "victory", "shots": [
+      { "scene": "fields", "palette": ["#141c1c", "#3c5048", "#0e1412"], "fx": ["mist", "fireflies"], "secs": 7,
+        "actors": [
+          { "sprite": "hero", "x": 0.26, "y": 0.88, "scale": 1.4, "anim": "idle" },
+          { "sprite": "enemy:bog_warden", "x": 0.62, "y": 0.88, "scale": 2.0, "anim": "fall", "flip": true }],
+        "text": "The Bog Warden sinks back into the black water, and the drowned stop climbing out of it." },
+      { "scene": "fields", "palette": ["#141c1c", "#3c5048", "#0e1412"], "fx": ["mist"], "secs": 7, "zoomFrom": 1.1, "zoomTo": 1.0,
+        "actors": [{ "sprite": "statue", "x": 0.5, "y": 0.84, "scale": 1.2, "dark": 0.45 }],
+        "text": "Beneath it lies a shrine stone with the Watch's mark, split down the middle. Another nail pulled from the coffin lid. The road north to Frostpeak is open." }
+    ]},
+
+    "boss:mine": { "music": "victory", "shots": [
+      { "scene": "peaks", "fx": ["snow", "quake"], "secs": 6,
+        "actors": [
+          { "sprite": "hero", "x": 0.28, "y": 0.88, "scale": 1.4, "anim": "idle" },
+          { "sprite": "enemy:frost_golem", "x": 0.62, "y": 0.88, "scale": 2.4, "anim": "fall", "flip": true }],
+        "text": "Rimeheart shatters, and the mine falls silent but for the drip of thawing ice." },
+      { "scene": "peaks", "fx": ["snow", "bell"], "secs": 8, "zoomFrom": 1.0, "zoomTo": 1.1, "panY": -0.05,
+        "actors": [{ "sprite": "tower", "x": 0.5, "y": 0.8, "scale": 0.6, "dark": 0.7 }],
+        "text": "Beyond the last gallery a stair climbs toward the eastern peaks. Up there, on his throne of bones, the Hollow King is waiting. The bell rings a tenth time." }
+    ]},
+
+    "boss:crypt": { "music": "victory", "shots": [
+      { "scene": "throne", "fx": ["flash", "quake", "embers"], "secs": 7,
+        "actors": [
+          { "sprite": "enemy:boss", "x": 0.5, "y": 0.63, "scale": 2.0, "anim": "fall" },
+          { "sprite": "hero", "x": 0.3, "y": 0.92, "scale": 1.5, "anim": "idle" }],
+        "text": "The Hollow King topples from his throne of bones. Far away, for the first time in a year, the bell at Highwatch is silent." },
+      { "scene": "dawn", "fx": ["rays"], "secs": 8, "zoomFrom": 1.08, "zoomTo": 1.0,
+        "actors": [
+          { "sprite": "statue", "x": 0.2, "y": 0.8, "scale": 0.9, "dark": 0.3 },
+          { "sprite": "statue", "x": 0.78, "y": 0.8, "scale": 1.0, "dark": 0.2 },
+          { "sprite": "hero", "x": 0.36, "y": 0.88, "to": [0.56, 0.88], "scale": 1.5, "anim": "walk" }],
+        "text": "Across the realm the shrines flare awake. But under the throne a stair goes on down, and the dead in the far lands have not lain down." },
+      { "scene": "dawn", "fx": ["rays", "embers"], "secs": 5, "title": "The Dawn Returns" }
+    ]},
+
+    "realm:blight": { "music": "marsh", "shots": [
+      { "scene": "fields", "palette": ["#2a2a1a", "#8a8a4a", "#1a1a10"], "fx": ["ash", "spores"], "secs": 7, "zoomFrom": 1.0, "zoomTo": 1.08,
+        "title": "The Blighted Fields",
+        "actors": [{ "sprite": "hero", "x": 0.14, "y": 0.88, "to": [0.4, 0.88], "scale": 1.4, "anim": "walk" }],
+        "text": "The black carriage leaves you where the road gives out. Nothing grows in these fields that should." },
+      { "scene": "fields", "palette": ["#2a2a1a", "#8a8a4a", "#1a1a10"], "fx": ["mist"], "secs": 7,
+        "actors": [{ "sprite": "enemy:plague_lord", "x": 0.6, "y": 0.84, "scale": 2.2, "dark": 0.9, "anim": "idle" }],
+        "text": "In Gallowmere they say the Plague Lord sleeps in his barrow, swollen with every harvest he has spoiled." }
+    ]},
+    "boss:plague_barrow": { "music": "victory", "shots": [
+      { "scene": "crypt", "palette": ["#1a1a10", "#3a3a20", "#121208"], "fx": ["spores", "quake"], "secs": 7,
+        "actors": [
+          { "sprite": "hero", "x": 0.28, "y": 0.9, "scale": 1.4, "anim": "idle" },
+          { "sprite": "enemy:plague_lord", "x": 0.62, "y": 0.9, "scale": 2.4, "anim": "fall", "flip": true }],
+        "text": "The Plague Lord bursts like rotten fruit. Back in Gallowmere, the bone gate flickers with pale light." }
+    ]},
+
+    "realm:bonewaste": { "music": "dungeon_deep", "shots": [
+      { "scene": "void", "fx": ["rift", "ash"], "secs": 6, "title": "The Bone Wastes",
+        "text": "The bone gate opens on a land built from the dead: hills of ribs, rivers of dust." },
+      { "scene": "fields", "palette": ["#2a2624", "#9a8e80", "#1c1814"], "fx": ["ash"], "secs": 7, "zoomFrom": 1.0, "zoomTo": 1.1,
+        "actors": [{ "sprite": "enemy:bone_colossus", "x": 0.66, "y": 0.82, "scale": 2.6, "dark": 0.85, "anim": "idle" }],
+        "text": "Somewhere in the Great Ossuary a colossus of bones still walks, and the ferryman of Saltmere will not row while it does." }
+    ]},
+    "boss:ossuary": { "music": "victory", "shots": [
+      { "scene": "crypt", "palette": ["#1c1814", "#4a4238", "#120e0c"], "fx": ["quake", "ash"], "secs": 7,
+        "actors": [
+          { "sprite": "hero", "x": 0.26, "y": 0.9, "scale": 1.4, "anim": "idle" },
+          { "sprite": "enemy:bone_colossus", "x": 0.62, "y": 0.9, "scale": 2.6, "anim": "fall", "flip": true }],
+        "text": "The Bone Colossus comes apart, a landslide of the dead. In Saltmere the ferryman picks up his oars." }
+    ]},
+
+    "realm:sunken": { "music": "coast", "shots": [
+      { "scene": "sea", "fx": ["mist", "rain"], "secs": 7, "zoomFrom": 1.0, "zoomTo": 1.08, "title": "The Sunken Isle",
+        "text": "The ferry runs aground on an island that was under the sea a year ago. Its bells still ring under the waves." },
+      { "scene": "sea", "fx": ["bubbles"], "secs": 7,
+        "actors": [{ "sprite": "enemy:drowned_queen", "x": 0.5, "y": 0.7, "scale": 2.2, "dark": 0.85, "anim": "float" }],
+        "text": "The Drowned Queen sings beneath the isle, and every sailor lost at sea comes when she calls." }
+    ]},
+    "boss:abyss_grotto": { "music": "victory", "shots": [
+      { "scene": "sea", "fx": ["bubbles", "flash"], "secs": 7,
+        "actors": [
+          { "sprite": "hero", "x": 0.28, "y": 0.66, "scale": 1.3, "anim": "idle" },
+          { "sprite": "enemy:drowned_queen", "x": 0.62, "y": 0.66, "scale": 2.2, "anim": "fade_out", "flip": true }],
+        "text": "The Drowned Queen's song breaks off. In Fenwatch the ritual circle warms under the kneeling stones." }
+    ]},
+
+    "realm:blackmire": { "music": "forest", "shots": [
+      { "scene": "fields", "palette": ["#101a12", "#2a4030", "#0a100a"], "fx": ["fireflies", "mist"], "secs": 7, "title": "Blackmire Weald",
+        "actors": [{ "sprite": "undead:thorn_plant_5", "x": 0.3, "y": 0.84, "scale": 1.0, "anim": "sway", "dark": 0.4 },
+                   { "sprite": "undead:thorn_plant_4", "x": 0.72, "y": 0.84, "scale": 1.1, "anim": "sway", "dark": 0.5 }],
+        "text": "The circle sets you down in a wood where the trees grow thorns as long as swords." },
+      { "scene": "fields", "palette": ["#101a12", "#2a4030", "#0a100a"], "fx": ["spores"], "secs": 7,
+        "actors": [{ "sprite": "enemy:thorn_mother", "x": 0.55, "y": 0.84, "scale": 2.4, "dark": 0.85, "anim": "idle" }],
+        "text": "At the heart of the weald the Thornmother bears new thorns every night, and her briars have bound the old lift at Highwatch." }
+    ]},
+    "boss:thornheart": { "music": "victory", "shots": [
+      { "scene": "fields", "palette": ["#101a12", "#2a4030", "#0a100a"], "fx": ["spores", "quake"], "secs": 7,
+        "actors": [
+          { "sprite": "hero", "x": 0.28, "y": 0.88, "scale": 1.4, "anim": "idle" },
+          { "sprite": "enemy:thorn_mother", "x": 0.62, "y": 0.88, "scale": 2.4, "anim": "fall", "flip": true }],
+        "text": "The Thornmother withers. Far to the north, the thorns binding the Highwatch lift crumble to dust." }
+    ]},
+
+    "realm:ashen": { "music": "mountains", "shots": [
+      { "scene": "fire", "fx": ["embers", "ash"], "secs": 7, "zoomFrom": 1.0, "zoomTo": 1.1, "title": "The Ashen Reach",
+        "actors": [{ "sprite": "hero", "x": 0.16, "y": 0.88, "to": [0.42, 0.88], "scale": 1.4, "anim": "walk" }],
+        "text": "The old lift climbs above the clouds, to a land that has been burning since the King first went into the dark." },
+      { "scene": "fire", "fx": ["embers"], "secs": 7,
+        "actors": [{ "sprite": "enemy:ashen_herald", "x": 0.6, "y": 0.84, "scale": 2.4, "dark": 0.9, "anim": "float" }],
+        "text": "In the Ashen Citadel the Herald still speaks the Hollow King's name, and while it is spoken, he is not truly gone." }
+    ]},
+    "boss:citadel": { "music": "victory", "shots": [
+      { "scene": "fire", "fx": ["flash", "quake", "embers"], "secs": 7,
+        "actors": [
+          { "sprite": "hero", "x": 0.28, "y": 0.88, "scale": 1.4, "anim": "idle" },
+          { "sprite": "enemy:ashen_herald", "x": 0.62, "y": 0.86, "scale": 2.4, "anim": "fall", "flip": true }],
+        "text": "The Ashen Herald falls silent, and with it the last voice that remembered the Hollow King's name." },
+      { "scene": "dawn", "fx": ["rays"], "secs": 7,
+        "actors": [{ "sprite": "hero", "x": 0.5, "y": 0.88, "scale": 1.5, "anim": "kneel" }],
+        "text": "For the first time in three hundred years, every shrine in every land is burning. Rest now. The Watch will remember you." },
+      { "scene": "dawn", "fx": ["rays", "embers"], "secs": 5, "title": "Hollow Crypt" }
+    ]}
+  }
+}

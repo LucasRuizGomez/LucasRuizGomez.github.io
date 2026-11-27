@@ -29,7 +29,8 @@ export interface Project {
 
 const repoTree = (path: string) => `${links.repo}/tree/main/${path}`;
 
-// The cargo. Order is the stowage order: left to right, top tier first.
+// The cargo, most impressive first. Each featured project gets its own container; the ship
+// stows rank 1 in the top-middle bay, under the crane, and the rest around it.
 export const projects: Project[] = [
   {
     name: 'Hollow Crypt',
@@ -55,19 +56,6 @@ export const projects: Project[] = [
     links: [{ label: 'Source', href: 'https://github.com/LucasRuizGomez/Audiosend' }],
   },
   {
-    name: 'Wortschatz',
-    summary: 'Spaced-repetition flashcards for the C1 German exam.',
-    detail:
-      'FSRS-6 scheduler written from scratch, matching the reference ts-fsrs to within 1e-6. Claude writes the cards from a word list through a Supabase Edge Function. Offline PWA that syncs between devices without a late answer overwriting a newer one.',
-    stack: ['JavaScript', 'Supabase', 'Postgres', 'Claude API'],
-    image: wordlistShot,
-    imageAlt: 'Wortschatz flashcard showing der Vorreiter with its meaning, forms and an example',
-    links: [
-      { label: 'Open', href: '/wordlist/' },
-      { label: 'Source', href: repoTree('wordlist') },
-    ],
-  },
-  {
     name: 'Rumbo',
     summary: 'Voice tax copilot for digital nomads. HackFinance 2026.',
     detail:
@@ -78,6 +66,35 @@ export const projects: Project[] = [
     links: [
       { label: 'Source', href: 'https://github.com/LucasRuizGomez/rumbo-hackfinance2026' },
       { label: 'My branch', href: 'https://github.com/LucasRuizGomez/rumbo-hackfinance2026/tree/lucas/motor-fiscal' },
+    ],
+  },
+  {
+    name: 'lukeda.me',
+    summary: 'This site: the portfolio and the tools it ships.',
+    detail:
+      'Astro on the Halftone theme for these pages; each tool is a static page with its own test page. One GitHub Actions workflow builds the game and the site and deploys both to GitHub Pages.',
+    stack: ['Astro', 'Tailwind CSS', 'GitHub Actions'],
+    image: siteShot,
+    imageAlt: 'The lukeda.me home page',
+    links: [
+      { label: 'Source', href: links.repo },
+    ],
+  },
+];
+
+// Smaller things, all packed into one "Other projects" container. Same order rule.
+export const otherProjects: Project[] = [
+  {
+    name: 'Wortschatz',
+    summary: 'Spaced-repetition flashcards for the C1 German exam.',
+    detail:
+      'FSRS-6 scheduler written from scratch, matching the reference ts-fsrs to within 1e-6. Claude writes the cards from a word list through a Supabase Edge Function. Offline PWA that syncs between devices without a late answer overwriting a newer one.',
+    stack: ['JavaScript', 'Supabase', 'Postgres', 'Claude API'],
+    image: wordlistShot,
+    imageAlt: 'Wortschatz flashcard showing der Vorreiter with its meaning, forms and an example',
+    links: [
+      { label: 'Open', href: '/wordlist/' },
+      { label: 'Source', href: repoTree('wordlist') },
     ],
   },
   {
@@ -118,18 +135,6 @@ export const projects: Project[] = [
     image: boardShot,
     imageAlt: 'My Little Board with five sticky notes holding task lists',
     links: [{ label: 'Open', href: '/positwebsite/' }],
-  },
-  {
-    name: 'lukeda.me',
-    summary: 'This site: the portfolio and the tools it ships.',
-    detail:
-      'Astro on the Halftone theme for these pages; each tool is a static page with its own test page. One GitHub Actions workflow builds the game and the site and deploys both to GitHub Pages.',
-    stack: ['Astro', 'Tailwind CSS', 'GitHub Actions'],
-    image: siteShot,
-    imageAlt: 'The lukeda.me home page',
-    links: [
-      { label: 'Source', href: links.repo },
-    ],
   },
 ];
 

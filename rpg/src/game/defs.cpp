@@ -556,6 +556,59 @@ Database Database::load(const std::string& dir) {
 
     db.audio = loadJson(dir + "audio.json");
     db.sprites = loadJson(dir + "sprites.json");
+
+    // ── cutscenes.json ──
+    {
+        const json j = loadJson(dir + "cutscenes.json");
+        for (auto it = j.at("cutscenes").begin(); it != j.at("cutscenes").end(); ++it) {
+            CutsceneDef cs;
+            cs.id = it.key();
+            cs.music = it.value().value("music", std::string("title"));
+            if (!db.audio.at("music").contains(cs.music)) throw std::runtime_error("Cutscene " + cs.id + " plays unknown music " + cs.music);
+            for (const auto& js : it.value().at("shots")) {
+                ShotDef s;
+                s.scene = js.value("scene", s.scene);
+                s.title = js.value("title", "");
+                s.text = js.value("text", "");
+                s.secs = js.value("secs", s.secs);
+                s.zoomFrom = js.value("zoomFrom", s.zoomFrom);
+                s.zoomTo = js.value("zoomTo", s.zoomTo);
+                s.panX = js.value("panX", 0.0);
+                s.panY = js.value("panY", 0.0);
+                if (js.contains("fx"))
+                    for (const auto& f : js.at("fx")) s.fx.push_back(f.get<std::string>());
+                if (js.contains("palette")) {   // [sky top, sky bottom, land]
+                    const auto& p = js.at("palette");
+                    s.tinted = true;
+                    s.sky0 = hex(p.at(0).get<std::string>());
+                    s.sky1 = hex(p.at(1).get<std::string>());
+                    s.land = hex(p.at(2).get<std::string>());
+                }
+                if (js.contains("actors"))
+                    for (const auto& ja : js.at("actors")) {
+                        ShotActor a;
+                        a.sprite = ja.at("sprite").get<std::string>();
+                        a.x = ja.value("x", a.x);
+                        a.y = ja.value("y", a.y);
+                        a.scale = ja.value("scale", a.scale);
+                        if (ja.contains("to")) {
+                            a.toX = ja.at("to").at(0).get<double>();
+                            a.toY = ja.at("to").at(1).get<double>();
+                        }
+                        a.anim = ja.value("anim", "");
+                        a.flip = ja.value("flip", false);
+                        a.dark = ja.value("dark", 0.0);
+                        a.delay = ja.value("delay", 0.0);
+                        if (a.sprite.rfind("enemy:", 0) == 0 && !db.findEnemy(a.sprite.substr(6)))
+                            throw std::runtime_error("Cutscene " + cs.id + " shows unknown enemy " + a.sprite);
+                        s.actors.push_back(std::move(a));
+                    }
+                cs.shots.push_back(std::move(s));
+            }
+            if (cs.shots.empty()) throw std::runtime_error("Cutscene " + cs.id + " has no shots");
+            db.cutscenes[cs.id] = std::move(cs);
+        }
+    }
     return db;
 }
 

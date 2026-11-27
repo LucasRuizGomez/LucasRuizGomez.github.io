@@ -432,7 +432,7 @@ void Sim::useAbility(const std::string& id) {
 void Sim::gateHint(Map& m) {
     if (!m.outdoor || tickCount % 15 != 0 || tickCount < gateHintAt_) return;
     for (const auto& o : m.objects) {
-        if (o.kind != ObjKind::Gate || o.id != "zone_gate" || o.gone) continue;
+        if (o.kind != ObjKind::Gate || o.id != "zone_gate" || o.opened) continue;
         if (std::abs(o.c * TILE + 8 - P.x) > 30 || std::abs(o.r * TILE + 8 - P.y) > 30) continue;
         std::string boss = "its guardian", place = o.res;
         for (const auto& d : db.dungeons)

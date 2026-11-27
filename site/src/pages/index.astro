@@ -12,7 +12,7 @@ import LinkRow from '../components/LinkRow.astro';
 import coverImage from '../assets/the-cranes-at-kieldrecht.avif';
 import researchImage from '../assets/a-ship-that-unloads-itself.avif';
 import { links, site } from '../config';
-import { competitions, interests, projects } from '../data/profile';
+import { competitions, interests, otherProjects, projects } from '../data/profile';
 
 const now = [
   {
@@ -78,7 +78,7 @@ const buttonGhost =
     </div>
 
     <Sea />
-    <Vessel class="vessel-slot" projects={projects} name="LUKEDA" port="MADRID" />
+    <Vessel class="vessel-slot" projects={projects} others={otherProjects} name="LUKEDA" port="MADRID" />
   </Plate>
 
   <div class="max-w-wide mx-auto px-4">
@@ -112,6 +112,21 @@ const buttonGhost =
             <div class="md:pt-1">
               <p class="text-muted font-mono text-[0.6875rem] uppercase">{p.stack.join(' · ')}</p>
               <LinkRow class="mt-2" links={p.links} name={p.name} />
+            </div>
+          </li>
+        ))}
+      </ol>
+      <h3 class="kicker mt-10">Other projects</h3>
+      <ol class="mt-2" start={projects.length + 1}>
+        {otherProjects.map((p, i) => (
+          <li class="border-border grid gap-x-8 gap-y-1 border-b py-4 md:grid-cols-[8rem_1fr_14rem]">
+            <p class="text-muted font-mono text-xs uppercase md:pt-1">No. {String(projects.length + i + 1).padStart(2, '0')}</p>
+            <div>
+              <h4 class="font-ui text-base leading-tight font-bold">{p.name}</h4>
+              <p class="mt-1 text-[0.9375rem] leading-relaxed">{p.summary}</p>
+            </div>
+            <div class="md:pt-1">
+              <LinkRow links={p.links} name={p.name} />
             </div>
           </li>
         ))}

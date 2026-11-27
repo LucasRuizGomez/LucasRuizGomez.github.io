@@ -97,6 +97,7 @@ json Sim::saveGame() const {
     s["doorOpen"] = doorOpen;
     s["victory"] = victorySeen;
     s["bosses"] = bossesDefeated;
+    s["cutscenes"] = cutscenesSeen;
     s["zones"] = zonesFound;
     s["waypoints"] = waypoints;
     s["shrines"] = shrinesFound;
@@ -186,6 +187,8 @@ bool Sim::loadGame(const json& s) {
     doorOpen = s.value("doorOpen", false);
     victorySeen = s.value("victory", false);
     bossesDefeated = s.value("bosses", std::set<std::string>{});
+    cutscenesSeen = s.value("cutscenes", std::set<std::string>{});
+    cutscenes.clear();
     zonesFound = s.value("zones", std::set<std::string>{});
     waypoints = s.value("waypoints", std::set<std::string>{});
     shrinesFound = s.value("shrines", std::set<std::string>{});

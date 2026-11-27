@@ -66,6 +66,33 @@ struct OverworldGen {
     const ZoneDef& zone(int c, int r) const { return zoneAt(db, m, c, r); }
     bool inner(int c, int r, int pad = 2) const { return c >= pad && r >= pad && c < W - pad && r < H - pad; }
 
+    // The boss that opens the border between two regions: the later of their two gates ("" = no wall between them).
+    std::string gateOf(int a, int b) const {
+        const std::string& ga = db.zones[a].gate;
+        const std::string& gb = db.zones[b].gate;
+        if (ga.empty()) return gb;
+        if (gb.empty()) return ga;
+        const DungeonDef* da = nullptr;
+        const DungeonDef* dbb = nullptr;
+        for (const auto& d : dungeons) {
+            if (d.id == ga) da = &d;
+            if (d.id == gb) dbb = &d;
+        }
+        return da && dbb && da->level >= dbb->level ? ga : gb;
+    }
+    // A tile on a walled border: one of its eight neighbours lies in another region with a gate between them.
+    // This strip turns into a ridge of rock in borders(); roads are steered across it, never along it.
+    bool onBorder(int c, int r) const {
+        if (!inner(c, r, 1)) return false;
+        const int a = m.zone[m.idx(c, r)];
+        for (int dr = -1; dr <= 1; dr++)
+            for (int dc = -1; dc <= 1; dc++) {
+                const int b = m.zone[m.idx(c + dc, r + dr)];
+                if (a != b && !gateOf(a, b).empty()) return true;
+            }
+        return false;
+    }
+
     void disk(double cx, double cy, double rad, uint8_t t) {
         for (int r = ifloor(cy - rad); r <= cy + rad; r++)
             for (int c = ifloor(cx - rad); c <= cx + rad; c++)
@@ -407,8 +434,12 @@ struct OverworldGen {
                 if (m.block[m.idx(c, r)]) return -1;
                 const uint8_t t = m.get(c, r);
                 if (t == STAIRS_DOWN) return -1;
-                if (t == PATH || t == BRIDGE || t == COBBLE || t == PLAZA) return 0.35;
-                if (t == ROCK) return 9;
+                // A border costs as much as a long detour per tile: a road crosses it once, head on, and never
+                // runs along it (a road inside the border would be walled up as one long invisible gate).
+                const double border = onBorder(c, r) ? 14 : 0;
+                if (t == PATH || t == BRIDGE || t == COBBLE || t == PLAZA) return 0.35 + border;
+                if (t == ROCK) return 9 + border;
+                if (border > 0) return border + (t == TREE ? 5 : t == WATER ? 7 : 1);
                 if (t == TREE) return 5;
                 if (t == WATER) return r > H - 16 ? 40 : 7;
                 return 1 + hash2(c, r, 77) * 0.6;
@@ -809,19 +840,6 @@ struct OverworldGen {
     // gate where a road crosses into a region that is still closed. The gate remembers which boss opens it.
     void borders() {
         auto zi = [&](int c, int r) { return m.zone[m.idx(c, r)]; };
-        auto gateOf = [&](int a, int b) {   // the later of the two regions' gates
-            const std::string& ga = db.zones[a].gate;
-            const std::string& gb = db.zones[b].gate;
-            if (ga.empty()) return gb;
-            if (gb.empty()) return ga;
-            const DungeonDef* da = nullptr;
-            const DungeonDef* dbb = nullptr;
-            for (const auto& d : dungeons) {
-                if (d.id == ga) da = &d;
-                if (d.id == gb) dbb = &d;
-            }
-            return da && dbb && da->level >= dbb->level ? ga : gb;
-        };
         std::vector<uint8_t> band(static_cast<size_t>(W) * H, 0);
         std::vector<std::string> need(static_cast<size_t>(W) * H);
         for (int r = 1; r < H - 1; r++)
@@ -921,11 +939,25 @@ struct OverworldGen {
                 if (walkable(t)) return 1;
                 return t == TREE ? 3 : t == ROCK ? 4 : t == WATER ? 5 : t == CLIFF ? 6 : -1;
             });
+            // Pave a trail a few steps out from the wall on both sides, so the gate stands at the end of a road
+            std::vector<int> inBand;
+            for (size_t k = 0; k < path.size(); k++)
+                if (band[m.idx(path[k].c, path[k].r)]) inBand.push_back(static_cast<int>(k));
+            auto nearWall = [&](size_t k) {
+                for (int b : inBand)
+                    if (std::abs(b - static_cast<int>(k)) <= 6) return true;
+                return false;
+            };
             bool first = true;
-            for (const auto& p : path) {
+            for (size_t k = 0; k < path.size(); k++) {
+                const TilePos p = path[k];
                 if (p.c == goal.c && p.r == goal.r) continue;
                 const int i = m.idx(p.c, p.r);
                 const uint8_t t = m.get(p.c, p.r);
+                if (!band[i] && nearWall(k) && (t == GRASS || t == FLOWERS || t == SAND || t == TREE || t == ROCK) && !m.objectAt(p.c, p.r)) {
+                    m.set(p.c, p.r, PATH);
+                    continue;
+                }
                 if (band[i]) {
                     m.set(p.c, p.r, PATH);
                     m.block[i] = 0;
@@ -946,10 +978,75 @@ struct OverworldGen {
             }
             if (!path.empty()) mask = reachMask(m, m.start.c, m.start.r);
         }
+        dressGates();
         for (auto& o : m.objects)
             if (o.kind == ObjKind::Gate && o.id == "zone_gate") o.solid = true;
         gatesOpen(false);
         m.reach = mask;   // where monsters may live: everything reachable once the gates are open
+    }
+
+    // Every gated crossing gets exactly one gate you can see, across the middle of it and built the way its road
+    // runs; the rest of the crossing is barred unseen behind it. (The view leaves the ridge's boulders out from
+    // under the gate's masonry.)
+    void dressGates() {
+        std::vector<int> gateAt(static_cast<size_t>(W) * H, -1);
+        for (size_t i = 0; i < m.objects.size(); i++) {
+            const Object& o = m.objects[i];
+            if (o.kind == ObjKind::Gate && o.id == "zone_gate") gateAt[m.idx(o.c, o.r)] = static_cast<int>(i);
+        }
+        auto road = [&](int c, int r) {
+            const uint8_t t = m.get(c, r);
+            return t == PATH || t == BRIDGE || t == COBBLE || t == PLAZA;
+        };
+        std::vector<uint8_t> seen(gateAt.size(), 0);
+        for (int r = 1; r < H - 1; r++)
+            for (int c = 1; c < W - 1; c++) {
+                const int start = m.idx(c, r);
+                if (gateAt[start] < 0 || seen[start]) continue;
+                std::vector<TilePos> cluster;
+                std::vector<int> stack{start};
+                seen[start] = 1;
+                while (!stack.empty()) {
+                    const int k = stack.back();
+                    stack.pop_back();
+                    cluster.push_back({k % W, k / W});
+                    for (int dr = -1; dr <= 1; dr++)
+                        for (int dc = -1; dc <= 1; dc++) {
+                            const int nc = k % W + dc, nr = k / W + dr;
+                            if (!m.inside(nc, nr)) continue;
+                            const int ni = m.idx(nc, nr);
+                            if (gateAt[ni] < 0 || seen[ni]) continue;
+                            seen[ni] = 1;
+                            stack.push_back(ni);
+                        }
+                }
+                // Which way does the road run? Count where it leaves the crossing.
+                int ns = 0, ew = 0, c0 = W, c1 = 0, r0 = H, r1 = 0;
+                double sc = 0, sr = 0;
+                for (const auto& p : cluster) {
+                    c0 = std::min(c0, p.c), c1 = std::max(c1, p.c), r0 = std::min(r0, p.r), r1 = std::max(r1, p.r);
+                    sc += p.c, sr += p.r;
+                    for (int d = 0; d < 4; d++) {
+                        const int nc = p.c + DC4[d], nr = p.r + DR4[d];
+                        if (!m.inside(nc, nr) || gateAt[m.idx(nc, nr)] >= 0 || !road(nc, nr)) continue;
+                        (DR4[d] != 0 ? ns : ew)++;
+                    }
+                }
+                sc /= cluster.size();
+                sr /= cluster.size();
+                const bool across = ew > ns;
+                size_t best = 0;
+                for (size_t k = 1; k < cluster.size(); k++)
+                    if (hypot2(cluster[k].c - sc, cluster[k].r - sr) < hypot2(cluster[best].c - sc, cluster[best].r - sr)) best = k;
+                for (size_t k = 0; k < cluster.size(); k++) m.objects[gateAt[m.idx(cluster[k].c, cluster[k].r)]].text = k == best ? "" : "hidden";
+                Object& g = m.objects[gateAt[m.idx(cluster[best].c, cluster[best].r)]];
+                g.face = across ? 1 : 0;
+                if (!across) {   // a gatehouse facing south: the door spans the road, wall either side
+                    g.lo = c0, g.hi = c1, g.line = r1;
+                } else {   // a wall running north-south, the gate set in it where the road passes
+                    g.lo = r0, g.hi = r1, g.line = (c0 + c1 + 1) / 2;
+                }
+            }
     }
 
     void spawns() {
@@ -1158,15 +1255,32 @@ Map buildGenerated(const Database& db, const DungeonDef& def) {
             m.set(R.x + R.w - 3, R.y + R.h - 3, WALL);
         }
     }
-    const TilePos s = chain.front().center();
+    // The way out: an archway in the first room's north wall with daylight coming down the steps, a torch either
+    // side. It takes the stretch of solid wall nearest the middle (a corridor may leave through that wall).
+    // A room with no such stretch keeps the old stairs in its middle.
+    const Room& first = chain.front();
+    TilePos s = first.center();
+    for (int d = 0; d < first.w; d++) {
+        const int c = first.center().c + ((d & 1) ? -(d + 1) / 2 : d / 2), r = first.y - 1;
+        if (c < first.x + 1 || c > first.x + first.w - 2) continue;
+        bool solid = true;
+        for (int dc = -1; dc <= 1; dc++)
+            for (int dr = -2; dr <= 0; dr++) solid = solid && m.get(c + dc, r + dr) == WALL;
+        if (solid) {
+            s = {c, r};
+            break;
+        }
+    }
     m.set(s.c, s.r, STAIRS_UP);
-    m.start = {s.c, s.r + 1};
+    m.start = {s.c, s.r + (s.r < first.y ? 2 : 1)};   // a step out from the arch, so you see it behind you
+    if (s.r < first.y)
+        for (int dc : {-1, 1}) m.objects.push_back(simple(ObjKind::WallTorch, s.c + dc, s.r));
     if (def.under.empty()) m.links.push_back({s.c, s.r, def.realm, def.at.c, def.at.r + 1, Dir::Down});
     else m.links.push_back({s.c, s.r, def.under, 32, 5, Dir::Down});
 
     for (const Room& R : chain)
         for (int c : {R.x + 1, R.x + R.w - 2})
-            if (m.get(c, R.y - 1) == WALL && m.get(c, R.y) == FLOOR) m.objects.push_back(simple(ObjKind::WallTorch, c, R.y - 1));
+            if (m.get(c, R.y - 1) == WALL && m.get(c, R.y) == FLOOR && !m.objectAt(c, R.y - 1)) m.objects.push_back(simple(ObjKind::WallTorch, c, R.y - 1));
     int traps = 0;
     for (int r = 2; r < H - 2 && traps < def.traps; r++)
         for (int c = 2; c < W - 2 && traps < def.traps; c++)

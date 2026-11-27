@@ -93,7 +93,10 @@ Add these to the URL of a web build (`?autostart&kit&tp=128,40`), or pass them a
 | `accept=quest,quest` | Accept quests straight away (to see the quest tracker) |
 | `swing=degrees,frame` | Freeze a sword swing at an angle and frame, to look at it |
 | `spawn=id,id` | Put monsters in a ring around the hero (ids are in `config/enemies.json`) |
-| `tp=gate` | Stand before the first region gate |
+| `tp=gate` | Stand before the first region gate (`tp=gate:3` for the fourth) |
+| `tp=entrance:id` | Stand just south of a dungeon's entrance (ids are in `config/world.json`) |
+| `gaitsheet=id,id` | Draw each monster's walk as eight poses in a row, then standing (for tuning how still pictures move) |
+| `cutscene=id` | With `autostart`: play a cutscene straight away (`intro`, `boss:<dungeon>`, `realm:<realm>`; see `config/cutscenes.json`). `cutshot=N` starts at its Nth shot. Debug starts otherwise skip the intro |
 | `map=blight` | Start in one of the other lands (`blight`, `bonewaste`, `sunken`, `blackmire`, `ashen`) |
 | `mute` | No sound |
 

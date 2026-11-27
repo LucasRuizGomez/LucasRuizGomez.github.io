@@ -90,6 +90,7 @@ void Sim::killEnemy(Map& m, Enemy& e) {
         if (m.dungeon) {
             bossesDefeated.insert(m.dungeon->id);
             questEvent("boss", m.dungeon->id);
+            queueCutscene("boss:" + m.dungeon->id, 110);   // once the dust settles and the loot has fallen
             openZoneGates(true);
         }
         if (def.boss.final) {

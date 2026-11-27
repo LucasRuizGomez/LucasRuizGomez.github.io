@@ -134,9 +134,9 @@
     "bigstump":   { "at": ["ow", 496, 48, 32, 28] },
     "bush":       { "at": ["ow", 84, 258, 36, 34] },
     "lily":       { "at": ["ow", 32, 0, 16, 16] },
-    "entrance_door": { "at": ["ow", 70, 494, 64, 52] },
-    "entrance_cave": { "at": ["ow", 168, 502, 58, 44] },
-    "entrance_mine": { "at": ["ow", 114, 430, 34, 36] },
+    "entrance_door": { "at": ["ow", 64, 494, 64, 52] },
+    "entrance_cave": { "at": ["ow", 168, 502, 48, 44] },
+    "entrance_mine": { "at": ["ow", 112, 430, 32, 36] },
 
     "water":      { "at": ["ow", 48, 48, 16, 16], "frames": 3, "step": 16, "raw": true },
     "waterb":     { "at": ["ow", 48, 64, 16, 16], "frames": 3, "step": 16, "raw": true },

@@ -102,6 +102,28 @@ class App {
     void startNewGame();
     void setMode(Mode m);
 
+    // ── cutscenes (cutscene.cpp) ──
+    struct Mote {
+        double x, y, vx, vy, life, max, size;
+        Color col;
+        int kind;   // 0 ember, 1 flake or ash, 2 rain, 3 firefly or spore, 4 bubble, 5 mist
+    };
+    std::string cutId_;      // the cutscene playing, if any
+    int cutShot_ = 0;
+    double cutT_ = 0;        // seconds into the shot
+    double cutOut_ = -1;     // seconds into the fade back to the game (-1 = still playing)
+    double cutTypedAt_ = -1; // when the reader asked for the whole sentence at once
+    std::vector<Mote> motes_;
+    void beginCutscene(const std::string& id);
+    void endCutscene();
+    void updateCutscene(double dt);
+    void nextShot();
+    void cutsceneKey(const std::string& code);
+    void drawCutscene();
+    void drawBackdrop(const ShotDef& s, double t);
+    void drawActor(const ShotActor& a, double t, double length);
+    void drawMotes(const ShotDef& s, double t, double dt);
+
     // ── interface helpers (ui.cpp) ──
     struct Hit {
         double x, y, w, h;

@@ -106,9 +106,16 @@ void App::runDebugSwitches() {
     if (const std::string tp = param("tp"); !tp.empty()) {
         int c = 0, r = 0;
         if (std::sscanf(tp.c_str(), "%d,%d", &c, &r) == 2) sim_->enterMap(sim_->mapId, c * TILE + 8, r * TILE + 10);
-        else if (tp == "gate")   // stand before the first region gate
+        else if (tp.rfind("gate", 0) == 0) {   // stand before a region gate: "gate" is the first, "gate:3" the fourth
+            int want = tp.size() > 5 ? std::atoi(tp.c_str() + 5) : 0;
             for (const auto& o : sim_->map().objects)
-                if (o.kind == ObjKind::Gate && o.id == "zone_gate" && o.text.empty()) {
+                if (o.kind == ObjKind::Gate && o.id == "zone_gate" && o.text.empty() && want-- == 0) {
+                    sim_->enterMap(sim_->mapId, o.c * TILE + 8, (o.r + 3) * TILE + 10);
+                    break;
+                }
+        } else if (tp.rfind("entrance:", 0) == 0)   // stand a few steps south of a dungeon's way in
+            for (const auto& o : sim_->map().objects)
+                if (o.kind == ObjKind::Entrance && o.id == tp.substr(9)) {
                     sim_->enterMap(sim_->mapId, o.c * TILE + 8, (o.r + 3) * TILE + 10);
                     break;
                 }
@@ -118,6 +125,12 @@ void App::runDebugSwitches() {
         sim_->enterMap(map, m.start.c * TILE + 8, m.start.r * TILE + 10);
     }
     if (const std::string hour = param("hour"); !hour.empty()) sim_->time = static_cast<int>(db_.tuning.dayLength * (std::atof(hour.c_str()) - 6) / 24.0 + db_.tuning.dayLength);
+    // Debug starts skip the intro; cutscene=id plays one straight away (and cutshot=N jumps to its Nth shot)
+    sim_->cutscenes.clear();
+    if (const std::string cs = param("cutscene"); !cs.empty() && db_.cutscene(cs)) {
+        beginCutscene(cs);
+        cutShot_ = std::clamp(std::atoi(param("cutshot").c_str()), 0, static_cast<int>(db_.cutscene(cs)->shots.size()) - 1);
+    }
     for (int i = 0; i < 40; i++) sim_->tick(SimInput());
     if (!param("reveal").empty()) {
         Map& over = sim_->overworld();
@@ -406,6 +419,7 @@ void App::handleKey(const std::string& code, bool shift) {
     const std::string dir = dirOf(code), act = actionFor(code);
     switch (sim.mode) {
         case Mode::Title: titleKey(code, shift); break;
+        case Mode::Cutscene: cutsceneKey(code); break;
         case Mode::Play:
             if (code == "Escape" || code == "KeyP") openPause();
             else if (!act.empty()) playAction(act, Scheme::Keys);
@@ -534,6 +548,10 @@ void App::handleClick(const MouseClick& c) {
         playAction(c.button == 0 ? "attack" : "shoot", Scheme::Mouse);
         return;
     }
+    if (sim.mode == Mode::Cutscene) {
+        cutsceneKey(c.button == 0 ? "Click" : "Escape");
+        return;
+    }
     if (c.button != 0) {   // right click = back in menus
         handleKey("Escape", false);
         return;
@@ -622,6 +640,7 @@ void App::updateMusic() {
     std::string track;
     bool loop = true;
     if (sim.mode == Mode::Title) track = state("title");
+    else if (sim.mode == Mode::Cutscene) track = db_.cutscene(cutId_) ? db_.cutscene(cutId_)->music : state("title");
     else if (sim.mode == Mode::Dead) {
         track = state("death");
         loop = false;
@@ -722,6 +741,25 @@ void App::render() {
         g_.setSmooth(blurTex_, true);
         g_.setSmooth(blurTex2_, true);
     }
+    if (sim.mode == Mode::Cutscene) {   // the cutscene fills the screen: no world under it
+        hits_.clear();
+        drawCutscene();
+        g_.setTransform(1);
+        g_.present();
+        return;
+    }
+    if (const std::string ids = platform::queryParam("gaitsheet"); !ids.empty()) {   // debug: strides side by side
+        std::vector<std::string> list;
+        for (size_t a = 0, b; a <= ids.size(); a = b + 1) {
+            b = ids.find(',', a);
+            if (b == std::string::npos) b = ids.size();
+            if (b > a) list.push_back(ids.substr(a, b - a));
+        }
+        world_->drawGaitSheet(sim, list, 3);
+        g_.setTransform(1);
+        g_.present();
+        return;
+    }
     const bool dof = sceneTex_ && blurTex_ && blurTex2_ && sim.mode != Mode::Title && (set_.soft || set_.depth);
     if (dof) g_.setBaseTarget(&sceneTex_);
     world_->render(sim, zoom_, sim.mode != Mode::Title);
@@ -784,6 +822,15 @@ void App::frame() {
         n++;
     }
     if (n == 6) acc_ = 0;
+    // A cutscene waiting: play it once the game is back in hand (no menu open, no fade running)
+    // (or while a fade is coming back up from black, so a new game goes from black straight into the intro)
+    if (sim_->mode == Mode::Play && (!sim_->fade || sim_->fade->t >= sim_->fade->dur) && !sim_->cutscenes.empty() && sim_->tickCount >= sim_->cutsceneAt) {
+        sim_->fade.reset();
+        const std::string id = sim_->cutscenes.front();
+        sim_->cutscenes.erase(sim_->cutscenes.begin());
+        beginCutscene(id);
+    }
+    if (sim_->mode == Mode::Cutscene) updateCutscene(shot.empty() ? dt : 1.0 / 60.0);
     if (const std::string sw = platform::queryParam("swing"); !sw.empty()) {   // debug: freeze a sword swing, swing=degrees,frame
         double deg = 0;
         int fr = 5;

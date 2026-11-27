@@ -53,6 +53,10 @@ class Sprites {
     struct Rig {
         IRect box;
         bool legs = true, wings = false;
+        // Found in the picture's pixels: the column of the gap between the legs (-1 = none: a robe, a mass, a tail
+        // to the ground), and the hip, the row where the legs part. Legs swing from the hip; with no gap the lower
+        // body sways as one.
+        int split = -1, hip = 0;
     };
     const Rig& rig(const std::string& name);
     const Sprite& undead(const std::string& name);                               // assets/undead/<name>.png
@@ -62,6 +66,7 @@ class Sprites {
 
     Frames chest, campMeat, torch, gate, knife, wRipple, wSplash, wWhirl, waterRocks, water, waves, flowers, decals;
     Sprite bolt8[8], heart[3], alert, glow, plaza, cobble;
+    Sprite gateWall[2];   // a stone wall seen from above, running north-south: its west and east halves (16 x 80 each)
     std::map<std::string, Frames> boulders, bigBoulders, nodes;
     std::map<std::string, std::array<Sprite, 4>> weaponRot;   // up, right, down, left
     struct {

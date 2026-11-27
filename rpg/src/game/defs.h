@@ -257,6 +257,32 @@ struct Tuning {
 
 constexpr int TILE = 16;
 
+// Cutscenes (cutscenes.json): a few painted shots with narration, shown when something big happens.
+// The stage is 320 x 180 art pixels; positions on it are fractions (0..1), an actor's position is its feet.
+struct ShotActor {
+    std::string sprite;   // "hero", "enemy:<id>", "undead:<name>", or a sprite name from sprites.json
+    double x = 0.5, y = 0.8, scale = 1;
+    double toX = -1, toY = -1;   // where it ends up by the end of the shot (-1 = stays put)
+    std::string anim;     // idle | walk | float | rise | fall | fade_in | fade_out | sway | slash | kneel
+    bool flip = false;
+    double dark = 0;      // 0 = lit as it is, 1 = a black silhouette against the sky
+    double delay = 0;     // seconds into the shot before it appears
+};
+struct ShotDef {
+    std::string scene = "night";   // backdrop: night | dusk | dawn | crypt | throne | sea | peaks | fields | fire | village | void
+    std::vector<std::string> fx;   // embers | snow | ash | mist | rain | stars | fireflies | bubbles | spores | bell | flash | quake | rays | rift
+    std::vector<ShotActor> actors;
+    std::string title, text;       // a title card in big letters, and the narration typed out under the picture
+    double secs = 7;
+    double zoomFrom = 1, zoomTo = 1.06, panX = 0, panY = 0;   // the slow camera move over the shot (pan in stage fractions)
+    bool tinted = false;
+    Color sky0, sky1, land;        // the backdrop's palette, when the scene's own is not wanted
+};
+struct CutsceneDef {
+    std::string id, music;
+    std::vector<ShotDef> shots;
+};
+
 class Database {
   public:
     // Reads every config file from `dir` (must end with a slash). Throws std::runtime_error on bad data.
@@ -297,6 +323,11 @@ class Database {
         return nullptr;
     }
     std::vector<QuestDef> quests;
+    std::map<std::string, CutsceneDef> cutscenes;   // "intro", "boss:<dungeon>", "realm:<realm>"
+    const CutsceneDef* cutscene(const std::string& id) const {
+        auto it = cutscenes.find(id);
+        return it == cutscenes.end() ? nullptr : &it->second;
+    }
     std::vector<ActionDef> actions;
     std::vector<BranchDef> branches;
     std::vector<BuildingDef> buildings;

@@ -763,17 +763,17 @@ TEST_CASE("regions: walled off, and their gates open as the bosses fall") {
     Sim sim = freshGame();
     Map& m = sim.maps.at("over");
     int closed = 0;
-    for (const auto& o : m.objects) closed += o.kind == ObjKind::Gate && o.id == "zone_gate" && !o.gone && o.res == "cellar";
+    for (const auto& o : m.objects) closed += o.kind == ObjKind::Gate && o.id == "zone_gate" && !o.opened && o.res == "cellar";
     REQUIRE(closed > 0);
     sim.bossesDefeated.insert("cellar");
     sim.openZoneGates(false);
     for (const auto& o : m.objects)
-        if (o.kind == ObjKind::Gate && o.id == "zone_gate" && o.res == "cellar") CHECK(o.gone);
+        if (o.kind == ObjKind::Gate && o.id == "zone_gate" && o.res == "cellar") CHECK(o.opened);
     // and the opening survives a save
     Sim other(sim.db, 3);
     REQUIRE(other.loadGame(sim.saveGame()));
     for (const auto& o : other.maps.at("over").objects)
-        if (o.kind == ObjKind::Gate && o.id == "zone_gate" && o.res == "cellar") CHECK(o.gone);
+        if (o.kind == ObjKind::Gate && o.id == "zone_gate" && o.res == "cellar") CHECK(o.opened);
 }
 
 TEST_CASE("realms: five maps of their own, each reached its own way once a boss falls") {
@@ -831,4 +831,26 @@ TEST_CASE("loot: a map's own gear only drops on that map") {
         const Item it = sim.randomGear(90, 0);
         CHECK(sim.db.item(it.id).realm.empty());
     }
+}
+
+TEST_CASE("cutscenes: the intro on a new game, each one once, remembered by the save") {
+    const Database& db = database();
+    REQUIRE(db.cutscene("intro") != nullptr);
+    for (const auto& d : db.dungeons)   // every boss on the main map has its scene
+        if (d.realm == "over" && d.under.empty()) CHECK_MESSAGE(db.cutscene("boss:" + d.id) != nullptr, d.id);
+    for (const auto& r : db.realms) CHECK_MESSAGE(db.cutscene("realm:" + r.id) != nullptr, r.id);
+    Sim sim = freshGame();
+    REQUIRE(sim.cutscenes.size() == 1);
+    CHECK(sim.cutscenes.front() == "intro");
+    sim.cutscenes.clear();
+    sim.queueCutscene("boss:cellar");
+    sim.queueCutscene("boss:cellar");   // a second time does nothing
+    sim.queueCutscene("no_such_scene");
+    CHECK(sim.cutscenes.size() == 1);
+    Sim other(sim.db, 3);
+    REQUIRE(other.loadGame(sim.saveGame()));
+    CHECK(other.cutscenes.empty());   // nothing replays on loading
+    other.queueCutscene("intro");
+    other.queueCutscene("boss:cellar");
+    CHECK(other.cutscenes.empty());   // both already seen
 }

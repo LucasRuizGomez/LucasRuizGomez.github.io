@@ -61,8 +61,16 @@ void Sim::useTravel(const Object& o) {
         enterMap(dest, p.c * TILE + 8, p.r * TILE + 10);
         P.dir = Dir::Down;
         mode = Mode::Play;
+        queueCutscene("realm:" + dest, 30);   // the first time you set foot there
         wantSave = true;
     });
+}
+
+void Sim::queueCutscene(const std::string& id, int delay) {
+    if (!db.cutscene(id) || cutscenesSeen.count(id)) return;
+    cutscenesSeen.insert(id);
+    cutscenes.push_back(id);
+    cutsceneAt = std::max(cutsceneAt, tickCount + delay);
 }
 
 void Sim::openZoneGates(bool announce) {
@@ -70,8 +78,8 @@ void Sim::openZoneGates(bool announce) {
     Map& over = maps.at("over");
     std::set<std::string> opened;
     for (auto& o : over.objects) {
-        if (o.kind != ObjKind::Gate || o.id != "zone_gate" || o.gone || !bossesDefeated.count(o.res)) continue;
-        o.gone = true;
+        if (o.kind != ObjKind::Gate || o.id != "zone_gate" || o.opened || !bossesDefeated.count(o.res)) continue;
+        o.opened = true;   // it stays standing, doors thrown open
         over.setBlock(o, false);
         opened.insert(o.res);
     }
@@ -93,6 +101,10 @@ void Sim::newGame(const std::string& heroName) {
     deaths = victoryAt = hitstop = 0;
     gateAt = -999;
     bossesDefeated.clear();
+    cutscenes.clear();
+    cutscenesSeen.clear();
+    cutsceneAt = 0;
+    queueCutscene("intro");
     zonesFound.clear();
     waypoints.clear();
     shrinesFound.clear();

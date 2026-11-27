@@ -12,7 +12,7 @@
 
 namespace hc {
 
-enum class Mode { Title, Play, Pause, Inv, Craft, Shop, Sign, Quests, WorldMap, Travel, Dead, Victory, Skills, Talk };
+enum class Mode { Title, Play, Pause, Inv, Craft, Shop, Sign, Quests, WorldMap, Travel, Dead, Victory, Skills, Talk, Cutscene };
 enum class EquipSlot { Weapon, Shield, Armor, Trinket, Helm, Boots };
 constexpr int EQUIP_SLOTS = 6;
 
@@ -147,6 +147,12 @@ class Sim {
     int gateAt = -999, deadAt = 0, victoryAt = 0, hitstop = 0, deaths = 0, craftFlash = 0;
     bool nightPack = false;
     std::set<std::string> bossesDefeated, zonesFound, waypoints, shrinesFound;
+    // Cutscenes waiting to be shown, oldest first. The app plays the front one once the game is in Play mode and
+    // `cutsceneAt` has passed, then pops it. Each one plays once per game (`cutscenesSeen` is saved).
+    std::vector<std::string> cutscenes;
+    std::set<std::string> cutscenesSeen;
+    int cutsceneAt = 0;
+    void queueCutscene(const std::string& id, int delay = 0);
     void openZoneGates(bool announce);   // lifts every region gate whose boss is dead
     void useTravel(const Object& o);     // carriage, portal, ferry, ritual circle, lift
     void gateHint(Map& m);

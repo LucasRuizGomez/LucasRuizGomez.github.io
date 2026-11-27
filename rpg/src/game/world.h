@@ -52,7 +52,7 @@ struct Object {
     std::string sprite;   // prop / entrance sprite name
     std::string text;     // signs
     int w = 1, h = 1;     // blocked footprint, bottom row = r, centred on c
-    // chest
+    // chest (and region gate: opened once its boss has fallen)
     bool opened = false, mimic = false;
     int openAt = -1, lootLevel = 1;
     std::vector<Item> loot;
@@ -63,8 +63,12 @@ struct Object {
     int stage = 0, at = 0;
     // trap / shrine timers
     int t = 0, charge = 0;
-    // npc
+    // npc: which way they face. Region gate: 0 = the road runs north-south through it (a gatehouse seen from the
+    // front), 1 = east-west (a wall seen from above with the gate set in it).
     int face = 1;
+    // region gate: the crossing it closes, in tiles: columns lo..hi (north-south road) or rows lo..hi (east-west)
+    // with the gate standing on row `line` (its foot) or down the seam left of column `line`
+    int lo = 0, hi = 0, line = 0;
 };
 
 struct Enemy {

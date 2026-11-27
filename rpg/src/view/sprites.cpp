@@ -131,6 +131,8 @@ void Sprites::build(Gfx& g, const Database& db, const std::string& root) {
     const Image torchSheet = Image::load(fort + "Tileset/Torch.png");
     torch = strip(torchSheet, 16, 16);
     gate = strip(Image::load(fort + "Tileset/Gate.png"), 80, 80);
+    gateWall[0] = g.makeSprite(t(96, 176, 16, 80).shade(Color(214, 211, 221)));   // in the gate's darker stone
+    gateWall[1] = g.makeSprite(t(128, 176, 16, 80).shade(Color(214, 211, 221)));
     const Image knifeSheet = Image::load(fort + "Characters/Knife.png");
     knife = strip(knifeSheet, 16, 16);
     Image bolt = Image::load(fort + "Characters/Charge_1.png");
@@ -478,6 +480,37 @@ const Sprites::Rig& Sprites::rig(const std::string& name) {
     if (auto b = bodies_.find(name); b != bodies_.end()) {
         r.wings = b->second.find("wings") != std::string::npos;
         r.legs = b->second.find("legs") != std::string::npos;
+    }
+    // Where do the legs part? Look along the bottom fifth of the figure for a see-through column with something
+    // solid on both sides of it, the nearer the middle the better. Then climb that column to where it fills in:
+    // that is the crotch, and the hip sits there.
+    r.hip = r.box.y + static_cast<int>(std::lround(r.box.h * 0.74));
+    if (x1 >= 0 && r.legs) {
+        const int foot = y1, band = std::max(2, r.box.h / 5);
+        auto solid = [&](int x, int y) { return x >= 0 && x < im.w && y >= 0 && y < im.h && im.at(x, y)[3] > 24; };
+        auto solidIn = [&](int x0r, int x1r) {   // anything opaque in these columns along the foot band
+            for (int x = x0r; x <= x1r; x++)
+                for (int y = foot - band + 1; y <= foot; y++)
+                    if (solid(x, y)) return true;
+            return false;
+        };
+        const int mid = r.box.x + r.box.w / 2, reach = std::max(2, r.box.w * 3 / 8);
+        int best = -1;
+        for (int d = 0; d <= reach && best < 0; d++)
+            for (int x : {mid - d, mid + d}) {
+                bool clear = true;
+                for (int y = foot - band + 1; y <= foot && clear; y++) clear = !solid(x, y);
+                if (clear && solidIn(r.box.x, x - 1) && solidIn(x + 1, r.box.x + r.box.w - 1)) {
+                    best = x;
+                    break;
+                }
+            }
+        if (best >= 0) {
+            int y = foot;
+            while (y > r.box.y && !solid(best, y)) y--;
+            r.split = best;
+            r.hip = std::clamp(y + 1, r.box.y + r.box.h / 2, foot - 2);
+        }
     }
     return rigs_[name] = r;
 }

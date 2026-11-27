@@ -99,6 +99,19 @@ WorldView::MapView& WorldView::view(Sim& sim, Map& m) {
         v.zoneTiles.push_back(&spr_.tiles(m.dungeon ? m.dungeon->tint : ""));
         v.zoneTrees.push_back(&spr_.trees(""));
     }
+    v.masonry.assign(static_cast<size_t>(m.w) * m.h, 0);
+    auto cover = [&](int c, int r) {
+        if (m.inside(c, r)) v.masonry[m.idx(c, r)] = 1;
+    };
+    for (const auto& o : m.objects) {
+        if (o.kind != ObjKind::Gate || o.id != "zone_gate" || o.text == "hidden") continue;
+        if (o.face == 0)   // the gatehouse: 80 px wide, two tiles deep, centred on the road
+            for (int r = o.line - 2; r <= o.line; r++)
+                for (int c = (o.lo + o.hi) / 2 - 2; c <= (o.lo + o.hi + 1) / 2 + 2; c++) cover(c, r);
+        else
+            for (int r = o.lo - 3; r <= o.hi + 2; r++)
+                for (int c = o.line - 1; c <= o.line; c++) cover(c, r);
+    }
     v.props.assign(m.h, {});
     for (int r = 0; r < m.h; r++)
         for (int c = 0; c < m.w; c++) {
@@ -156,6 +169,7 @@ bool WorldView::propFor(Map& m, MapView& v, int c, int r, Prop& out) {
     const uint8_t t = m.get(c, r);
     if (t == GRASS && m.outdoor) return decorFor(m, c, r, out);
     if (t != TREE && !(t == ROCK && m.outdoor)) return false;
+    if (!v.masonry.empty() && v.masonry[m.idx(c, r)]) return false;
     auto allSame = [&](uint8_t want) { return m.get(c + 1, r) == want && m.get(c - 1, r) == want && m.get(c, r + 1) == want && m.get(c, r - 1) == want; };
     const double hv = hash2(c, r, 21);
     // Inside a thick wood or rock field only every other tile gets a sprite (staggered);
@@ -428,6 +442,21 @@ void WorldView::bakeChunk(Map& m, MapView& v, int cx, int cy) {
     v.baked[i] = 1;
 }
 
+// The way out of a dungeon: a stone arch two tiles tall set in the wall face, daylight falling through it onto
+// steps that climb out of sight. `half` 0 is its top (the wall tile), 1 its foot (the exit tile itself).
+void WorldView::exitArch(const TileSet& T, double x, double y, int half) {
+    g_.drawPart(T.sheet, {96, 16 + half * 16, 16, 16}, x, y, 16, 16);
+    for (int yy = 0; yy < 16; yy++) {
+        const int ay = half * 16 + yy;   // row within the arch's 16 x 32 art; the opening is rows 8-23
+        if (ay < 8 || ay > 23) continue;
+        const int x0 = ay == 8 ? 5 : ay == 9 ? 4 : 3, x1 = ay == 8 ? 10 : ay == 9 ? 11 : 12;
+        const double f = (ay - 8) / 15.0;   // pale sky at the top of the stair, warm stone at its foot
+        const Color day(static_cast<uint8_t>(240 - 70 * f), static_cast<uint8_t>(232 - 84 * f), static_cast<uint8_t>(206 - 98 * f));
+        g_.fillRect(x + x0, y + yy, x1 - x0 + 1, 1, day);
+        if (ay >= 13 && (ay - 13) % 3 == 0) g_.fillRect(x + x0, y + yy, x1 - x0 + 1, 1, Color(124, 104, 76));   // a step's edge
+    }
+}
+
 void WorldView::drawTile(Map& m, MapView& v, int c, int r) {
     const uint8_t t = m.get(c, r);
     const double x = c * TILE, y = r * TILE, hv = hash2(c, r, 5);
@@ -486,10 +515,15 @@ void WorldView::drawTile(Map& m, MapView& v, int c, int r) {
         case STAIRS_DOWN: g_.draw(m.dark ? T.stairsDown : T.dirt[static_cast<int>(hv * 4)], x, y); break;
         case PLANKS:
         case FLOOR: g_.draw(T.slab[static_cast<int>(hv * 9)], x, y); break;
-        case STAIRS_UP: g_.draw(T.stairsUp, x, y); break;
+        case STAIRS_UP:
+            if (m.dark && m.get(c, r - 1) == WALL) exitArch(T, x, y, 1);
+            else g_.draw(T.stairsUp, x, y);
+            break;
         case DOOR: g_.draw(T.slab[4], x, y); break;
         case WALL:
-            if (!solidWall(below) && r + 1 < m.h) g_.draw(T.brickLo[static_cast<int>(hv * 4)], x, y);
+            if (m.dark && below == STAIRS_UP) exitArch(T, x, y, 0);   // the top of the way-out arch
+            else if (m.dark && below2 == STAIRS_UP && below == WALL) g_.draw(T.wallTop[static_cast<int>(hv * 4)], x, y);
+            else if (!solidWall(below) && r + 1 < m.h) g_.draw(T.brickLo[static_cast<int>(hv * 4)], x, y);
             else if (below == WALL && !solidWall(below2) && r + 2 < m.h) g_.draw(T.brickHi[static_cast<int>(hv * 4)], x, y);
             else g_.draw(T.wallTop[static_cast<int>(hv * 4)], x, y);
             break;
@@ -763,7 +797,7 @@ void WorldView::drawSway(const Sprite& img, double x, double y, double lean) {
 }
 
 // The body language of a still picture. Facing: + is the way it looks (face), so leaning forward is +face.
-WorldView::Warp WorldView::gait(const Enemy& e, int tick, const Sprites::Rig* rig) const {
+WorldView::Warp WorldView::gait(const Enemy& e, int tick, const Sprites::Rig* rig, const GaitState& g) const {
     const EnemyDef& def = *e.def;
     const double f = e.face < 0 ? -1 : 1;
     Warp w;
@@ -781,11 +815,9 @@ WorldView::Warp WorldView::gait(const Enemy& e, int tick, const Sprites::Rig* ri
         w.lean = f * 3;
         w.squash = -0.08 + 0.04 * std::sin(e.t * 0.7);
         w.foot = -f * 1.5 * std::sin(e.t * 0.7);
-    } else if (e.moving) {   // a step: the body rocks over the feet, which swing the other way; flat on landing, tall mid-stride
-        const double phase = e.t * (e.fast ? 0.35 : 0.22), step = std::sin(phase);
-        w.lean = f * (e.fast ? 1.5 : 0.8) + step * 1.3;
-        w.foot = -step * 1.4;
-        w.squash = -0.07 * std::cos(2 * phase);
+    } else if (e.moving) {   // going somewhere: leaning into it, the weight rolling a little from step to step
+        w.lean = f * (e.fast ? 1.2 : 0.7) + 0.35 * std::sin(g.phase);
+        w.squash = -0.02 * std::cos(2 * g.phase);
     } else {   // breathing, with a slow shift of weight
         w.squash = 0.035 * std::sin(e.t * 0.05 + e.uid);
         w.lean = 0.7 * std::sin(e.t * 0.021 + e.uid * 1.7);
@@ -831,21 +863,25 @@ WorldView::Warp WorldView::gait(const Enemy& e, int tick, const Sprites::Rig* ri
     if (!rig) return w;
     const bool walking = rig->legs && !def.fly;
     if (walking) {
-        // Two legs (or the front and back pair) take turns: one swings forward off the ground while the other
-        // pushes back on it. They take over from the shear of the foot rows.
-        double phase = -1, reach = 1.2, up = e.fast ? 2 : 1.5;
-        if (e.hop > 0 && def.ai == Ai::Charger) phase = e.t * 0.7, reach = 1.8, up = 2;
-        else if (e.moving && e.wind <= 0) phase = e.t * (e.fast ? 0.35 : 0.22);
-        if (phase >= 0) {
-            const double s = std::sin(phase);
-            w.stepA = f * reach * s;
-            w.stepB = -f * reach * s;
-            w.liftA = std::max(0.0, s) * up;
-            w.liftB = std::max(0.0, -s) * up;
-            w.squash = std::max(w.squash, -0.04);   // the legs carry the step now; the body only bobs a little
+        // A stride, paced by the ground actually covered so the feet never skate. Each leg swings from the hip like
+        // a pendulum: forward while it is lifted, back while it carries the weight. The body rides highest as the
+        // legs pass each other and settles with both feet down. When it stops, the legs come together.
+        const double s = std::sin(g.phase), c = std::cos(g.phase), k = def.scale, walk = g.walk;
+        const double reach = (e.fast ? 2.2 : 1.7) * k * walk, up = (e.fast ? 1.6 : 1.2) * k * walk;
+        w.stepA = f * reach * s;
+        w.stepB = -w.stepA;
+        w.liftA = std::max(0.0, c) * up;
+        w.liftB = std::max(0.0, -c) * up;
+        w.bob = -(1 - std::abs(s)) * (e.fast ? 1.0 : 0.7) * k * walk;
+        if (e.moving && e.wind <= 0 && e.act <= 0 && e.flash <= 0) {
+            w.lean = f * (e.fast ? 1.0 : 0.5) * k;   // steady: the legs do the moving now
+            w.squash = -0.02 * std::abs(s) * walk;
         }
         w.foot = 0;
-        if (e.wind > 0) w.stepA = w.stepB = -f * 0.8;   // braced, feet dug in
+        if (e.wind > 0) {   // braced, feet dug in
+            w.stepA = w.stepB = -f * 0.8 * k;
+            w.liftA = w.liftB = w.bob = 0;
+        }
     }
     if (rig->wings) {
         if (def.fly) {   // wings carry it: full strokes, quicker when it is going somewhere
@@ -881,22 +917,42 @@ void WorldView::drawWarp(const Sprite& img, double x, double y, double w, double
     const IRect box = rig ? rig->box : IRect{0, 0, img.w, img.h};
     const bool legs = rig && rig->legs && (wp.liftA != 0 || wp.liftB != 0 || wp.stepA != 0 || wp.stepB != 0);
     const bool wings = rig && rig->wings && std::abs(wp.flap) >= 0.5;
-    const int legTop = legs ? box.y + static_cast<int>(std::lround(box.h * 0.72)) : img.h;   // rows below are the legs
-    const int mid = box.x + box.w / 2;
+    const int legTop = legs ? std::clamp(rig->hip, 1, img.h - 1) : img.h;   // rows from the hip down are the legs
+    // The legs first, behind the body, so a lifted thigh tucks up under the hip. Each row swings about the hip by
+    // its share of the way to the foot, and is drawn down to where the next row starts, so no seam ever opens.
+    if (legs) {
+        const int footRow = box.y + box.h, split = rig->split;
+        auto along = [&](double v) { return std::clamp((v - legTop) / std::max(1, footRow - legTop), 0.0, 1.0); };
+        auto legRow = [&](int u0, int u1, int v, double step, double lift) {
+            if (u1 <= u0) return;
+            const double ya = std::round(y2 + v * q - lift * along(v)), yb = std::round(y2 + (v + 1) * q - lift * along(v + 1));
+            if (yb <= ya) return;   // pressed out by the lift: the leg is foreshortened
+            const double xa = x2 + (flip ? img.w - u1 : u0) * sx + std::lround(shift(v) + step * along(v + 0.5));
+            g_.drawPart(img, {u0, v, u1 - u0, 1}, xa, ya, (u1 - u0) * sx, yb - ya, flip, tint, additive);
+        };
+        for (int v = legTop; v < img.h; v++) {
+            if (split >= 0) {
+                legRow(0, split, v, wp.stepA, wp.liftA);
+                legRow(split, img.w, v, wp.stepB, wp.liftB);
+            } else legRow(0, img.w, v, wp.stepA * 0.5, 0);   // one mass (robe, tail, belly): it sways as one
+        }
+    }
     const int span = std::max(2, static_cast<int>(std::lround(box.w * 0.34)));               // each wing's share of the width
     const int wingL = box.x + span, wingR = box.x + box.w - span;
     const int wingBottom = wings ? std::min(legTop, box.y + static_cast<int>(std::lround(box.h * 0.8))) : 0;
     int start = 0, cur = shift(0);
-    for (int row = 1; row <= img.h; row++) {
-        const int sft = row < img.h ? shift(row) : cur + 1000;
+    for (int row = 1; row <= legTop; row++) {   // then the body, down to the hip
+        const int sft = row < legTop ? shift(row) : cur + 1000;
         if (sft == cur && row != legTop && row != wingBottom) continue;
-        if (start >= legTop) {   // the legs, each half on its own
-            put(0, mid, start, row, cur + wp.stepA, -wp.liftA);
-            put(mid, img.w, start, row, cur + wp.stepB, -wp.liftB);
-        } else if (start < wingBottom) {   // the body, then the wings in narrow columns that rise more toward the tips
+        if (start < wingBottom) {   // the body, then the wings in narrow columns that rise more toward the tips
             put(wingL, wingR, start, row, cur, 0);
-            for (int u = wingL; u > 0; u -= 2) put(std::max(0, u - 2), u, start, row, cur, -wp.flap * std::min(1.0, (wingL - u + 2.0) / span));
-            for (int u = wingR; u < img.w; u += 2) put(u, std::min(img.w, u + 2), start, row, cur, -wp.flap * std::min(1.0, (u + 2.0 - wingR) / span));
+            // one column at a time, rising along an easy curve toward the tip (no stair-steps)
+            auto lift = [&](double d) {
+                const double t = std::min(1.0, d / span);
+                return -wp.flap * t * t * (3 - 2 * t);
+            };
+            for (int u = wingL; u > 0; u--) put(u - 1, u, start, row, cur, lift(wingL - u + 1.0));
+            for (int u = wingR; u < img.w; u++) put(u, u + 1, start, row, cur, lift(u + 1.0 - wingR));
         } else put(0, img.w, start, row, cur, 0);
         start = row;
         cur = sft;
@@ -982,6 +1038,7 @@ void WorldView::render(Sim& sim, int zoom, bool withActors) {
         if (o.gone || !vis(o.c * TILE, o.r * TILE, 96)) continue;
         double key = o.r * TILE + 13;
         if (o.kind == ObjKind::WallTorch || o.kind == ObjKind::Trap || o.kind == ObjKind::Waypoint) key = -1;
+        else if (o.kind == ObjKind::Gate && o.id == "zone_gate") key = (o.face == 1 ? o.hi + 3 : o.line + 1) * TILE - 1;
         else if (o.kind == ObjKind::Gate) key = (o.r + 3) * TILE;
         else if (o.kind == ObjKind::Entrance) key = o.r * TILE + 15;
         else if (o.kind == ObjKind::Prop) {
@@ -1157,6 +1214,49 @@ void WorldView::render(Sim& sim, int zoom, bool withActors) {
     g_.setTransform(1);
 }
 
+// A region gate. Where its road runs north-south it is a gatehouse seen from the front, spanning the road with the
+// ridge on either side. Where the road runs east-west the wall runs north-south, so it is seen from above: a strip
+// of masonry down the ridge with a timber gate across the road. Once its boss has fallen the doors stand open.
+void WorldView::drawRegionGate(const Map& m, const Object& o) {
+    if (o.face == 0) {
+        const Sprite& f = spr_.gate[o.opened ? spr_.gate.size() - 1 : 0];
+        const double cx = (o.lo + o.hi + 1) * TILE / 2.0, foot = (o.line + 1) * TILE;
+        g_.drawTinted(spr_.glow, cx - 46, foot - 9, 92, 18, Color(0, 0, 0, 110));   // its shadow on the ground
+        g_.draw(f, std::round(cx - f.w / 2.0), foot - 64);                            // the sill is 64 px down the frame
+        return;
+    }
+    const int x = o.line * TILE - 16;   // 32 px of wall down the seam of the two-tile ridge
+    // the wall runs on up to two tiles each way, but only as far as the ridge does (never out over open ground)
+    auto ridge = [&](int r) { return m.get(o.line - 1, r) == ROCK || m.get(o.line, r) == ROCK; };
+    const int up = ridge(o.lo - 1) ? (ridge(o.lo - 2) ? 2 : 1) : 0, down = ridge(o.hi + 1) ? (ridge(o.hi + 2) ? 2 : 1) : 0;
+    const int top = (o.lo - up) * TILE - 4 - (up ? 0 : 8), gateTop = o.lo * TILE - 3, gateBot = (o.hi + 1) * TILE + 2;
+    const int bot = (o.hi + 1 + down) * TILE + (down ? 0 : 10);
+    g_.fillRect(x + 32, top + 6, 4, bot - top - 4, Color(0, 0, 0, 70));   // shadow, the light being upper left
+    for (int half = 0; half < 2; half++) {
+        const Sprite& w = spr_.gateWall[half];
+        g_.drawPart(w, {0, 0, 16, gateTop - top}, x + half * 16, top, 16, gateTop - top);   // capped end to the north
+        g_.drawPart(w, {0, w.h - (bot - gateBot), 16, bot - gateBot}, x + half * 16, gateBot, 16, bot - gateBot);   // its foot
+    }
+    const Color wood(122, 80, 48), seam(88, 56, 34), rim(52, 33, 22), iron(58, 58, 68), rivet(150, 150, 160);
+    if (o.opened) {   // the two leaves swung back east against the wall
+        for (const int y : {gateTop + 1, gateBot - 5}) {
+            g_.fillRect(x + 30, y, 12, 4, rim);
+            g_.fillRect(x + 31, y + 1, 10, 2, wood);
+        }
+        return;
+    }
+    // A heavy timber gate filling the gap: planks running across the road, iron straps over them
+    const int h = gateBot - gateTop;
+    g_.fillRect(x + 2, gateTop, 28, h, rim);
+    g_.fillRect(x + 3, gateTop, 26, h, wood);
+    for (int px = x + 7; px < x + 29; px += 5) g_.fillRect(px, gateTop, 1, h, seam);
+    g_.fillRect(x + 2, gateTop + h / 2, 28, 1, rim);   // where the leaves meet
+    for (int y = gateTop + 3; y < gateBot - 3; y += 6) {
+        g_.fillRect(x + 2, y, 28, 2, iron);
+        for (int px = x + 4; px < x + 30; px += 6) g_.fillRect(px, y, 1, 1, rivet);
+    }
+}
+
 void WorldView::drawObject(Sim& sim, Map& m, const Object& o) {
     const double x = o.c * TILE, y = o.r * TILE;
     const int tick = sim.tickCount;
@@ -1258,11 +1358,8 @@ void WorldView::drawObject(Sim& sim, Map& m, const Object& o) {
             if (o.charge > 0) g_.fillRect(x + 7, y + 6, 2, 6, (tick >> 2) % 2 ? Color(255, 90, 74) : Color(255, 179, 71));
             break;
         case ObjKind::Gate: {
-            if (o.id == "zone_gate") {   // an iron portcullis in the rock wall between regions
-                if (o.text != "hidden") {
-                    g_.drawTinted(spr_.glow, x - 20, y - 4, 56, 24, Color(0, 0, 0, 120));
-                    g_.draw(spr_.gate[0], x + 8 - spr_.gate[0].w / 2, y + 16 - spr_.gate[0].h + 8);
-                }
+            if (o.id == "zone_gate") {
+                if (o.text != "hidden") drawRegionGate(m, o);
                 break;
             }
             const int f = !sim.doorOpen ? 0 : std::min(5, std::max(0, (tick - sim.gateAt) / 6));
@@ -1497,13 +1594,22 @@ void WorldView::drawEnemy(Sim& sim, const Enemy& e) {
     const bool flash = (e.flash > 0 && e.flash % 4 < 2) || (def.isBoss() && e.state == Enemy::State::VolleyWind && tick % 6 < 3);
     if (def.look == Look::Static || def.look == Look::Mimic) {   // still pictures are given a body that steps, breathes and strikes
         const Sprites::Rig* rig = def.look == Look::Static ? &spr_.rig(def.sprite) : nullptr;
-        const Warp wp = gait(e, tick, rig);
+        // the stride: one step per few pixels of ground covered (more for bigger bodies); legs settle when it stops
+        if (gaits_.size() > 600) gaits_.clear();
+        GaitState& gs = gaits_[e.uid];
+        const double moved = std::hypot(e.x - gs.x, e.y - gs.y);
+        if (gs.seen && moved < 10) gs.phase += moved / (6.0 * k) * PI;
+        gs.x = e.x;
+        gs.y = e.y;
+        gs.seen = true;
+        gs.walk += ((e.moving || e.hop > 0 ? 1.0 : 0.0) - gs.walk) * 0.18;
+        const Warp wp = gait(e, tick, rig, gs);
         double lift = 0;
         if (def.look == Look::Static) {
-            const double phase = e.t * (e.fast ? 0.35 : 0.22);
-            lift = e.moving && !def.fly ? std::round(std::abs(std::sin(phase)) * (e.fast ? 3 : 2)) : 0;   // each step leaves the ground
-            if (e.hop > 0 && def.ai == Ai::Charger) lift = std::round(std::abs(std::sin(e.t * 0.5)) * 2);
+            const bool glide = !rig->legs && !rig->wings;
             if (def.fly) lift = 4 + std::round(std::sin(e.t * 0.1) * 1.5);   // hovering
+            else if (glide) lift = std::round(1 + std::sin(e.t * 0.06 + e.uid) * 1.2);   // drifting just above the ground
+            else lift = -std::round(wp.bob);   // the stride's rise and fall
             const double sw = 18 * k * (1 - 0.15 * lift / 4) * (1 - wp.squash);   // the shadow shrinks as it leaves the ground
             g_.drawTinted(spr_.glow, std::round(e.x - sw / 2), std::round(e.y - 3), sw, 6, Color(0, 0, 0, static_cast<uint8_t>(110 - lift * 8)));
         }
@@ -1520,6 +1626,42 @@ void WorldView::drawEnemy(Sim& sim, const Enemy& e) {
         g_.fillRect(bx - 1, by - 1, bw + 2, 3, Color(22, 18, 31));
         g_.fillRect(bx, by, bw, 1, Color(74, 32, 48));
         g_.fillRect(bx, by, std::max(1.0, std::round(bw * e.hp / e.maxHp)), 1, e.elite ? e.elite->glow : Color(224, 80, 60));
+    }
+}
+
+void WorldView::drawGaitSheet(Sim& sim, const std::vector<std::string>& ids, int zoom) {
+    g_.setTransform(1);
+    g_.fillRect(0, 0, g_.width(), g_.height(), Color(70, 84, 60));
+    g_.setTransform(zoom, 0, 0);
+    int row = 0;
+    double yAt = 8;
+    for (const auto& id : ids) {
+        const EnemyDef* def = db_.findEnemy(id);
+        if (!def) continue;
+        const double k = def->scale, cellW = 34 * k, cellH = 40 * k;
+        yAt += cellH;
+        const double y = yAt - 6 * k;
+        double xAt = 8;
+        for (int i = 0; i < 9; i++) {
+            Enemy e;
+            e.def = def;
+            e.uid = 900000 + row * 16 + i;
+            e.face = 1;
+            e.moving = i < 8;
+            e.t = 40;
+            e.x = xAt + cellW / 2 + (i == 8 ? 8 : 0);
+            e.y = y;
+            GaitState gs;
+            gs.x = e.x;
+            gs.y = e.y;
+            gs.phase = i * PI / 4;   // eight poses through one full stride (two steps)
+            gs.walk = e.moving ? 1 : 0;
+            gaits_[e.uid] = gs;
+            g_.fillRect(e.x - cellW / 2 + 1, y, cellW - 2, 1, Color(40, 48, 34));
+            drawEnemy(sim, e);
+            xAt += cellW;
+        }
+        row++;
     }
 }
 
@@ -1591,6 +1733,9 @@ void WorldView::drawLighting(Sim& sim, Map& m, int zoom, double alpha, Color col
     };
     const int tick = sim.tickCount;
     light(sim.P.x, sim.P.y - 6, sim.hasItem("torch") ? 120 : m.dark ? 78 : 60);
+    if (m.dark)   // daylight through the way out: you can always find it again
+        for (const auto& l : m.links)
+            if (m.get(l.c, l.r) == STAIRS_UP) light(l.c * TILE + 8, l.r * TILE + 6, 72);
     for (const auto& o : m.objects) {
         if (o.gone || std::abs(o.c * TILE - sim.P.x) > 420 || std::abs(o.r * TILE - sim.P.y) > 320) continue;
         if (o.kind == ObjKind::WallTorch) light(o.c * TILE + 8, o.r * TILE + 12, 54 + std::sin(tick * 0.2 + o.c) * 3);

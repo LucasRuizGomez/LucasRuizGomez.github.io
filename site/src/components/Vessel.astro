@@ -11,12 +11,13 @@ import type { Project } from '../data/profile';
 import LinkRow from './LinkRow.astro';
 
 interface Props {
-  projects: Project[];
+  projects: Project[]; // ranked, best first
+  others?: Project[]; // packed together into one "Other projects" container
   name: string;
   port: string;
   class?: string;
 }
-const { projects, name, port, class: className } = Astro.props;
+const { projects, others = [], name, port, class: className } = Astro.props;
 
 // ISO 6346 owner code + category, six-digit serial, check digit (A=10, skipping 11, 22, 33).
 const OWNER = 'LRGU';
@@ -38,15 +39,33 @@ const TIER_H = 70;
 const DECK = 372;
 const W = 1000;
 const H = 560;
-const tones = ['red', 'ink', 'bone', 'steel', 'deep', 'red', 'bone', 'ink', 'steel'];
+// Slot order: top tier left to right, then the middle tier, then the bottom.
+const tones = ['ink', 'red', 'bone', 'steel', 'deep', 'bone', 'ink', 'steel', 'red'];
+// Where each rank is stowed: the best project goes top-middle, where the crane waits, then
+// top-left, top-right, middle. "Other projects" rides low in the stack, findable but not first.
+const STOW = [1, 0, 2, 4, 3, 5, 6, 8];
+const OTHERS_SLOT = 7;
 const slots = [2, 1, 0].flatMap((tier) => BAYS.map((x) => ({ x, y: DECK - TIER_H * (tier + 1) })));
 const pos = (s: { x: number; y: number }) =>
   `left:${(s.x / W) * 100}%;top:${(s.y / H) * 100}%;width:${(BAY_W / W) * 100}%;height:${(TIER_H / H) * 100}%`;
 
 const boxes = slots.map((slot, i) => {
-  const p = projects[i];
+  const rank = STOW.indexOf(i);
+  const p = rank >= 0 ? projects[rank] : undefined;
+  const isOthers = i === OTHERS_SLOT && others.length > 0;
   const serial = String(i + 1).padStart(6, '0');
-  return { slot, tone: tones[i], p, n: i, code: `${OWNER} ${serial}`, check: checkDigit(OWNER + serial), id: `cargo-${i + 1}` };
+  return {
+    slot,
+    tone: tones[i],
+    p,
+    isOthers,
+    label: p?.name ?? (isOthers ? 'Other projects' : undefined),
+    // The hello hop runs in rank order; the others box hops last.
+    n: p ? rank : projects.length,
+    code: `${OWNER} ${serial}`,
+    check: checkDigit(OWNER + serial),
+    id: `cargo-${i + 1}`,
+  };
 });
 
 // Accommodation windows: a grid, a few lit.
@@ -131,7 +150,7 @@ const craneHome = `left:${(slots[1].x / W) * 100}%;width:${(BAY_W / W) * 100}%`;
       <span class="puff p3" aria-hidden="true"></span>
 
       {boxes.map((b) =>
-        b.p ? (
+        b.label ? (
           <button
             type="button"
             class="box"
@@ -140,7 +159,7 @@ const craneHome = `left:${(slots[1].x / W) * 100}%;width:${(BAY_W / W) * 100}%`;
             data-top={b.slot.y}
             style={`${pos(b.slot)};--i:${b.n}`}
             aria-haspopup="dialog"
-            aria-label={`Open ${b.p.name}`}
+            aria-label={`Open ${b.label}`}
           >
             <span class="box-hold" aria-hidden="true">
               <span class="box-crate"></span>
@@ -149,7 +168,7 @@ const craneHome = `left:${(slots[1].x / W) * 100}%;width:${(BAY_W / W) * 100}%`;
               <span class="box-code">
                 {b.code} <b>{b.check}</b>
               </span>
-              <span class="box-name">{b.p.name}</span>
+              <span class="box-name">{b.label}</span>
               <span class="box-logo">L</span>
               <span class="box-type">45G1</span>
             </span>
@@ -192,7 +211,7 @@ const craneHome = `left:${(slots[1].x / W) * 100}%;width:${(BAY_W / W) * 100}%`;
   </div>
 </div>
 
-{boxes.filter((b) => b.p).map((b) => (
+{boxes.filter((b) => b.p).map((b) => b.p && (
   <dialog id={b.id} class="cargo" data-tone={b.tone} aria-labelledby={`${b.id}-title`}>
     <div class="cargo-inner">
       <div class="cargo-head font-mono">
@@ -226,6 +245,52 @@ const craneHome = `left:${(slots[1].x / W) * 100}%;width:${(BAY_W / W) * 100}%`;
         <p class="text-muted mt-4 font-mono text-[0.6875rem] uppercase">{b.p.stack.join(' · ')}</p>
         <LinkRow class="mt-5" links={b.p.links} name={b.p.name} />
       </div>
+      </div>
+    </div>
+  </dialog>
+))}
+
+{boxes.filter((b) => b.isOthers).map((b) => (
+  <dialog id={b.id} class="cargo" data-tone={b.tone} aria-labelledby={`${b.id}-title`}>
+    <div class="cargo-inner">
+      <div class="cargo-head font-mono">
+        <span>
+          {b.code} <b>{b.check}</b> · 45G1 · {name} · {others.length} pcs
+        </span>
+        <form method="dialog">
+          <button class="cargo-close" type="submit">Close ✕</button>
+        </form>
+      </div>
+      <div class="p-5 sm:p-7">
+        <span class="kicker">Contents</span>
+        <h2
+          id={`${b.id}-title`}
+          class="font-ui mt-3 text-[clamp(1.75rem,4vw,2.5rem)] leading-[0.95] font-extrabold tracking-[-0.025em] uppercase"
+        >
+          Other projects
+        </h2>
+        <p class="mt-3 text-[1.125rem] leading-snug">Smaller tools and study apps, built because I needed them.</p>
+        <ul class="others mt-6">
+          {others.map((o) => (
+            <li class="other">
+              <Image
+                class="other-shot"
+                src={o.image}
+                alt={o.imageAlt}
+                widths={[320, 480]}
+                sizes="(min-width: 640px) 12rem, 92vw"
+                format="avif"
+                loading="lazy"
+              />
+              <div>
+                <h3 class="font-ui text-lg leading-tight font-bold">{o.name}</h3>
+                <p class="mt-1 text-[0.9375rem] leading-snug">{o.summary}</p>
+                <p class="text-muted mt-2 font-mono text-[0.6875rem] uppercase">{o.stack.join(' · ')}</p>
+                <LinkRow class="mt-3" links={o.links} name={o.name} />
+              </div>
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   </dialog>
@@ -746,6 +811,29 @@ const craneHome = `left:${(slots[1].x / W) * 100}%;width:${(BAY_W / W) * 100}%`;
       min-block-size: 100%;
       border-inline-end: 1px solid var(--border);
     }
+  }
+  .others {
+    display: grid;
+  }
+  .other {
+    display: grid;
+    gap: 1rem;
+    padding-block: 1.25rem;
+    border-block-start: 1px solid var(--border);
+  }
+  @media (min-width: 640px) {
+    .other {
+      grid-template-columns: 12rem 1fr;
+      align-items: start;
+    }
+  }
+  .other-shot {
+    inline-size: 100%;
+    block-size: auto;
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
+    object-position: top;
+    border: 1px solid var(--border);
   }
   .cargo-head {
     display: flex;
