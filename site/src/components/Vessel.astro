@@ -2,8 +2,10 @@
 // The feeder ship LUKEDA, seen from starboard, carrying the projects as 40ft containers.
 // Hull, superstructure and funnel are one SVG; the containers are buttons laid over its deck in
 // the same coordinate space (a 1000 x 560 box), so they scale and roll with the ship.
-// Click a container: its side panel swings open, the hold lights up, and the manifest card for
-// what is inside opens as a dialog. Everything moves with CSS; reduced motion stops it.
+// A ship-to-shore crane's spreader hangs over the stack and follows the pointer from bay to bay.
+// Click a container: the spreader drops onto it, locks, and hoists it clear of the ship; its side
+// panel swings open, the hold lights up, and the manifest card for what is inside opens as a
+// dialog. Closing the card sets the box back down. Reduced motion skips the crane work.
 import { Image } from 'astro:assets';
 import type { Project } from '../data/profile';
 import LinkRow from './LinkRow.astro';
@@ -44,17 +46,20 @@ const pos = (s: { x: number; y: number }) =>
 const boxes = slots.map((slot, i) => {
   const p = projects[i];
   const serial = String(i + 1).padStart(6, '0');
-  return { slot, tone: tones[i], p, code: `${OWNER} ${serial}`, check: checkDigit(OWNER + serial), id: `cargo-${i + 1}` };
+  return { slot, tone: tones[i], p, n: i, code: `${OWNER} ${serial}`, check: checkDigit(OWNER + serial), id: `cargo-${i + 1}` };
 });
 
 // Accommodation windows: a grid, a few lit.
 const windowRows = [170, 200, 230, 260, 290, 320, 350];
 const windowCols = Array.from({ length: 6 }, (_, i) => 86 + i * 22);
 const lit = (r: number, c: number) => (r * 7 + c * 3) % 5 === 0;
+
+// The crane starts out over the middle bay of the top tier.
+const craneHome = `left:${(slots[1].x / W) * 100}%;width:${(BAY_W / W) * 100}%`;
 ---
 
 <div class:list={['vessel-wrap', className]}>
-  <p class="hint">Each container is a project · click one to open it</p>
+  <p class="hint"><span class="hint-lamp" aria-hidden="true"></span>Each container is a project · pick one to unload it</p>
   <div class="vessel-pos">
     <div class="vessel">
       <svg class="hull-art" viewBox={`0 0 ${W} ${H}`} aria-hidden="true">
@@ -132,7 +137,8 @@ const lit = (r: number, c: number) => (r * 7 + c * 3) % 5 === 0;
             class="box"
             data-tone={b.tone}
             data-box={b.id}
-            style={pos(b.slot)}
+            data-top={b.slot.y}
+            style={`${pos(b.slot)};--i:${b.n}`}
             aria-haspopup="dialog"
             aria-label={`Open ${b.p.name}`}
           >
@@ -159,6 +165,29 @@ const lit = (r: number, c: number) => (r * 7 + c * 3) % 5 === 0;
           </span>
         ),
       )}
+
+      {/* The crane: its boom runs out toward the viewer above the picture, so only the falls and
+          the spreader show. */}
+      <div class="crane" aria-hidden="true" style={craneHome}>
+        <div class="crane-hoist">
+          <div class="crane-bob">
+            <span class="crane-falls"></span>
+            <svg class="crane-spreader" viewBox="0 0 202 26">
+              <path class="sp-head" d="M84 0 H118 L122 10 H80 Z" />
+              <circle class="sp-sheave" cx="101" cy="5" r="2.6" />
+              <path class="sp-strut" d="M84 10 L40 13 M118 10 L162 13" />
+              <rect class="sp-beam" x="0" y="12" width="202" height="10" />
+              <rect class="sp-beam-shade" x="0" y="19" width="202" height="3" />
+              <rect class="sp-end" x="0" y="10" width="11" height="12" />
+              <rect class="sp-end" x="191" y="10" width="11" height="12" />
+              <rect class="sp-pin" x="3" y="22" width="5" height="4" />
+              <rect class="sp-pin" x="194" y="22" width="5" height="4" />
+              <circle class="sp-lamp" cx="22" cy="16.5" r="2.4" />
+              <circle class="sp-lamp" cx="180" cy="16.5" r="2.4" />
+            </svg>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -203,16 +232,119 @@ const lit = (r: number, c: number) => (r * 7 + c * 3) % 5 === 0;
 ))}
 
 <script>
+  // Spreader geometry in drawing units (the ship is drawn in a 1000 x 560 box).
+  const SPREADER_H = 26; // headblock to the tips of the twistlocks
+  const SEAT = 22; // spreader top above the container roof with the twistlocks home
+  const CRANE_TOP = -20; // where the falls leave the picture
+  const IDLE = 80; // spreader top while it waits over the stack
+  const LIFTED = 34; // container roof once it is hoisted clear
+  const BOX_H = 70;
+
   const reduce = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const crane = document.querySelector<HTMLElement>('.crane');
+  const hoist = crane?.querySelector<HTMLElement>('.crane-hoist') ?? null;
+  // Percentages of the element's own height, so a resize mid-lift keeps everything lined up.
+  const at = (y: number) => `translateY(${((y - CRANE_TOP) / SPREADER_H) * 100}%)`;
+  const wait = (ms: number) => new Promise((r) => window.setTimeout(r, ms));
+
+  let hoistY = IDLE;
+  if (hoist) hoist.style.transform = at(IDLE);
+
+  // Run one move and leave the element where it stopped, without piling up finished animations.
+  const move = async (el: HTMLElement, to: string, ms: number) => {
+    const a = el.animate([{ transform: getComputedStyle(el).transform }, { transform: to }], {
+      duration: ms,
+      easing: 'cubic-bezier(0.45, 0, 0.25, 1)',
+      fill: 'forwards',
+    });
+    await a.finished;
+    a.commitStyles();
+    a.cancel();
+  };
+  const raise = (y: number, ms: number) => {
+    const from = hoistY;
+    hoistY = y;
+    return hoist && from !== y ? move(hoist, at(y), ms) : Promise.resolve();
+  };
+
+  let queue: Promise<void> = Promise.resolve();
+  let working = false; // the crane is busy with a box
+  let claimed = false; // a box has been picked and its card has not been closed yet
+  let arrives = 0; // when the trolley finishes its current run
+
+  // Trolley out over a bay; resolves once it is there, even if a hover sent it on its way.
+  const aim = async (btn: HTMLButtonElement) => {
+    if (!crane) return;
+    if (crane.style.left !== btn.style.left) {
+      crane.style.left = btn.style.left;
+      arrives = performance.now() + 480;
+    }
+    if (!reduce()) await wait(Math.max(0, arrives - performance.now()));
+  };
+
+  const unload = async (btn: HTMLButtonElement, dialog: HTMLDialogElement) => {
+    working = true;
+    crane?.classList.add('is-busy');
+    if (reduce() || !crane || !hoist) {
+      btn.classList.add('is-open');
+      dialog.showModal();
+      return;
+    }
+    const roof = Number(btn.dataset.top);
+    await aim(btn);
+    await raise(roof - SEAT, 160 + Math.abs(roof - SEAT - hoistY) * 2.6);
+    crane.classList.add('is-locked');
+    await wait(240);
+    btn.classList.add('is-hoisted');
+    await Promise.all([
+      raise(LIFTED - SEAT, 780),
+      move(btn, `translateY(${((LIFTED - roof) / BOX_H) * 100}%)`, 780),
+    ]);
+    // Swing the panel open while it hangs, then bring the card out of the hold.
+    btn.classList.add('is-open');
+    await wait(380);
+    dialog.showModal();
+  };
+
+  const setDown = async (btn: HTMLButtonElement) => {
+    btn.classList.remove('is-open');
+    if (reduce() || !crane || !hoist) {
+      btn.classList.remove('is-hoisted');
+      crane?.classList.remove('is-busy', 'is-locked');
+      working = false;
+      return;
+    }
+    const roof = Number(btn.dataset.top);
+    await wait(420); // the panel shuts first
+    await Promise.all([raise(roof - SEAT, 700), move(btn, 'translateY(0%)', 700)]);
+    btn.style.transform = '';
+    btn.classList.remove('is-hoisted');
+    crane.classList.remove('is-locked');
+    await wait(180);
+    await raise(IDLE, 140 + Math.abs(IDLE - hoistY) * 2.6);
+    crane.classList.remove('is-busy');
+    working = false;
+  };
+
   document.querySelectorAll<HTMLButtonElement>('button[data-box]').forEach((btn) => {
     const dialog = document.getElementById(btn.dataset.box!) as HTMLDialogElement | null;
     if (!dialog) return;
+    // The trolley follows the pointer (or keyboard focus) from bay to bay.
+    const follow = () => {
+      if (!working && !claimed) aim(btn);
+    };
+    btn.addEventListener('pointerenter', follow);
+    btn.addEventListener('focus', follow);
     btn.addEventListener('click', () => {
-      btn.classList.add('is-open');
-      // Let the panel swing before the card comes out of the hold.
-      window.setTimeout(() => dialog.showModal(), reduce() ? 0 : 520);
+      if (claimed) return;
+      claimed = true;
+      // Picked while another box is still being set down: it waits its turn.
+      queue = queue.then(() => unload(btn, dialog)).catch(console.error);
     });
-    dialog.addEventListener('close', () => btn.classList.remove('is-open'));
+    dialog.addEventListener('close', () => {
+      claimed = false;
+      queue = queue.then(() => setDown(btn)).catch(console.error);
+    });
     // A click on the backdrop closes it; the card itself fills the dialog box.
     dialog.addEventListener('click', (e) => {
       if (e.target === dialog) dialog.close();
@@ -238,12 +370,29 @@ const lit = (r: number, c: number) => (r * 7 + c * 3) % 5 === 0;
 
   /* Lined up over the first bay, so it stays on screen when a phone crops the ship. */
   .hint {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
     margin-inline-start: 24.8%;
     margin-block-end: 0.75rem;
-    color: var(--on-plate-muted);
+    color: var(--on-plate);
     font-family: var(--font-mono);
-    font-size: 0.6875rem;
+    font-size: 0.75rem;
+    font-weight: 600;
     text-transform: uppercase;
+  }
+  /* A slow status lamp in the funnel-band red. */
+  .hint-lamp {
+    flex: none;
+    inline-size: 0.5rem;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: var(--spot);
+    animation: lamp 2.4s ease-out infinite;
+  }
+  @keyframes lamp {
+    0% { box-shadow: 0 0 0 0 rgb(244 69 79 / 0.55); }
+    70%, 100% { box-shadow: 0 0 0 0.45rem rgb(244 69 79 / 0); }
   }
 
   /* The waterline sits at 81.4% of the drawing; this pulls the box's bottom edge up to it so the
@@ -355,7 +504,18 @@ const lit = (r: number, c: number) => (r * 7 + c * 3) % 5 === 0;
     container-type: inline-size;
     perspective: 700px;
     cursor: pointer;
-    transition: transform 260ms cubic-bezier(0.2, 0.7, 0.2, 1);
+    /* `translate` is the hover nudge and the hello hop; `transform` belongs to the crane. */
+    transition: translate 260ms cubic-bezier(0.2, 0.7, 0.2, 1), filter 260ms;
+  }
+  /* Once, shortly after the page settles, the project boxes hop in turn: these ones move. */
+  button.box {
+    animation: hello 700ms cubic-bezier(0.3, 0.7, 0.3, 1) calc(1.4s + var(--i, 0) * 110ms) 1 backwards;
+  }
+  @keyframes hello {
+    0%, 100% { translate: 0 0; }
+    35% { translate: 0 -14%; }
+    60% { translate: 0 0; }
+    75% { translate: 0 -4%; }
   }
   .box[data-tone='ink'] { --c: #33363b; --rib: #25272b; --ink: #ececea; --post: #1b1c1f; }
   .box[data-tone='bone'] { --c: #cfcfc8; --rib: #aeaea7; --ink: #141416; --post: #8f8f88; }
@@ -363,12 +523,17 @@ const lit = (r: number, c: number) => (r * 7 + c * 3) % 5 === 0;
   .box[data-tone='deep'] { --c: #8e1c26; --rib: #6e141c; --ink: #ffffff; --post: #520e14; }
   .box-filler { cursor: default; }
 
-  /* Lifted by the crane on hover. */
+  /* Hover: the box rises a touch on its lashings and catches the light. */
   button.box:hover,
-  button.box:focus-visible,
-  button.box.is-open {
-    transform: translateY(-9%);
+  button.box:focus-visible {
+    translate: 0 -6%;
+    filter: brightness(1.12);
     z-index: 2;
+  }
+  button.box.is-hoisted {
+    translate: 0 0;
+    filter: none;
+    z-index: 3;
   }
   button.box:focus-visible {
     outline: 2px solid var(--on-plate);
@@ -463,6 +628,55 @@ const lit = (r: number, c: number) => (r * 7 + c * 3) % 5 === 0;
     font-weight: 600;
     line-height: 1;
   }
+
+  /* ── The crane ── */
+  .crane {
+    position: absolute;
+    top: calc(-20 / 560 * 100%);
+    bottom: 0;
+    z-index: 4;
+    overflow: hidden;
+    pointer-events: none;
+    /* The falls fade out where they leave the picture. */
+    -webkit-mask-image: linear-gradient(to bottom, transparent, #000 5%);
+    mask-image: linear-gradient(to bottom, transparent, #000 5%);
+    transition: left 480ms cubic-bezier(0.45, 0, 0.25, 1);
+  }
+  .crane-hoist {
+    position: absolute;
+    inset-inline: 0;
+    top: 0;
+  }
+  .crane-bob { position: relative; animation: bob 4.5s ease-in-out infinite; }
+  .crane.is-busy .crane-bob { animation: none; }
+  @keyframes bob {
+    0%, 100% { translate: 0 0; }
+    50% { translate: 0 18%; }
+  }
+  .crane-falls {
+    position: absolute;
+    bottom: 100%;
+    left: 46%;
+    inline-size: 8%;
+    block-size: 200vh;
+    border-inline: 1.5px solid #8d9298;
+  }
+  .crane-spreader {
+    display: block;
+    inline-size: 100%;
+    block-size: auto;
+    overflow: visible;
+    filter: drop-shadow(0 2px 2px rgb(0 0 0 / 0.35));
+  }
+  .sp-head { fill: #2b2f34; }
+  .sp-sheave { fill: #8d9298; }
+  .sp-strut { fill: none; stroke: #2b2f34; stroke-width: 2.5; }
+  .sp-beam { fill: #e3a91c; }
+  .sp-beam-shade { fill: #b07f0f; }
+  .sp-end { fill: #c8901a; }
+  .sp-pin { fill: #15171a; }
+  .sp-lamp { fill: #f1c36a; transition: fill 160ms; }
+  .crane.is-locked .sp-lamp { fill: #3ddc84; }
 
   /* The hold behind the panel: dark steel, a lamp, the cargo lashed inside. */
   .box-hold {
