@@ -9,6 +9,7 @@ import filekitShot from '../../../docs/filekit.png';
 import noteReadShot from '../../../docs/noteread.png';
 import boardShot from '../../../docs/board.png';
 import siteShot from '../../../docs/lukeda.png';
+import rumboShot from '../../../docs/rumbo.png';
 import { links } from '../config';
 
 export interface Link {
@@ -64,6 +65,19 @@ export const projects: Project[] = [
     links: [
       { label: 'Open', href: '/wordlist/' },
       { label: 'Source', href: repoTree('wordlist') },
+    ],
+  },
+  {
+    name: 'Rumbo',
+    summary: 'Voice tax copilot for digital nomads. HackFinance 2026.',
+    detail:
+      'Built by a team of six at HackFinance 2026 (Madrid Engineering Week). Rumbo counts the days spent in each country, estimates where you are tax resident this year and why, warns before a stay crosses a threshold, and sets tax aside from every invoice; a voice advisor answers with your own data. I wrote the product spec the team built from, the first working prototype (residency engine for five countries, ElevenLabs voice agent, web app), and the React front end that shipped in the final app, then gave the pitch.',
+    stack: ['JavaScript', 'React', 'Python', 'FastAPI', 'ElevenLabs', 'Claude API', 'MyInvestor (mock)'],
+    image: rumboShot,
+    imageAlt: 'Rumbo dashboard: 140 days in Portugal with 43 left before residency, estimated tax residence Spain',
+    links: [
+      { label: 'Source', href: 'https://github.com/LucasRuizGomez/rumbo-hackfinance2026' },
+      { label: 'My branch', href: 'https://github.com/LucasRuizGomez/rumbo-hackfinance2026/tree/lucas/motor-fiscal' },
     ],
   },
   {
@@ -133,8 +147,8 @@ export const competitions: Award[] = [
   },
   {
     when: 'Nov 2026',
-    title: 'Rumbo, Madrid Engineering Week finance hackathon',
-    note: 'Built and presented at the hackathon run by BEST UC3M.',
+    title: 'Rumbo, HackFinance 2026',
+    note: 'Voice tax copilot for digital nomads, built by a team of six at the Madrid Engineering Week hackathon on the sponsors’ stack: an ElevenLabs voice agent, the Claude API and a mock of MyInvestor’s banking API. I wrote the spec and the front end, and gave the pitch.',
   },
   {
     when: '2024',
